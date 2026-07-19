@@ -1,0 +1,8 @@
+FROM mongo:6.0
+
+# Add initialization scripts
+COPY mongo-init.js /docker-entrypoint-initdb.d/
+
+# Add basic health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet || exit 1

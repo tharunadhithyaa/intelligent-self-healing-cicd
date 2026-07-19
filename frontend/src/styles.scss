@@ -1,0 +1,85 @@
+// ══════════════════════════════════════════
+// CivicPulse AI Assistant – Global Styles
+// ══════════════════════════════════════════
+
+@use '@angular/material' as mat;
+@use './styles/reset';
+@use './styles/typography';
+@use './styles/animations';
+@use './styles/material-overrides';
+
+// ─── Angular Material M3 Theme (Green Government) ───
+html {
+  height: 100%;
+  @include mat.theme((
+    color: (
+      primary: mat.$green-palette,
+      tertiary: mat.$chartreuse-palette,
+    ),
+    typography: Inter,
+    density: 0,
+  ));
+}
+
+body {
+  color-scheme: light;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font: var(--mat-sys-body-medium);
+  margin: 0;
+  height: 100%;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+// ─── Theming & Accessibility Overrides ───
+html.theme-dark {
+  @include mat.theme((
+    color: (
+      theme-type: dark,
+      primary: mat.$green-palette,
+      tertiary: mat.$chartreuse-palette,
+    ),
+    typography: Inter,
+    density: 0,
+  ));
+  color-scheme: dark;
+}
+
+html.theme-green {
+  @include mat.theme((
+    color: (
+      primary: mat.$green-palette,
+      tertiary: mat.$green-palette,
+    ),
+    typography: Inter,
+    density: 0,
+  ));
+}
+
+html.compact-mode {
+  @include mat.theme((
+    color: (
+      primary: mat.$green-palette,
+      tertiary: mat.$chartreuse-palette,
+    ),
+    typography: Inter,
+    density: -3,
+  ));
+}
+
+html.high-contrast {
+  filter: contrast(130%) saturate(120%);
+}
+
+html.reduced-motion {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html.large-text {
+  font-size: 115% !important;
+}

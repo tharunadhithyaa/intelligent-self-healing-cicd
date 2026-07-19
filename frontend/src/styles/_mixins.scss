@@ -1,0 +1,186 @@
+// ══════════════════════════════════════════
+// CivicPulse Design System – Mixins
+// ══════════════════════════════════════════
+
+@use 'variables' as *;
+
+// ─── Responsive Breakpoints ───
+@mixin xs {
+  @media (max-width: #{$breakpoint-sm - 1}) { @content; }
+}
+
+@mixin sm {
+  @media (min-width: $breakpoint-sm) { @content; }
+}
+
+@mixin md {
+  @media (min-width: $breakpoint-md) { @content; }
+}
+
+@mixin lg {
+  @media (min-width: $breakpoint-lg) { @content; }
+}
+
+@mixin xl {
+  @media (min-width: $breakpoint-xl) { @content; }
+}
+
+@mixin xxl {
+  @media (min-width: $breakpoint-2xl) { @content; }
+}
+
+@mixin ultra {
+  @media (min-width: $breakpoint-3xl) { @content; }
+}
+
+@mixin mobile-only {
+  @media (max-width: #{$breakpoint-md - 1}) { @content; }
+}
+
+@mixin tablet-only {
+  @media (min-width: $breakpoint-md) and (max-width: #{$breakpoint-lg - 1}) { @content; }
+}
+
+@mixin desktop-only {
+  @media (min-width: $breakpoint-lg) { @content; }
+}
+
+// ─── Flex Helpers ───
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// ─── Text ───
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ─── Card ───
+@mixin card-base {
+  background: $surface;
+  border-radius: $radius-lg;
+  border: 1px solid $border-light;
+  box-shadow: $shadow-card;
+  transition: box-shadow $transition-normal, transform $transition-normal;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-card-hover;
+    transform: translateY(-2px);
+  }
+}
+
+// ─── Button ───
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-2;
+  font-family: $font-family;
+  font-weight: $font-weight-semibold;
+  border: none;
+  cursor: pointer;
+  transition: all $transition-normal;
+  text-decoration: none;
+  outline: none;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// ─── Scrollbar ───
+@mixin custom-scrollbar($width: 6px) {
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $text-muted;
+    border-radius: $radius-full;
+
+    &:hover {
+      background: $text-secondary;
+    }
+  }
+
+  scrollbar-width: thin;
+  scrollbar-color: $text-muted transparent;
+}
+
+// ─── Focus Ring ───
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+// ─── Glass Effect ───
+@mixin glassmorphism($opacity: 0.8) {
+  background: color-mix(in srgb, var(--surface) calc(#{$opacity} * 100%), transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+// ─── Container ───
+@mixin container {
+  width: 100%;
+  max-width: $content-max-width;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: $spacing-4;
+  padding-right: $spacing-4;
+
+  @include md {
+    padding-left: $spacing-6;
+    padding-right: $spacing-6;
+  }
+
+  @include xl {
+    padding-left: $spacing-8;
+    padding-right: $spacing-8;
+  }
+}

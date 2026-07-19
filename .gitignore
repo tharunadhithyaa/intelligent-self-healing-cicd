@@ -1,0 +1,172 @@
+# ==============================================================================
+# CivicPulse AI - Enterprise .gitignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Environment Variables & Security
+# ------------------------------------------------------------------------------
+# Never commit sensitive configurations or secrets!
+.env
+.env.*
+!.env.example
+*.pem
+*.cert
+*.crt
+*.key
+*.p12
+*.pfx
+*.pub
+*secret*
+*credentials*
+firebase-adminsdk.json
+google-service-account.json
+aws-credentials.csv
+
+# ------------------------------------------------------------------------------
+# 2. Node.js & Dependencies
+# ------------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+.npm/
+.yarn/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+
+# ------------------------------------------------------------------------------
+# 3. Angular & Frontend Build Output
+# ------------------------------------------------------------------------------
+/frontend/dist/
+/frontend/tmp/
+/frontend/out-tsc/
+/frontend/bazel-out/
+/frontend/.angular/
+/frontend/.ngcc_lock_file
+/frontend/build/
+/frontend/compiled/
+*.js.map
+
+# ------------------------------------------------------------------------------
+# 4. Backend (Node.js/Express)
+# ------------------------------------------------------------------------------
+/backend/dist/
+/backend/build/
+/backend/tmp/
+/backend/logs/
+/backend/cache/
+/backend/generated/
+
+# ------------------------------------------------------------------------------
+# 5. MongoDB & Database
+# ------------------------------------------------------------------------------
+/database/data/
+/mongodb-data/
+*.rdb
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+dump/
+dumps/
+backups/
+mongod.lock
+
+# ------------------------------------------------------------------------------
+# 6. Docker
+# ------------------------------------------------------------------------------
+docker-compose.override.yml
+.docker/
+docker-volumes/
+.dockerignore
+# Do not ignore essential Dockerfiles or base compose files!
+
+# ------------------------------------------------------------------------------
+# 7. Logs
+# ------------------------------------------------------------------------------
+logs/
+*.log
+*.log.*
+app.log
+debug.log
+error.log
+access.log
+
+# ------------------------------------------------------------------------------
+# 8. Uploads, Media, & Exports
+# ------------------------------------------------------------------------------
+uploads/
+/backend/uploads/
+/frontend/src/assets/uploads/
+temp-uploads/
+generated-media/
+exports/
+
+# ------------------------------------------------------------------------------
+# 9. Reports & Testing Output
+# ------------------------------------------------------------------------------
+coverage/
+test-reports/
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
+docs-generated/
+
+# ------------------------------------------------------------------------------
+# 10. Archives
+# ------------------------------------------------------------------------------
+*.zip
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.7z
+
+# ------------------------------------------------------------------------------
+# 11. Caches & Runtime Files
+# ------------------------------------------------------------------------------
+.cache/
+.eslintcache
+.stylelintcache
+.tsbuildinfo
+*.pid
+*.seed
+*.lock
+!package-lock.json
+!yarn.lock
+!pnpm-lock.yaml
+
+# ------------------------------------------------------------------------------
+# 12. IDEs & Editors
+# ------------------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.history/
+.project
+.settings/
+.classpath
+
+# ------------------------------------------------------------------------------
+# 13. Operating System Files
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
