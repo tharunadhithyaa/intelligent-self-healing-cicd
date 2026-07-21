@@ -31,14 +31,9 @@ services:
     container_name: civicpulse-backend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8000:3000"
     volumes:
-      - ./backend:/app
-      - /app/node_modules
       - backend-logs:/app/logs
-    command: npm run dev
-    environment:
-      - NODE_ENV=development
     env_file:
       - ./backend/.env
     depends_on:
@@ -51,22 +46,17 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 180s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend
-      target: builder
     image: civicpulse/frontend-dev:v1
     container_name: civicpulse-frontend
     restart: unless-stopped
-    command: npm start -- --host 0.0.0.0
     ports:
-      - "4200:4200"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "4200:80"
     env_file:
       - ./frontend/.env
     depends_on:
@@ -74,13 +64,12 @@ services:
         condition: service_healthy
     networks:
       - civicpulse-network
-    # Use different healthcheck for Angular dev server
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:4200/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 180s
 
   nginx:
     build:
@@ -101,7 +90,7 @@ services:
     networks:
       - civicpulse-network
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
       interval: 30s
       timeout: 5s
       retries: 3

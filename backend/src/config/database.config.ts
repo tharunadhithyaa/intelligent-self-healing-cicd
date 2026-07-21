@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import config from './index';
 import { logger } from '../utils/logger.util';
 import Role from '../models/role.model';
+import User from '../models/user.model';
 import { Permissions } from '../constants/permissions.constants';
 
 const seedDefaultRoles = async (): Promise<void> => {
@@ -62,6 +63,30 @@ const seedDefaultRoles = async (): Promise<void> => {
   }
 };
 
+import bcrypt from 'bcrypt';
+
+const seedDefaultAdmin = async (): Promise<void> => {
+  try {
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (adminExists) return;
+
+    const hashedPassword = await bcrypt.hash('AdminPassword123!', 10);
+    const defaultAdmin = new User({
+      firstName: 'System',
+      lastName: 'Admin',
+      email: 'admin@civicpulse.com',
+      password: hashedPassword,
+      role: 'admin',
+      isVerified: true
+    });
+
+    await defaultAdmin.save();
+    logger.info('👤 Default admin user created successfully (admin@civicpulse.com)');
+  } catch (error) {
+    logger.error('Failed to seed default admin:', error);
+  }
+};
+
 export const connectDatabase = async (): Promise<void> => {
   try {
     mongoose.set('strictQuery', true);
@@ -86,6 +111,9 @@ export const connectDatabase = async (): Promise<void> => {
 
     // Seed default roles & permissions
     await seedDefaultRoles();
+    
+    // Seed default admin
+    await seedDefaultAdmin();
   } catch (error) {
     logger.error('Failed to connect to MongoDB:', error);
     process.exit(1);
