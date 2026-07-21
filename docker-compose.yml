@@ -5,7 +5,7 @@ services:
     build:
       context: ./database
       dockerfile: Dockerfile.mongodb
-    image: civicpulse/mongodb
+    image: civicpulse/mongodb:v1
     container_name: civicpulse-mongodb
     restart: unless-stopped
     ports:
@@ -27,7 +27,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.backend
-    image: civicpulse/backend
+    image: civicpulse/backend:v1
     container_name: civicpulse-backend
     restart: unless-stopped
     ports:
@@ -58,7 +58,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.frontend
       target: builder
-    image: civicpulse/frontend-dev
+    image: civicpulse/frontend-dev:v1
     container_name: civicpulse-frontend
     restart: unless-stopped
     command: npm start -- --host 0.0.0.0
