@@ -183,14 +183,61 @@ pipeline {
                     done
 
                     echo ""
-                    echo "🔍 Checking environment files..."
-                    for envfile in backend/.env frontend/.env; do
-                        if [ -f "$envfile" ]; then
-                            echo "  ✅ $envfile"
-                        else
-                            echo "  ⚠️  $envfile — MISSING (deployment may fail)"
-                        fi
-                    done
+                    echo "🔍 Checking and generating environment files..."
+                    # Generate .env files if missing (they are gitignored for security)
+                    chmod +x jenkins/scripts/generate-env.sh 2>/dev/null || true
+                    if [ -x jenkins/scripts/generate-env.sh ]; then
+                        ./jenkins/scripts/generate-env.sh
+                    else
+                        # Fallback: inline generation if script not available
+                        for envfile in backend/.env frontend/.env; do
+                            if [ -f "$envfile" ]; then
+                                echo "  ✅ $envfile"
+                            else
+                                echo "  ⚠️  $envfile — MISSING"
+                                TEMPLATE="${envfile%.env}.env.example"
+                                if [ -f "$TEMPLATE" ]; then
+                                    echo "  📋 Generating from $TEMPLATE..."
+                                    cp "$TEMPLATE" "$envfile"
+                                    # Fix MongoDB URI for Docker networking
+                                    sed -i 's|mongodb://localhost:|mongodb://mongodb:|' "$envfile"
+                                    echo "  ✅ $envfile generated from template"
+                                else
+                                    echo "  ❌ No template found — creating minimal defaults"
+                                    if echo "$envfile" | grep -q "backend"; then
+                                        cat > "$envfile" <<ENVEOF
+NODE_ENV=development
+PORT=3000
+MONGODB_URI=mongodb://mongodb:27017/civicpulse
+JWT_ACCESS_SECRET=civicpulse-ci-access-secret
+JWT_REFRESH_SECRET=civicpulse-ci-refresh-secret
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+CORS_ORIGIN=http://localhost:4200
+LOG_LEVEL=debug
+ENVEOF
+                                    else
+                                        cat > "$envfile" <<ENVEOF
+NODE_ENV=development
+API_URL=http://localhost:3000/api
+PORT=3000
+MONGODB_URI=mongodb://mongodb:27017/civicpulse
+JWT_ACCESS_SECRET=civicpulse-ci-access-secret
+JWT_REFRESH_SECRET=civicpulse-ci-refresh-secret
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=user
+SMTP_PASS=pass
+AI_API_KEY=your-ai-api-key-here
+ENVEOF
+                                    fi
+                                    echo "  ✅ $envfile generated with defaults"
+                                fi
+                            fi
+                        done
+                    fi
 
                     echo ""
                     echo "🔍 Checking Dockerfiles..."
