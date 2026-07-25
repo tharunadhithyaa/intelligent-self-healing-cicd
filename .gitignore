@@ -170,3 +170,11 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# ------------------------------------------------------------------------------
+# 14. Jenkins CI/CD
+# ------------------------------------------------------------------------------
+jenkins/workspace/
+jenkins/builds/
+jenkins/reports/
+*.jenkins.log
