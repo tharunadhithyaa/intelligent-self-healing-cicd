@@ -1,113 +1,132 @@
-# CivicPulse AI – Community Issue Reporting & Resolution Management System
+# Intelligent Self-Healing CI/CD Platform with Predictive Monitoring for Web Applications
 
-CivicPulse AI is an enterprise-grade municipal platform designed to digitize community reporting, automate ticket routing using lightweight AI semantic keywords classifiers, streamline worker workflows, and provide administrators with auditing controls, performance analytics, and dynamic role permissions.
+An enterprise-grade, automated CI/CD and DevOps orchestration framework. This platform is designed to provide robust, deterministic, and self-healing deployments alongside layered predictive monitoring for multi-container web applications.
 
----
-
-## 🌟 Key Features
-
-### 👤 Citizen Portal
-* **Wizard Complaint Stepper**: Standard 4-step wizard (Issue details, AI prediction overview, photos upload up to 3 files max 2MB, final confirmation).
-* **AI Copilot Widget**: Global floating chatbot helping citizens lookup ticket status, request guidance, or retrieve department contact directories.
-* **Incident Hub**: Tracks status updates, timelines, and resolution updates.
-
-### 👮 Officer Portal
-* **Inbox Dispatcher**: Grid separating submitted, assigned, and resolved incidents.
-* **Dynamic Assignment**: Assigns complaints to specific departments and selects active Field Workers.
-* **Suggested Actions**: AI copilot summarizer proposing workflow steps.
-
-### 👷 Field Worker Portal
-* **Task Dashboard**: Displays worker allocations.
-* **Roster Progress Update**: Actions to mark tasks as in-progress or submit resolution details (with notes).
-
-### 🛡️ Administrator Portal
-* **Control Center Dashboard**: Real-time overview count cards, monthly volume SVG trends, and incident hotspot heatmaps.
-* **Identity Controls**: Deactivate accounts, toggle security locks, or perform temporary password resets.
-* **Agencies & Rosters**: Add departments and reassign municipal officers with active workload safety checks.
-* **Immutable Logs Ledger**: Audit grid log trace tracking secure system configurations.
-* **Reports Summary**: Performance workload graphs and range-based CSV exports.
+As a reference workload, the platform deploys and monitors **CivicPulse AI**—a full-stack web application containing an Angular 17 frontend, Node.js/Express API gateway, MongoDB database, and Nginx reverse proxy.
 
 ---
 
-## ⚙️ Technology Stack
+## 📁 System Architecture & Core Layout
 
-* **Frontend**: Angular 17 (Standalone architecture, reactive Signals, SCSS stylesheets, Material icons).
-* **Backend**: Node.js, Express, TypeScript (`tsc`).
-* **Database**: MongoDB (Mongoose schemas, indexing constraints).
-* **Security & Caching**: Helmet headers, Cors, rate limiting, request sanitizer middlewares, in-memory API caching.
-* **Logging**: Winston logger (structured files and colorized console logging).
-* **Containers**: Docker multi-stage build scripts, Docker Compose files.
+The repository is structured into two main scopes: the **CI/CD Orchestration Layer** (Jenkins automation and deployment lifecycle management) and the **Target Web Application Layer** (distributed services ready for containerized deployment).
+
+```
+CivicPulseAI/
+├── jenkins/                      # CI/CD config and scripts
+│   ├── config/
+│   │   └── pipeline.env          # Centralized pipeline variables
+│   └── scripts/
+│       ├── cleanup.sh            # Post-build resource pruner
+│       ├── deploy.sh             # Graceful deployment orchestrator
+│       ├── generate-env.sh       # Secure environment config generator
+│       ├── generate-report.sh    # Post-deployment markdown reporter
+│       └── health-check.sh       # Multi-stage health verifier
+├── docs/                         # Detailed DevOps manuals
+│   ├── JENKINS_SETUP.md          # Jenkins installation & plugins guide
+│   ├── PIPELINE_ARCHITECTURE.md  # Detailed pipeline execution stages
+│   └── WEBHOOK_SETUP.md          # GitHub webhook webhook integration guide
+├── backend/                      # Node.js/Express TypeScript backend
+│   ├── src/                      # API modules, services, and models
+│   └── Dockerfile.backend        # Multi-stage Node production container
+├── frontend/                     # Angular 17 standalone web application
+│   ├── src/                      # Component views, services, and state
+│   └── Dockerfile.frontend       # Multi-stage production Nginx wrapper
+├── database/                     # MongoDB database container configuration
+│   └── Dockerfile.mongodb        # custom MongoDB 6.0 setup
+├── nginx/                        # Routing & Static Assets Reverse Proxy
+│   └── Dockerfile.nginx          # custom Nginx routing and cache config
+├── Jenkinsfile                   # Declarative pipeline script definition
+└── docker-compose.yml            # Multi-service runtime orchestrator
+```
+
+### Key Orchestration Files:
+*   [Jenkinsfile](file:///d:/Project/CivicPluseAI/Jenkinsfile): The core declarative CI/CD pipeline specifying 9 sequential execution stages.
+*   [docker-compose.yml](file:///d:/Project/CivicPluseAI/docker-compose.yml): Coordinates microservice boundaries, ports mapping, environment bindings, and healthy dependency structures.
+*   [deploy.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/deploy.sh): Automatically handles container teardowns, network prunes, and recreations.
+*   [health-check.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/health-check.sh): Performs robust layered verification.
+*   [pipeline.env](file:///d:/Project/CivicPluseAI/jenkins/config/pipeline.env): Global configuration values for ports, URLs, retry counts, and intervals.
 
 ---
 
-## 🛠️ Local Installation & Development
+## ⚡ Key Capabilities & Features
+
+### 🔄 1. Multi-Stage CI/CD Pipeline
+Automated end-to-end delivery split into 9 distinct execution stages:
+1.  **Checkout Source Code**: Clones source repo and captures git metadata (`GIT_COMMIT_SHORT`, `GIT_AUTHOR`).
+2.  **Environment Validation**: Check pre-requisites (Docker, Node, Git) and auto-generates default `.env` files.
+3.  **Install Dependencies**: Installs node modules in parallel (`npm ci`) for backend and frontend.
+4.  **Static Code Validation**: Evaluates code quality (ESLint, Prettier formatting check, and security vulnerability audits).
+5.  **Build Application**: Compiles Angular client and TypeScript backend in parallel.
+6.  **Docker Build**: Generates production-ready, size-optimized container images.
+7.  **Deployment**: Performs container restarts, cleans up exited instances, and runs network setups.
+8.  **Health Verification**: Initiates layered service validations.
+9.  **Deployment Report**: Compiles diagnostics statistics and publishes execution reports.
+
+### 🛡️ 2. Intelligent Self-Healing Deployments
+The deployment engine executes automated self-recovery procedures to eliminate downtime:
+*   **Deployment Retry Policy**: The [Jenkinsfile](file:///d:/Project/CivicPluseAI/Jenkinsfile) automatically catches startup/deployment failures, waits for system cooling, and triggers an automated retry of [deploy.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/deploy.sh).
+*   **Dependency-Chained Healthchecks**: Docker Compose enforces start ordering (`depends_on` conditions). The backend server waits for MongoDB to be `healthy` before booting, and Nginx/Frontend wait for backend health check approval.
+*   **Container Restart Policies**: Set to `unless-stopped` to auto-recover components from internal crashes or memory faults.
+
+### 📊 3. Predictive Health Monitoring
+Our [health-check.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/health-check.sh) script goes beyond basic port checkups:
+1.  **HTTP Layer Verification**: Resolves and queries specific application endpoints (e.g. `GET /api/health`, `GET /health` and `GET /`) expecting HTTP `200 OK`.
+2.  **Container Status Inspection**: Uses `docker inspect` to verify container status is `running` and health status is `healthy`.
+3.  **Port Response Profiling**: Directly verifies Nginx (port `80`) and Express API (port `8000`) bindings.
+4.  **Database Connection Auditing**: Checks deep backend-to-database bridge connectivity through downstream health metrics.
+5.  **Diagnostic Auto-Dumping**: If checks fail after maximum retries (configurable in [pipeline.env](file:///d:/Project/CivicPluseAI/jenkins/config/pipeline.env)), the script dumps service statuses, process details, and last 20 lines of container logs for rapid mitigation.
+
+### 🧹 4. Automated Resource Optimization
+Continuous resource conservation routines integrated inside [cleanup.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/cleanup.sh) and pipeline `post-always` tasks:
+*   Removes dangling and untagged Docker images.
+*   Discards exited and orphan container leftovers.
+*   Prunes unreferenced bridge networks.
+*   Enforces image history count limits (`BUILD_IMAGES_TO_KEEP=5`) to prevent build-node disk exhaustion.
+
+---
+
+## 🛠️ Local Development & Quick Start
 
 ### Prerequisites
-* **Node.js** (version 20.x or higher)
-* **MongoDB** (running locally on port `27017` or URI link)
+*   **Docker** (version 20.10.x or higher)
+*   **Docker Compose** (version 2.x or higher)
+*   **Node.js** (version 20.x or higher) & **npm**
 
-### 1. Setup Backend APIs
-Navigate to the `backend` folder:
+### 1. Configure the Environment
+Generate the required local `.env` configs from default templates by executing:
+```bash
+chmod +x jenkins/scripts/generate-env.sh
+./jenkins/scripts/generate-env.sh
+```
+
+### 2. Stand Up the Multi-Container Stack
+Build the service images locally and start the orchestration network:
+```bash
+docker compose up -d --build
+```
+
+Access local service endpoints:
+*   **Web Client (Frontend)**: [http://localhost](http://localhost) or [http://localhost:4200](http://localhost:4200)
+*   **Express API Server (Backend)**: [http://localhost:8000](http://localhost:8000)
+*   **Nginx Proxy Health**: [http://localhost/health](http://localhost/health)
+*   **API Health Gateway**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
+
+### 3. Run Static Code Audits & Integration Tests
+Navigate to the backend module to trigger tests:
 ```bash
 cd backend
 npm install
-```
-Create a `.env` file inside `backend/`:
-```env
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/civicpulse
-NODE_ENV=development
-JWT_ACCESS_SECRET=your-access-secret-key-123!
-JWT_REFRESH_SECRET=your-refresh-secret-key-123!
-JWT_ACCESS_EXPIRY=15m
-JWT_REFRESH_EXPIRY=7d
-```
-Launch the development server:
-```bash
-npm run dev
-```
-
-### 2. Setup Frontend Client
-Navigate to the `frontend` folder:
-```bash
-cd ../frontend
-npm install
-```
-Launch the angular client:
-```bash
-npm start
-```
-Open [http://localhost:4200](http://localhost:4200) in your browser.
-
----
-
-## 🧪 Running Integration Tests
-To run the automated test suite (user auth, JWT validations, local AI checks, caches, database CRUD):
-```bash
-cd backend
 npm test
 ```
 
 ---
 
-## 🐳 Docker Deployment
+## 📚 Technical Setup & References Guides
 
-The CivicPulse AI project uses an enterprise-grade multi-container architecture. Each service has its own dedicated Dockerfile:
-- `frontend/Dockerfile.frontend`: Multi-stage Angular build.
-- `backend/Dockerfile.backend`: Optimized Node.js Express server.
-- `database/Dockerfile.mongodb`: MongoDB 6.0 with initialization scripts.
-- `nginx/Dockerfile.nginx`: Reverse proxy routing traffic and handling compression.
+Detailed architecture manuals and instructions are available in the [docs/](file:///d:/Project/CivicPluseAI/docs) directory:
+*   **CI/CD Setup Manual**: [docs/JENKINS_SETUP.md](file:///d:/Project/CivicPluseAI/docs/JENKINS_SETUP.md) — Step-by-step setup for Jenkins, plugins, and execution permissions.
+*   **Pipeline Architecture**: [docs/PIPELINE_ARCHITECTURE.md](file:///d:/Project/CivicPluseAI/docs/PIPELINE_ARCHITECTURE.md) — Stage-by-stage parameters, environment flags, and build flow design.
+*   **Git Webhooks**: [docs/WEBHOOK_SETUP.md](file:///d:/Project/CivicPluseAI/docs/WEBHOOK_SETUP.md) — Linking Github pushes to automatically trigger pipeline execution.
+*   **System Design**: [ARCHITECTURE.md](file:///d:/Project/CivicPluseAI/ARCHITECTURE.md) — Detailed overview of database schemas, role permissions, and API structure.
+*   **API Directory**: [API_DOCUMENTATION.md](file:///d:/Project/CivicPluseAI/API_DOCUMENTATION.md) — REST API endpoints payload structures, roles requirements, and authentication.
 
-### Local Development Environment
-To start the application in development mode with live-reloading:
-```bash
-docker compose up --build
-```
-- **Frontend Access**: [http://localhost:4200](http://localhost:4200) or [http://localhost](http://localhost)
-- **Backend APIs Access**: [http://localhost:3000](http://localhost:3000)
-- **Health endpoint**: [http://localhost/health](http://localhost/health)
-
-### Environment Variables
-Environment variables are managed locally. Ensure you have the following files configured correctly:
-- `backend/.env`
-- `frontend/.env`
