@@ -128,5 +128,5 @@ Detailed architecture manuals and instructions are available in the [docs/](file
 *   **Pipeline Architecture**: [docs/PIPELINE_ARCHITECTURE.md](file:///d:/Project/CivicPluseAI/docs/PIPELINE_ARCHITECTURE.md) — Stage-by-stage parameters, environment flags, and build flow design.
 *   **Git Webhooks**: [docs/WEBHOOK_SETUP.md](file:///d:/Project/CivicPluseAI/docs/WEBHOOK_SETUP.md) — Linking Github pushes to automatically trigger pipeline execution.
 *   **System Design**: [ARCHITECTURE.md](file:///d:/Project/CivicPluseAI/ARCHITECTURE.md) — Detailed overview of database schemas, role permissions, and API structure.
-*   **API Directory**: [API_DOCUMENTATION.md](file:///d:/Project/CivicPluseAI/API_DOCUMENTATION.md) — REST API endpoints payload structures, roles requirements, and authentication.
+*   **API Directory**: [API_DOCUMENTATION.md](file:///d:/Project/CivicPluseAI/API_DOCUMENTATION.md) — REST API endpoints payload structures,roles requirements, and authentication.
 
