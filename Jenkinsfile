@@ -66,9 +66,6 @@ pipeline {
         HEALTH_RETRIES      = '10'
         HEALTH_INTERVAL     = '15'
         STARTUP_WAIT        = '30'
-
-        // Build metadata (auto-populated by Jenkins)
-        BUILD_TIMESTAMP     = sh(script: 'date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown"', returnStdout: true).trim()
     }
 
     stages {
@@ -93,7 +90,8 @@ pipeline {
                     env.GIT_COMMIT_FULL  = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                     env.GIT_AUTHOR       = sh(script: 'git log -1 --pretty=format:"%an"', returnStdout: true).trim()
                     env.GIT_MESSAGE      = sh(script: 'git log -1 --pretty=format:"%s"', returnStdout: true).trim()
-                    env.GIT_BRANCH_NAME  = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    env.GIT_BRANCH_NAME  = env.BRANCH_NAME ?: env.GIT_BRANCH ?: params.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    env.BUILD_TIMESTAMP  = sh(script: 'date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown"', returnStdout: true).trim()
                 }
 
                 echo "✅ Repository cloned successfully"

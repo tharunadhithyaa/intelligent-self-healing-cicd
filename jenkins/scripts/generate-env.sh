@@ -62,7 +62,7 @@ else
         cat > backend/.env <<EOF
 # Server
 NODE_ENV=${DEPLOY_ENV}
-PORT=${BACKEND_PORT}
+PORT=3000
 
 # MongoDB
 MONGODB_URI=mongodb://${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DB}
@@ -100,7 +100,7 @@ NODE_ENV=${DEPLOY_ENV}
 API_URL=http://localhost:${BACKEND_PORT}/api
 
 # Stubbed backend variables required by Docker Compose env_file
-PORT=${BACKEND_PORT}
+PORT=3000
 MONGODB_URI=mongodb://${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DB}
 JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
 JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}

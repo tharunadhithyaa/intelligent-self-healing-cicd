@@ -28,11 +28,18 @@
   },
   "devDependencies": {
     "@angular/build": "^22.0.7",
-    "@angular/cli": "^22.0.7",
+    "@angular/cli": "^21.0.4",
     "@angular/compiler-cli": "^22.0.0",
     "@types/dompurify": "^3.0.5",
     "@types/marked": "^5.0.2",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "esbuild@0.27.7": true,
+    "@parcel/watcher@2.5.6": true,
+    "lmdb@3.5.4": true,
+    "msgpackr-extract@3.0.4": true
   }
 }

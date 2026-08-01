@@ -114,6 +114,7 @@ test-results/
 cypress/videos/
 cypress/screenshots/
 docs-generated/
+.nyc_output/
 
 # ------------------------------------------------------------------------------
 # 10. Archives
@@ -139,6 +140,7 @@ docs-generated/
 !package-lock.json
 !yarn.lock
 !pnpm-lock.yaml
+!bun.lockb
 
 # ------------------------------------------------------------------------------
 # 12. IDEs & Editors
@@ -157,6 +159,7 @@ docs-generated/
 .project
 .settings/
 .classpath
+*.code-workspace
 
 # ------------------------------------------------------------------------------
 # 13. Operating System Files
@@ -178,3 +181,17 @@ jenkins/workspace/
 jenkins/builds/
 jenkins/reports/
 *.jenkins.log
+
+# ------------------------------------------------------------------------------
+# 15. Python & Virtual Environments
+# ------------------------------------------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt

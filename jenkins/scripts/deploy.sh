@@ -43,9 +43,7 @@ log_ok "Network cleanup complete"
 
 # ── Step 4: Deploy Fresh ─────────────────────────────────────────────────────
 log_info "Step 4/5 — Starting fresh deployment..."
-docker compose up -d --build --force-recreate 2>&1
-
-if [ $? -ne 0 ]; then
+if ! docker compose up -d --build --force-recreate 2>&1; then
     log_error "docker compose up failed!"
     docker compose logs --tail 30 2>/dev/null || true
     exit 1
