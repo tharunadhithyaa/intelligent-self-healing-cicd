@@ -27,7 +27,7 @@ log_error() { echo -e "${RED}[HEALTH]${NC} ❌ $*"; }
 MAX_RETRIES=10
 INTERVAL=15
 BACKEND_URL="http://localhost:8000"
-APP_URL="http://localhost"
+APP_URL="http://localhost:4200"
 
 # ── Parse Arguments ───────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do

@@ -57,7 +57,7 @@ pipeline {
         DOCKER_IMAGE_PREFIX = 'civicpulse'
 
         // Application URLs (single-server deployment)
-        APP_URL             = 'http://localhost'
+        APP_URL             = 'http://localhost:4200'
         BACKEND_URL         = 'http://localhost:8000'
         HEALTH_ENDPOINT     = '/api/health'
         NGINX_HEALTH        = '/health'
