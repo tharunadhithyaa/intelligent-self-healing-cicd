@@ -5,7 +5,18 @@
 # Cleans up temporary Docker resources and build artifacts.
 # Called by Jenkinsfile post-actions.
 # ============================================================================
-set -uo pipefail
+set -euo pipefail
+
+# ── Load pipeline environment variables ───────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../config/pipeline.env" ]; then
+    set +u
+    source "${SCRIPT_DIR}/../config/pipeline.env"
+    set -u
+fi
+
+# Export project name for Docker Compose
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-civicpulse}"
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -54,8 +65,9 @@ log_ok "Temporary files cleaned"
 log_info "Checking for old build-tagged images..."
 # Keep only the 5 most recent build-tagged images per service
 SERVICES=("mongodb" "backend" "frontend" "nginx")
+IMAGE_PREFIX="${DOCKER_IMAGE_PREFIX:-civicpulse}"
 for svc in "${SERVICES[@]}"; do
-    OLD_IMAGES=$(docker images "civicpulse/${svc}" --format "{{.Tag}} {{.ID}}" 2>/dev/null | \
+    OLD_IMAGES=$(docker images "${IMAGE_PREFIX}/${svc}" --format "{{.Tag}} {{.ID}}" 2>/dev/null | \
                  grep "^build-" | sort -t'-' -k2 -rn | tail -n +6 | awk '{print $2}' || true)
     if [ -n "$OLD_IMAGES" ]; then
         echo "$OLD_IMAGES" | xargs docker rmi -f 2>/dev/null || true

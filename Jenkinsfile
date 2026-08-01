@@ -577,11 +577,15 @@ ENVEOF
         always {
             echo '🧹 Running post-pipeline cleanup...'
             sh '''
-                # Prune dangling Docker images (silent failures)
-                docker image prune -f 2>/dev/null || true
-
-                # Remove any temporary files created during the pipeline
-                rm -rf /tmp/civicpulse-* 2>/dev/null || true
+                # Run centralized post-build cleanup script
+                chmod +x jenkins/scripts/cleanup.sh 2>/dev/null || true
+                if [ -x jenkins/scripts/cleanup.sh ]; then
+                    ./jenkins/scripts/cleanup.sh
+                else
+                    # Fallback inline cleanup
+                    docker image prune -f 2>/dev/null || true
+                    rm -rf /tmp/civicpulse-* 2>/dev/null || true
+                fi
             '''
             // Clean Jenkins workspace
             cleanWs(

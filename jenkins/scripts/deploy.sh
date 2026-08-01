@@ -7,6 +7,17 @@
 # ============================================================================
 set -euo pipefail
 
+# ── Load pipeline environment variables ───────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/../config/pipeline.env" ]; then
+    set +u
+    source "${SCRIPT_DIR}/../config/pipeline.env"
+    set -u
+fi
+
+# Export project name for Docker Compose
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-civicpulse}"
+
 # ── Colors ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -20,11 +31,30 @@ log_warn()  { echo -e "${YELLOW}[DEPLOY]${NC} ⚠️  $*"; }
 log_error() { echo -e "${RED}[DEPLOY]${NC} ❌ $*"; }
 
 # ── Step 1: Graceful Shutdown ─────────────────────────────────────────────────
-log_info "Step 1/5 — Stopping previous deployment..."
+log_info "Step 1/5 — Stopping previous deployment for project '${COMPOSE_PROJECT_NAME}'..."
 docker compose down --remove-orphans --timeout 30 2>/dev/null || {
     log_warn "No previous deployment found or already stopped"
 }
 log_ok "Previous containers stopped"
+
+# ── Step 1.5: Resolve Potential Container Name Conflicts ──────────────────────
+log_info "Checking for potential container name conflicts..."
+CONFLICTING_CONTAINERS=(
+    "${MONGODB_CONTAINER:-civicpulse-mongodb}"
+    "${BACKEND_CONTAINER:-civicpulse-backend}"
+    "${FRONTEND_CONTAINER:-civicpulse-frontend}"
+    "${NGINX_CONTAINER:-civicpulse-nginx}"
+)
+
+for container in "${CONFLICTING_CONTAINERS[@]}"; do
+    if docker ps -a --format '{{.Names}}' | grep -Eq "^${container}$"; then
+        log_warn "Conflicting container '$container' detected (possibly from another compose project or manual run)."
+        log_info "Stopping and removing '$container' to ensure deployment idempotency..."
+        docker stop "$container" 2>/dev/null || true
+        docker rm -f "$container" 2>/dev/null || true
+        log_ok "Successfully cleared conflicting container: $container"
+    fi
+done
 
 # ── Step 2: Remove Exited Containers ─────────────────────────────────────────
 log_info "Step 2/5 — Removing exited containers..."
