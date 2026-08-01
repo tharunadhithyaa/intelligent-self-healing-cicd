@@ -80,7 +80,6 @@ mongod.lock
 docker-compose.override.yml
 .docker/
 docker-volumes/
-.dockerignore
 # Do not ignore essential Dockerfiles or base compose files!
 
 # ------------------------------------------------------------------------------
