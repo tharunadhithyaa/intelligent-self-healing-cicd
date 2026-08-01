@@ -49,6 +49,8 @@ import { AutoFocusDirective } from '../../../../shared/directives/auto-focus.dir
           <mat-form-field appearance="outline">
             <mat-label>Email Address</mat-label>
             <input
+              id="email"
+              name="email"
               matInput
               formControlName="email"
               type="email"
@@ -68,6 +70,8 @@ import { AutoFocusDirective } from '../../../../shared/directives/auto-focus.dir
           <mat-form-field appearance="outline">
             <mat-label>Password</mat-label>
             <input
+              id="password"
+              name="password"
               matInput
               formControlName="password"
               [type]="showPassword() ? 'text' : 'password'"

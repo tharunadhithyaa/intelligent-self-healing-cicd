@@ -212,8 +212,10 @@ import { MatInputModule } from '@angular/material/input';
                           <img [src]="img.base64Data" class="thumbnail" />
                         }
                       </div>
-                      <label class="file-label">
+                      <label class="file-label" for="before-photo-input">
                         <input
+                          id="before-photo-input"
+                          name="beforePhoto"
                           type="file"
                           (change)="onPhotoSelected($event, 'before')"
                           accept="image/*"
@@ -233,8 +235,10 @@ import { MatInputModule } from '@angular/material/input';
                           <img [src]="img.base64Data" class="thumbnail" />
                         }
                       </div>
-                      <label class="file-label">
+                      <label class="file-label" for="after-photo-input">
                         <input
+                          id="after-photo-input"
+                          name="afterPhoto"
                           type="file"
                           (change)="onPhotoSelected($event, 'after')"
                           accept="image/*"
