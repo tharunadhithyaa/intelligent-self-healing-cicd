@@ -63,14 +63,18 @@ log_ok "Temporary files cleaned"
 
 # ── Step 5: Remove Old Build-Tagged Images ────────────────────────────────────
 log_info "Checking for old build-tagged images..."
-# Keep only the 5 most recent build-tagged images per service
+# Keep only the 5 most recent build-tagged images per service to allow rollback
 SERVICES=("mongodb" "backend" "frontend" "nginx")
 IMAGE_PREFIX="${DOCKER_IMAGE_PREFIX:-civicpulse}"
 for svc in "${SERVICES[@]}"; do
-    OLD_IMAGES=$(docker images "${IMAGE_PREFIX}/${svc}" --format "{{.Tag}} {{.ID}}" 2>/dev/null | \
-                 grep "^build-" | sort -t'-' -k2 -rn | tail -n +6 | awk '{print $2}' || true)
-    if [ -n "$OLD_IMAGES" ]; then
-        echo "$OLD_IMAGES" | xargs docker rmi -f 2>/dev/null || true
+    # Get all tags matching 'build-*', sort them descending by build number, skip the first 5, and delete the rest
+    OLD_TAGS=$(docker images "${IMAGE_PREFIX}/${svc}" --format "{{.Tag}}" 2>/dev/null | \
+                grep "^build-" | sort -t'-' -k2 -rn | tail -n +6 || true)
+    if [ -n "$OLD_TAGS" ]; then
+        for tag in $OLD_TAGS; do
+            log_info "Removing old build tag: ${IMAGE_PREFIX}/${svc}:${tag}"
+            docker rmi "${IMAGE_PREFIX}/${svc}:${tag}" 2>/dev/null || true
+        done
         log_ok "Cleaned old build images for $svc"
     fi
 done

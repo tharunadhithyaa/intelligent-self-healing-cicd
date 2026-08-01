@@ -56,6 +56,15 @@ pipeline {
         // Docker image prefix
         DOCKER_IMAGE_PREFIX = 'civicpulse'
 
+        // Docker images
+        MONGODB_IMAGE       = 'civicpulse/mongodb'
+        BACKEND_IMAGE       = 'civicpulse/backend'
+        FRONTEND_IMAGE      = 'civicpulse/frontend'
+        NGINX_IMAGE         = 'civicpulse/nginx'
+
+        // Deployment image tag (production-grade build numbering strategy)
+        IMAGE_TAG           = "build-${env.BUILD_NUMBER}"
+
         // Application URLs (single-server deployment)
         APP_URL             = 'http://localhost'
         BACKEND_URL         = 'http://localhost:8000'
@@ -407,28 +416,22 @@ ENVEOF
                         '''
                     }
 
-                    // Build Docker images
+                    // Build Docker images with dynamic IMAGE_TAG
                     def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--pull'
                     sh """
-                        echo "🐳 Building Docker images (flags: ${buildFlags})..."
+                        echo "🐳 Building Docker images with tag ${IMAGE_TAG} (flags: ${buildFlags})..."
                         docker compose build ${buildFlags} 2>&1
                         echo ""
                         echo "✅ Docker images built successfully"
                     """
 
-                    // Tag images with build number for versioning
+                    // Also tag the built images as 'latest' for local/caching convenience
                     def services = ['mongodb', 'backend', 'frontend', 'nginx']
-                    def imageMap = [
-                        'mongodb' : 'civicpulse/mongodb:v1',
-                        'backend' : 'civicpulse/backend:v1',
-                        'frontend': 'civicpulse/frontend-dev:v1',
-                        'nginx'   : 'civicpulse/nginx'
-                    ]
                     for (svc in services) {
-                        def src = imageMap[svc]
-                        def dest = "${DOCKER_IMAGE_PREFIX}/${svc}:build-${BUILD_NUMBER}"
+                        def buildImage = "${DOCKER_IMAGE_PREFIX}/${svc}:${IMAGE_TAG}"
+                        def latestImage = "${DOCKER_IMAGE_PREFIX}/${svc}:latest"
                         sh """
-                            docker tag ${src} ${dest} || echo "⚠️  Could not tag ${src} → ${dest}"
+                            docker tag ${buildImage} ${latestImage} || echo "⚠️  Could not tag ${buildImage} → ${latestImage}"
                         """
                     }
 
