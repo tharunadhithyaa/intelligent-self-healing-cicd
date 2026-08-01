@@ -50,7 +50,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend
-    image: civicpulse/frontend-dev:v1
+    image: civicpulse/frontend:v1
     container_name: civicpulse-frontend
     restart: unless-stopped
     ports:
@@ -73,7 +73,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile.nginx
-    image: civicpulse/nginx
+    image: civicpulse/nginx:v1
     container_name: civicpulse-nginx
     restart: unless-stopped
     ports:
