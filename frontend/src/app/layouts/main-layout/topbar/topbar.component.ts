@@ -10,7 +10,15 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar.compon
 
 @Component({
   selector: 'app-topbar',
-  imports: [MatIconModule, MatButtonModule, MatMenuModule, MatDividerModule, MatBadgeModule, AvatarComponent, RouterLink],
+  imports: [
+    MatIconModule,
+    MatButtonModule,
+    MatMenuModule,
+    MatDividerModule,
+    MatBadgeModule,
+    AvatarComponent,
+    RouterLink,
+  ],
   template: `
     <header class="topbar" role="banner">
       <div class="topbar__left">
@@ -39,15 +47,8 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar.compon
         </button>
 
         <!-- User Menu -->
-        <button
-          class="topbar__user-btn"
-          [matMenuTriggerFor]="userMenu"
-          aria-label="User menu"
-        >
-          <app-avatar
-            [name]="authService.userFullName()"
-            [size]="36"
-          />
+        <button class="topbar__user-btn" [matMenuTriggerFor]="userMenu" aria-label="User menu">
+          <app-avatar [name]="authService.userFullName()" [size]="36" />
           <div class="topbar__user-info">
             <span class="topbar__user-name">{{ authService.userFullName() }}</span>
             <span class="topbar__user-role">{{ authService.userRole() }}</span>
@@ -103,119 +104,121 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar.compon
       </div>
     </header>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .topbar {
-      @include flex-between;
-      height: $topbar-height;
-      padding: 0 $spacing-4;
-      background: $surface;
-      border-bottom: 1px solid $border;
-      position: sticky;
-      top: 0;
-      z-index: $z-sticky;
+      .topbar {
+        @include flex-between;
+        height: $topbar-height;
+        padding: 0 $spacing-4;
+        background: $surface;
+        border-bottom: 1px solid $border;
+        position: sticky;
+        top: 0;
+        z-index: $z-sticky;
 
-      @include md {
-        padding: 0 $spacing-6;
-      }
-
-      &__left {
-        @include flex-start;
-        gap: $spacing-3;
-      }
-
-      &__menu-btn {
-        @include desktop-only {
-          display: none;
+        @include md {
+          padding: 0 $spacing-6;
         }
-      }
 
-      &__right {
-        @include flex-start;
-        gap: $spacing-2;
-      }
+        &__left {
+          @include flex-start;
+          gap: $spacing-3;
+        }
 
-      &__icon-btn {
-        color: $icon-secondary;
+        &__menu-btn {
+          @include desktop-only {
+            display: none;
+          }
+        }
 
-        &:hover {
+        &__right {
+          @include flex-start;
+          gap: $spacing-2;
+        }
+
+        &__icon-btn {
+          color: $icon-secondary;
+
+          &:hover {
+            color: $text-primary;
+          }
+        }
+
+        &__user-btn {
+          @include flex-start;
+          gap: $spacing-3;
+          padding: $spacing-2 $spacing-3;
+          border-radius: $radius-lg;
+          cursor: pointer;
+          background: none;
+          border: none;
+          transition: background $transition-fast;
+
+          &:hover {
+            background: $background;
+          }
+        }
+
+        &__user-info {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          text-align: left;
+
+          @include mobile-only {
+            display: none;
+          }
+        }
+
+        &__user-name {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-semibold;
           color: $text-primary;
+          @include text-truncate;
+          max-width: 150px;
+        }
+
+        &__user-role {
+          font-size: $font-size-xs;
+          color: $text-muted;
+          text-transform: capitalize;
+        }
+
+        &__chevron {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: $text-muted;
+
+          @include mobile-only {
+            display: none;
+          }
         }
       }
 
-      &__user-btn {
-        @include flex-start;
-        gap: $spacing-3;
-        padding: $spacing-2 $spacing-3;
-        border-radius: $radius-lg;
-        cursor: pointer;
-        background: none;
-        border: none;
-        transition: background $transition-fast;
-
-        &:hover {
-          background: $background;
-        }
-      }
-
-      &__user-info {
+      // Menu Header
+      .topbar__menu-header {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-
-        @include mobile-only {
-          display: none;
-        }
+        align-items: center;
+        gap: $spacing-3;
+        padding: $spacing-3 $spacing-4;
       }
 
-      &__user-name {
+      .topbar__menu-name {
         font-size: $font-size-sm;
         font-weight: $font-weight-semibold;
         color: $text-primary;
-        @include text-truncate;
-        max-width: 150px;
       }
 
-      &__user-role {
+      .topbar__menu-email {
         font-size: $font-size-xs;
         color: $text-muted;
-        text-transform: capitalize;
       }
-
-      &__chevron {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-        color: $text-muted;
-
-        @include mobile-only {
-          display: none;
-        }
-      }
-    }
-
-    // Menu Header
-    .topbar__menu-header {
-      display: flex;
-      align-items: center;
-      gap: $spacing-3;
-      padding: $spacing-3 $spacing-4;
-    }
-
-    .topbar__menu-name {
-      font-size: $font-size-sm;
-      font-weight: $font-weight-semibold;
-      color: $text-primary;
-    }
-
-    .topbar__menu-email {
-      font-size: $font-size-xs;
-      color: $text-muted;
-    }
-  `],
+    `,
+  ],
 })
 export class TopbarComponent {
   readonly menuToggle = output<void>();

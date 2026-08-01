@@ -6,7 +6,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { OfficerService, OfficerStats, DeptStats } from '../../../../core/services/officer.service';
-import { ChartComponent, ChartDataPoint } from '../../../../shared/components/chart/chart.component';
+import {
+  ChartComponent,
+  ChartDataPoint,
+} from '../../../../shared/components/chart/chart.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
@@ -20,7 +23,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
     MatButtonModule,
     MatProgressSpinnerModule,
     ChartComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <app-page-header
@@ -126,12 +129,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
           </mat-card-header>
           <mat-card-content>
             <div class="chart-box">
-              <app-chart
-                [data]="workloadChartData()"
-                type="bar"
-                [height]="200"
-                color="#6200ea"
-              />
+              <app-chart [data]="workloadChartData()" type="bar" [height]="200" color="#6200ea" />
             </div>
           </mat-card-content>
         </mat-card>
@@ -153,158 +151,177 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
             <div class="efficiency-info">
               <h3>{{ deptStats()?.performanceRate || 0 }}%</h3>
               <p>Municipal cases resolved out of total assigned files</p>
-              <button mat-stroked-button color="primary" routerLink="/officer/complaints">View All Files</button>
+              <button mat-stroked-button color="primary" routerLink="/officer/complaints">
+                View All Files
+              </button>
             </div>
           </mat-card-content>
         </mat-card>
       </div>
     }
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .loader-box {
-      @include flex-center;
-      min-height: 250px;
-    }
-
-    .error-box {
-      text-align: center;
-      padding: $spacing-8 $spacing-4;
-      background: $surface;
-      border-radius: $radius-lg;
-      margin: $spacing-6 0;
-
-      .error-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        color: #ff3d00;
-        margin-bottom: $spacing-4;
-      }
-    }
-
-    /* Stats Grid Layout */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: $spacing-4;
-      margin-bottom: $spacing-6;
-    }
-
-    .stat-card {
-      position: relative;
-      overflow: hidden;
-      border: 1px solid $border-light;
-      box-shadow: $shadow-sm;
-      transition: transform $transition-fast;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
-
-      &__header {
-        @include flex-between;
-        margin-bottom: $spacing-3;
-      }
-
-      &__title {
-        font-size: $font-size-xs;
-        color: $text-secondary;
-        font-weight: $font-weight-medium;
-      }
-
-      &__icon-box {
+      .loader-box {
         @include flex-center;
-        width: 32px;
-        height: 32px;
-        border-radius: $radius-md;
-        background: rgba(255, 255, 255, 0.05);
+        min-height: 250px;
+      }
 
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
+      .error-box {
+        text-align: center;
+        padding: $spacing-8 $spacing-4;
+        background: $surface;
+        border-radius: $radius-lg;
+        margin: $spacing-6 0;
+
+        .error-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          color: #ff3d00;
+          margin-bottom: $spacing-4;
         }
       }
 
-      &__value {
-        font-size: 28px;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-        line-height: 1.2;
-        margin-bottom: $spacing-2;
+      /* Stats Grid Layout */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: $spacing-4;
+        margin-bottom: $spacing-6;
       }
 
-      &__desc {
-        font-size: $font-size-xs;
-        color: $text-muted;
-      }
+      .stat-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid $border-light;
+        box-shadow: $shadow-sm;
+        transition: transform $transition-fast;
 
-      /* Roles-colored tags */
-      &--primary &__icon-box { background: rgba(98, 0, 234, 0.1); color: #6200ea; }
-      &--pending &__icon-box { background: rgba(255, 171, 0, 0.1); color: #ffab00; }
-      &--warn &__icon-box { background: rgba(255, 61, 0, 0.1); color: #ff3d00; }
-      &--success &__icon-box { background: rgba(0, 230, 118, 0.1); color: #00e676; }
-      &--info &__icon-box { background: rgba(0, 184, 212, 0.1); color: #00b8d4; }
-    }
-
-    /* Details layouts */
-    .dashboard-details {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: $spacing-6;
-
-      @include tablet-only {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .details-card {
-      border: 1px solid $border-light;
-      box-shadow: $shadow-sm;
-      background: $surface;
-
-      mat-card-header {
-        margin-bottom: $spacing-4;
-      }
-    }
-
-    .chart-box {
-      padding: $spacing-2;
-    }
-
-    .efficiency-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: $spacing-4;
-      padding: $spacing-4 0;
-
-      .radial-box {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-      }
-
-      .efficiency-info {
-        h3 {
-          font-size: 32px;
-          font-weight: $font-weight-bold;
-          margin: 0 0 $spacing-2 0;
-          color: var(--primary-color, #6200ea);
+        &:hover {
+          transform: translateY(-2px);
         }
-        p {
+
+        &__header {
+          @include flex-between;
+          margin-bottom: $spacing-3;
+        }
+
+        &__title {
           font-size: $font-size-xs;
           color: $text-secondary;
-          margin-bottom: $spacing-4;
-          max-width: 220px;
+          font-weight: $font-weight-medium;
+        }
+
+        &__icon-box {
+          @include flex-center;
+          width: 32px;
+          height: 32px;
+          border-radius: $radius-md;
+          background: rgba(255, 255, 255, 0.05);
+
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+          }
+        }
+
+        &__value {
+          font-size: 28px;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
+          line-height: 1.2;
+          margin-bottom: $spacing-2;
+        }
+
+        &__desc {
+          font-size: $font-size-xs;
+          color: $text-muted;
+        }
+
+        /* Roles-colored tags */
+        &--primary &__icon-box {
+          background: rgba(98, 0, 234, 0.1);
+          color: #6200ea;
+        }
+        &--pending &__icon-box {
+          background: rgba(255, 171, 0, 0.1);
+          color: #ffab00;
+        }
+        &--warn &__icon-box {
+          background: rgba(255, 61, 0, 0.1);
+          color: #ff3d00;
+        }
+        &--success &__icon-box {
+          background: rgba(0, 230, 118, 0.1);
+          color: #00e676;
+        }
+        &--info &__icon-box {
+          background: rgba(0, 184, 212, 0.1);
+          color: #00b8d4;
         }
       }
-    }
-  `]
+
+      /* Details layouts */
+      .dashboard-details {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: $spacing-6;
+
+        @include tablet-only {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .details-card {
+        border: 1px solid $border-light;
+        box-shadow: $shadow-sm;
+        background: $surface;
+
+        mat-card-header {
+          margin-bottom: $spacing-4;
+        }
+      }
+
+      .chart-box {
+        padding: $spacing-2;
+      }
+
+      .efficiency-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: $spacing-4;
+        padding: $spacing-4 0;
+
+        .radial-box {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+        }
+
+        .efficiency-info {
+          h3 {
+            font-size: 32px;
+            font-weight: $font-weight-bold;
+            margin: 0 0 $spacing-2 0;
+            color: var(--primary-color, #6200ea);
+          }
+          p {
+            font-size: $font-size-xs;
+            color: $text-secondary;
+            margin-bottom: $spacing-4;
+            max-width: 220px;
+          }
+        }
+      }
+    `,
+  ],
 })
 export class OfficerDashboardComponent implements OnInit {
   private readonly officerService = inject(OfficerService);
@@ -322,16 +339,14 @@ export class OfficerDashboardComponent implements OnInit {
       { label: 'Submitted', value: s.workload.submitted || 0 },
       { label: 'In Progress', value: s.workload.inProgress || 0 },
       { label: 'Waiting', value: s.workload.waiting || 0 },
-      { label: 'Resolved', value: s.workload.resolved || 0 }
+      { label: 'Resolved', value: s.workload.resolved || 0 },
     ];
   });
 
   efficiencyChartData = computed<ChartDataPoint[]>(() => {
     const s = this.deptStats();
     if (!s) return [];
-    return [
-      { label: 'Efficiency', value: s.performanceRate || 0 }
-    ];
+    return [{ label: 'Efficiency', value: s.performanceRate || 0 }];
   });
 
   ngOnInit(): void {
@@ -352,7 +367,7 @@ export class OfficerDashboardComponent implements OnInit {
       error: (err) => {
         this.error.set(err.error?.message || 'Failed to load officer control metrics');
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -366,7 +381,7 @@ export class OfficerDashboardComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-      }
+      },
     });
   }
 }

@@ -1,4 +1,14 @@
-import { Component, OnInit, signal, ElementRef, ViewChild, inject, ChangeDetectionStrategy, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  signal,
+  ElementRef,
+  ViewChild,
+  inject,
+  ChangeDetectionStrategy,
+  AfterViewInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -19,19 +29,23 @@ import { MarkdownPipe } from '../../pipes/markdown.pipe';
       <button
         class="chatbot-fab animate-pulse"
         (click)="toggleChat()"
-        [ngClass]="{'hide': isOpen()}"
+        [ngClass]="{ hide: isOpen() }"
         aria-label="Open AI Assistant"
       >
         <mat-icon>chat</mat-icon>
       </button>
 
       <!-- Chat Modal Panel -->
-      <div class="chatbot-panel" [ngClass]="{'open': isOpen()}">
+      <div class="chatbot-panel" [ngClass]="{ open: isOpen() }">
         <!-- Panel Header -->
         <div class="panel-header">
           <div class="header-title">
             <div class="logo-icon" style="background: transparent; padding: 0;">
-              <img src="logo.jpg" alt="Logo" style="width: 100%; height: 100%; border-radius: inherit; object-fit: cover;">
+              <img
+                src="logo.jpg"
+                alt="Logo"
+                style="width: 100%; height: 100%; border-radius: inherit; object-fit: cover;"
+              />
             </div>
             <div class="title-text">
               <h4>CivicPulse AI Assistant</h4>
@@ -53,7 +67,7 @@ import { MarkdownPipe } from '../../pipes/markdown.pipe';
                 } @else {
                   <p>{{ m.text }}</p>
                 }
-                <span class="time">{{ m.timestamp | date:'shortTime' }}</span>
+                <span class="time">{{ m.timestamp | date: 'shortTime' }}</span>
               </div>
               @if (m.sender === 'bot') {
                 <div class="msg-actions">
@@ -99,7 +113,12 @@ import { MarkdownPipe } from '../../pipes/markdown.pipe';
             ></textarea>
             <div class="char-count" *ngIf="newMessage.length > 0">{{ newMessage.length }}/500</div>
           </div>
-          <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim() || typing() || newMessage.length > 500" aria-label="Send Message">
+          <button
+            class="btn-send"
+            (click)="sendMessage()"
+            [disabled]="!newMessage.trim() || typing() || newMessage.length > 500"
+            aria-label="Send Message"
+          >
             <mat-icon *ngIf="!typing()">send</mat-icon>
             <mat-icon *ngIf="typing()" class="spinner">autorenew</mat-icon>
           </button>
@@ -107,449 +126,543 @@ import { MarkdownPipe } from '../../pipes/markdown.pipe';
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    /* Color Palette (Dynamic) */
-    $primary-green: var(--primary);
-    $secondary-green: var(--primary-hover);
-    $light-green: var(--primary-light);
-    $success-color: var(--success);
-    $surface-color: var(--surface);
-    $bg-color: var(--background);
-    $border-color: var(--border);
-    $text-main: var(--text-primary);
-    $text-muted: var(--text-secondary);
+      /* Color Palette (Dynamic) */
+      $primary-green: var(--primary);
+      $secondary-green: var(--primary-hover);
+      $light-green: var(--primary-light);
+      $success-color: var(--success);
+      $surface-color: var(--surface);
+      $bg-color: var(--background);
+      $border-color: var(--border);
+      $text-main: var(--text-primary);
+      $text-muted: var(--text-secondary);
 
-    .chatbot-container {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 1000;
-      font-family: 'Inter', Roboto, sans-serif;
-    }
-
-    /* FAB button styling */
-    .chatbot-fab {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: $primary-green;
-      border: none;
-      color: var(--text-inverse);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 14px rgba(46, 125, 50, 0.4);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-
-      mat-icon {
-        font-size: 28px;
-        width: 28px;
-        height: 28px;
+      .chatbot-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1000;
+        font-family: 'Inter', Roboto, sans-serif;
       }
 
-      &:hover {
-        transform: scale(1.05) translateY(-2px);
-        box-shadow: 0 6px 20px rgba(46, 125, 50, 0.5);
-        background: $secondary-green;
-      }
-
-      &.hide {
-        opacity: 0;
-        pointer-events: none;
-        transform: scale(0.5);
-      }
-    }
-
-    /* Modal Panel styling */
-    .chatbot-panel {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 400px;
-      height: 600px;
-      max-height: calc(100vh - 48px);
-      max-width: calc(100vw - 48px);
-      background: $bg-color;
-      border-radius: 16px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(0.95) translateY(10px);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      transform-origin: bottom right;
-
-      &.open {
-        opacity: 1;
-        pointer-events: auto;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    /* Header */
-    .panel-header {
-      padding: 16px 20px;
-      background: $surface-color;
-      border-bottom: 1px solid $border-color;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      .header-title {
+      /* FAB button styling */
+      .chatbot-fab {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: $primary-green;
+        border: none;
+        color: var(--text-inverse);
+        cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 12px;
-        .logo-icon {
-          color: $surface-color;
-          background: $primary-green;
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(46, 125, 50, 0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+
+        mat-icon {
+          font-size: 28px;
+          width: 28px;
+          height: 28px;
+        }
+
+        &:hover {
+          transform: scale(1.05) translateY(-2px);
+          box-shadow: 0 6px 20px rgba(46, 125, 50, 0.5);
+          background: $secondary-green;
+        }
+
+        &.hide {
+          opacity: 0;
+          pointer-events: none;
+          transform: scale(0.5);
+        }
+      }
+
+      /* Modal Panel styling */
+      .chatbot-panel {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 400px;
+        height: 600px;
+        max-height: calc(100vh - 48px);
+        max-width: calc(100vw - 48px);
+        background: $bg-color;
+        border-radius: 16px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.95) translateY(10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-origin: bottom right;
+
+        &.open {
+          opacity: 1;
+          pointer-events: auto;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      /* Header */
+      .panel-header {
+        padding: 16px 20px;
+        background: $surface-color;
+        border-bottom: 1px solid $border-color;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .header-title {
           display: flex;
           align-items: center;
-          justify-content: center;
-          mat-icon {
-            font-size: 22px;
-            width: 22px;
-            height: 22px;
-          }
-        }
-        .title-text {
-          display: flex;
-          flex-direction: column;
-          h4 {
-            margin: 0;
-            font-size: 15px;
-            font-weight: 600;
-            color: $text-main;
-          }
-          .status {
-            font-size: 12px;
-            color: $text-muted;
+          gap: 12px;
+          .logo-icon {
+            color: $surface-color;
+            background: $primary-green;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            .status-dot {
-              width: 8px;
-              height: 8px;
-              background-color: $success-color;
-              border-radius: 50%;
-              display: inline-block;
+            justify-content: center;
+            mat-icon {
+              font-size: 22px;
+              width: 22px;
+              height: 22px;
+            }
+          }
+          .title-text {
+            display: flex;
+            flex-direction: column;
+            h4 {
+              margin: 0;
+              font-size: 15px;
+              font-weight: 600;
+              color: $text-main;
+            }
+            .status {
+              font-size: 12px;
+              color: $text-muted;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              .status-dot {
+                width: 8px;
+                height: 8px;
+                background-color: $success-color;
+                border-radius: 50%;
+                display: inline-block;
+              }
             }
           }
         }
-      }
 
-      .btn-close {
-        background: none;
-        border: none;
-        color: $text-muted;
-        cursor: pointer;
-        padding: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        transition: background 0.2s, color 0.2s;
-        &:hover {
-          background: $light-green;
-          color: $primary-green;
-        }
-        mat-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-      }
-    }
-
-    /* Messages List */
-    .messages-list {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      scroll-behavior: smooth;
-
-      /* Scrollbar */
-      &::-webkit-scrollbar { width: 6px; }
-      &::-webkit-scrollbar-track { background: transparent; }
-      &::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 10px; }
-      &::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.2); }
-    }
-
-    .message-bubble-wrapper {
-      display: flex;
-      flex-direction: column;
-      max-width: 85%;
-      animation: messageSlideIn 0.25s ease-out forwards;
-      opacity: 0;
-      transform: translateY(10px);
-
-      &.user {
-        align-self: flex-end;
-        align-items: flex-end;
-      }
-
-      &.bot {
-        align-self: flex-start;
-        align-items: flex-start;
-      }
-    }
-
-    @keyframes messageSlideIn {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .message-bubble {
-      padding: 12px 16px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      position: relative;
-      word-wrap: break-word;
-
-      &.user {
-        background: $primary-green;
-        color: var(--text-inverse);
-        border-bottom-right-radius: 4px;
-        box-shadow: 0 2px 5px rgba(46, 125, 50, 0.2);
-        
-        p { margin: 0; white-space: pre-wrap; }
-        .time { color: rgba(255, 255, 255, 0.7); }
-      }
-
-      &.bot {
-        background: $surface-color;
-        color: $text-main;
-        border: 1px solid $border-color;
-        border-left: 4px solid $primary-green;
-        border-bottom-left-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        
-        .time { color: $text-muted; }
-      }
-
-      .time {
-        display: block;
-        font-size: 10px;
-        margin-top: 6px;
-        text-align: right;
-      }
-    }
-
-    .msg-actions {
-      display: flex;
-      gap: 4px;
-      margin-top: 4px;
-      margin-left: 8px;
-      
-      button {
-        background: none;
-        border: none;
-        color: $text-muted;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        transition: background 0.2s, color 0.2s;
-        
-        &:hover {
-          background: $light-green;
-          color: $primary-green;
-        }
-        
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-        }
-      }
-    }
-
-    /* Input Box */
-    .input-box {
-      padding: 16px 20px;
-      background: $surface-color;
-      border-top: 1px solid $border-color;
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-
-      .input-wrapper {
-        flex: 1;
-        position: relative;
-        background: $bg-color;
-        border: 1px solid $border-color;
-        border-radius: 24px;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        
-        &:focus-within {
-          border-color: $secondary-green;
-          box-shadow: 0 0 0 2px $light-green;
-        }
-
-        textarea {
-          width: 100%;
+        .btn-close {
+          background: none;
           border: none;
+          color: $text-muted;
+          cursor: pointer;
+          padding: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition:
+            background 0.2s,
+            color 0.2s;
+          &:hover {
+            background: $light-green;
+            color: $primary-green;
+          }
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+        }
+      }
+
+      /* Messages List */
+      .messages-list {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        scroll-behavior: smooth;
+
+        /* Scrollbar */
+        &::-webkit-scrollbar {
+          width: 6px;
+        }
+        &::-webkit-scrollbar-track {
           background: transparent;
-          padding: 12px 16px;
+        }
+        &::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.1);
+          border-radius: 10px;
+        }
+        &::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(0, 0, 0, 0.2);
+        }
+      }
+
+      .message-bubble-wrapper {
+        display: flex;
+        flex-direction: column;
+        max-width: 85%;
+        animation: messageSlideIn 0.25s ease-out forwards;
+        opacity: 0;
+        transform: translateY(10px);
+
+        &.user {
+          align-self: flex-end;
+          align-items: flex-end;
+        }
+
+        &.bot {
+          align-self: flex-start;
+          align-items: flex-start;
+        }
+      }
+
+      @keyframes messageSlideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message-bubble {
+        padding: 12px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.5;
+        position: relative;
+        word-wrap: break-word;
+
+        &.user {
+          background: $primary-green;
+          color: var(--text-inverse);
+          border-bottom-right-radius: 4px;
+          box-shadow: 0 2px 5px rgba(46, 125, 50, 0.2);
+
+          p {
+            margin: 0;
+            white-space: pre-wrap;
+          }
+          .time {
+            color: rgba(255, 255, 255, 0.7);
+          }
+        }
+
+        &.bot {
+          background: $surface-color;
           color: $text-main;
-          font-size: 14px;
-          font-family: inherit;
-          resize: none;
-          max-height: 120px;
-          outline: none;
-          line-height: 1.4;
-          box-sizing: border-box;
-          
-          &::placeholder {
+          border: 1px solid $border-color;
+          border-left: 4px solid $primary-green;
+          border-bottom-left-radius: 4px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+          .time {
             color: $text-muted;
           }
-          
-          &::-webkit-scrollbar { width: 4px; }
-          &::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 10px; }
         }
-        
-        .char-count {
-          position: absolute;
-          bottom: 4px;
-          right: 12px;
+
+        .time {
+          display: block;
           font-size: 10px;
+          margin-top: 6px;
+          text-align: right;
+        }
+      }
+
+      .msg-actions {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+        margin-left: 8px;
+
+        button {
+          background: none;
+          border: none;
           color: $text-muted;
-          pointer-events: none;
-        }
-      }
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          transition:
+            background 0.2s,
+            color 0.2s;
 
-      /* Explicit Light Theme Overrides */
-      :host-context(html:not(.theme-dark)) .input-wrapper {
-        background: #FFFFFF;
-        border-color: #DDE8DD;
-        
-        &:focus-within {
-          border-color: #2E7D32;
-          box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.15);
-        }
+          &:hover {
+            background: $light-green;
+            color: $primary-green;
+          }
 
-        textarea {
-          color: #1B1B1B !important;
-          caret-color: #1B1B1B;
-          
-          &::placeholder {
-            color: #6B7280 !important;
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
           }
         }
       }
 
-      /* Explicit Dark Theme Overrides */
-      :host-context(html.theme-dark) .input-wrapper {
-        textarea {
-          color: #FFFFFF !important;
-          caret-color: #4CAF50 !important;
-          
-          &::placeholder {
-            color: #9E9E9E !important;
+      /* Input Box */
+      .input-box {
+        padding: 16px 20px;
+        background: $surface-color;
+        border-top: 1px solid $border-color;
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+
+        .input-wrapper {
+          flex: 1;
+          position: relative;
+          background: $bg-color;
+          border: 1px solid $border-color;
+          border-radius: 24px;
+          transition:
+            border-color 0.2s,
+            box-shadow 0.2s;
+
+          &:focus-within {
+            border-color: $secondary-green;
+            box-shadow: 0 0 0 2px $light-green;
+          }
+
+          textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            padding: 12px 16px;
+            color: $text-main;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 120px;
+            outline: none;
+            line-height: 1.4;
+            box-sizing: border-box;
+
+            &::placeholder {
+              color: $text-muted;
+            }
+
+            &::-webkit-scrollbar {
+              width: 4px;
+            }
+            &::-webkit-scrollbar-thumb {
+              background-color: rgba(0, 0, 0, 0.1);
+              border-radius: 10px;
+            }
+          }
+
+          .char-count {
+            position: absolute;
+            bottom: 4px;
+            right: 12px;
+            font-size: 10px;
+            color: $text-muted;
+            pointer-events: none;
+          }
+        }
+
+        /* Explicit Light Theme Overrides */
+        :host-context(html:not(.theme-dark)) .input-wrapper {
+          background: #ffffff;
+          border-color: #dde8dd;
+
+          &:focus-within {
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.15);
+          }
+
+          textarea {
+            color: #1b1b1b !important;
+            caret-color: #1b1b1b;
+
+            &::placeholder {
+              color: #6b7280 !important;
+            }
+          }
+        }
+
+        /* Explicit Dark Theme Overrides */
+        :host-context(html.theme-dark) .input-wrapper {
+          textarea {
+            color: #ffffff !important;
+            caret-color: #4caf50 !important;
+
+            &::placeholder {
+              color: #9e9e9e !important;
+            }
+          }
+        }
+
+        .btn-send {
+          background: $primary-green;
+          border: none;
+          color: var(--text-inverse);
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+
+          &:hover:not(:disabled) {
+            background: $secondary-green;
+            transform: translateY(-1px);
+          }
+          &:disabled {
+            background: $border-color;
+            color: $text-muted;
+            cursor: not-allowed;
+            transform: none;
+          }
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
           }
         }
       }
 
-      .btn-send {
-        background: $primary-green;
-        border: none;
-        color: var(--text-inverse);
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
+      /* Typing Indicator */
+      .typing-bubble {
         display: flex;
         align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        flex-shrink: 0;
+        gap: 4px;
+        padding: 12px 16px !important;
 
-        &:hover:not(:disabled) {
-          background: $secondary-green;
-          transform: translateY(-1px);
-        }
-        &:disabled {
-          background: $border-color;
+        .typing-text {
+          font-size: 13px;
           color: $text-muted;
-          cursor: not-allowed;
-          transform: none;
+          margin-right: 4px;
         }
-        mat-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
+
+        .dot {
+          width: 4px;
+          height: 4px;
+          background: $text-muted;
+          border-radius: 50%;
+          animation: typingDot 1.4s infinite ease-in-out both;
+          &:nth-child(2) {
+            animation-delay: 0.2s;
+          }
+          &:nth-child(3) {
+            animation-delay: 0.4s;
+          }
+          &:nth-child(4) {
+            animation-delay: 0.6s;
+          }
         }
       }
-    }
 
-    /* Typing Indicator */
-    .typing-bubble {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 12px 16px !important;
-      
-      .typing-text {
-        font-size: 13px;
-        color: $text-muted;
-        margin-right: 4px;
+      @keyframes typingDot {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+          opacity: 0.5;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
       }
-      
-      .dot {
-        width: 4px;
-        height: 4px;
-        background: $text-muted;
-        border-radius: 50%;
-        animation: typingDot 1.4s infinite ease-in-out both;
-        &:nth-child(2) { animation-delay: 0.2s; }
-        &:nth-child(3) { animation-delay: 0.4s; }
-        &:nth-child(4) { animation-delay: 0.6s; }
+
+      .spinner {
+        animation: spin 1s linear infinite;
       }
-    }
+      @keyframes spin {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
 
-    @keyframes typingDot {
-      0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-      40% { transform: scale(1); opacity: 1; }
-    }
-    
-    .spinner {
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Markdown styling inside bot messages */
-    ::ng-deep .bot-msg-content {
-      p { margin: 0 0 8px 0; &:last-child { margin-bottom: 0; } }
-      pre { background: rgba(0,0,0,0.05); padding: 8px; border-radius: 8px; overflow-x: auto; font-size: 12px; }
-      code { background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-size: 12px; font-family: monospace; }
-      pre code { background: transparent; padding: 0; }
-      ul, ol { margin: 8px 0; padding-left: 20px; }
-      li { margin-bottom: 4px; }
-      a { color: $primary-green; text-decoration: none; &:hover { text-decoration: underline; } }
-      table { border-collapse: collapse; width: 100%; margin: 8px 0; }
-      th, td { border: 1px solid $border-color; padding: 6px 8px; text-align: left; }
-      th { background: $light-green; font-weight: 600; }
-      blockquote { border-left: 3px solid $border-color; margin: 8px 0; padding-left: 12px; color: $text-muted; }
-    }
-  `]
+      /* Markdown styling inside bot messages */
+      ::ng-deep .bot-msg-content {
+        p {
+          margin: 0 0 8px 0;
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+        pre {
+          background: rgba(0, 0, 0, 0.05);
+          padding: 8px;
+          border-radius: 8px;
+          overflow-x: auto;
+          font-size: 12px;
+        }
+        code {
+          background: rgba(0, 0, 0, 0.05);
+          padding: 2px 4px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-family: monospace;
+        }
+        pre code {
+          background: transparent;
+          padding: 0;
+        }
+        ul,
+        ol {
+          margin: 8px 0;
+          padding-left: 20px;
+        }
+        li {
+          margin-bottom: 4px;
+        }
+        a {
+          color: $primary-green;
+          text-decoration: none;
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+        table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 8px 0;
+        }
+        th,
+        td {
+          border: 1px solid $border-color;
+          padding: 6px 8px;
+          text-align: left;
+        }
+        th {
+          background: $light-green;
+          font-weight: 600;
+        }
+        blockquote {
+          border-left: 3px solid $border-color;
+          margin: 8px 0;
+          padding-left: 12px;
+          color: $text-muted;
+        }
+      }
+    `,
+  ],
 })
 export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly aiChatService = inject(AIChatService);
@@ -560,7 +673,7 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
   isOpen = signal<boolean>(false);
   typing = signal<boolean>(false);
   newMessage = '';
-  
+
   private mutationObserver?: MutationObserver;
   private historySub?: Subscription;
 
@@ -569,10 +682,10 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
 
   private getInitialText(): string {
     return this.authService.userRole() === 'admin'
-      ? "Hello! I am the CivicPulse Admin Copilot. I can explain dashboard analytics, charts, ledger actions, or details of any incident ticket. Paste a ticket ID to query its resolution roadmap."
+      ? 'Hello! I am the CivicPulse Admin Copilot. I can explain dashboard analytics, charts, ledger actions, or details of any incident ticket. Paste a ticket ID to query its resolution roadmap.'
       : this.authService.userRole() === 'officer'
-        ? "Hello! I am the internal officer assistant. I can summarize complaints and suggest workflow steps. Paste a complaint ID to get started."
-        : "Hello! I am your CivicPulse AI Assistant. I can help guide you through submitting issues, tracking your incident folder, or retrieving department directories. How can I help you today?";
+        ? 'Hello! I am the internal officer assistant. I can summarize complaints and suggest workflow steps. Paste a complaint ID to get started.'
+        : 'Hello! I am your CivicPulse AI Assistant. I can help guide you through submitting issues, tracking your incident folder, or retrieving department directories. How can I help you today?';
   }
 
   ngOnInit(): void {
@@ -580,8 +693,8 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
       {
         sender: 'bot',
         text: this.getInitialText(),
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     ]);
 
     this.historySub = this.aiChatService.historyCleared$.subscribe(() => {
@@ -590,8 +703,8 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
         {
           sender: 'bot',
           text: this.getInitialText(),
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       ]);
     });
 
@@ -603,15 +716,15 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
     if (this.scrollContainer) {
       this.mutationObserver = new MutationObserver((mutations) => {
         // Check if nodes were added
-        const hasNewNodes = mutations.some(m => m.addedNodes.length > 0);
+        const hasNewNodes = mutations.some((m) => m.addedNodes.length > 0);
         if (hasNewNodes) {
           this.scrollToBottom();
         }
       });
-      
+
       this.mutationObserver.observe(this.scrollContainer.nativeElement, {
         childList: true,
-        subtree: true
+        subtree: true,
       });
     }
   }
@@ -626,7 +739,7 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   toggleChat(): void {
-    this.isOpen.update(v => !v);
+    this.isOpen.update((v) => !v);
     if (this.isOpen()) {
       setTimeout(() => this.scrollToBottom(), 100);
     }
@@ -643,7 +756,7 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
             setTimeout(() => this.scrollToBottom(), 100);
           }
         }
-      }
+      },
     });
   }
 
@@ -664,18 +777,18 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
 
     const userText = this.newMessage;
     this.newMessage = '';
-    
+
     // Reset textarea height
     const textarea = document.querySelector('.input-wrapper textarea') as HTMLTextAreaElement;
     if (textarea) textarea.style.height = 'auto';
 
-    this.messages.update(arr => [
+    this.messages.update((arr) => [
       ...arr,
       {
         sender: 'user',
         text: userText,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     ]);
 
     this.typing.set(true);
@@ -689,16 +802,16 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
         this.typing.set(false);
       },
       error: () => {
-        this.messages.update(arr => [
+        this.messages.update((arr) => [
           ...arr,
           {
             sender: 'bot',
             text: "Sorry, I'm having trouble connecting to the CivicPulse service right now. Please try again in a moment.",
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+          },
         ]);
         this.typing.set(false);
-      }
+      },
     });
   }
 

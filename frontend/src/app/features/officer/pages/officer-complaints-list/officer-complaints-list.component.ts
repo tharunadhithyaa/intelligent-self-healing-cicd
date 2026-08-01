@@ -30,7 +30,7 @@ import { forkJoin } from 'rxjs';
     MatSelectModule,
     MatProgressSpinnerModule,
     MatCheckboxModule,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <app-page-header
@@ -43,7 +43,12 @@ import { forkJoin } from 'rxjs';
       <div class="filter-grid">
         <mat-form-field appearance="outline" class="search-field">
           <mat-label>Search issues...</mat-label>
-          <input matInput [(ngModel)]="searchQuery" (ngModelChange)="onFilterChange()" placeholder="Search by ID, title, citizen..." />
+          <input
+            matInput
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="onFilterChange()"
+            placeholder="Search by ID, title, citizen..."
+          />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
@@ -100,7 +105,7 @@ import { forkJoin } from 'rxjs';
       <mat-card class="bulk-card">
         <div class="bulk-content">
           <span class="selected-text">{{ selectedIds().size }} complaints selected</span>
-          
+
           <div class="bulk-operations">
             <!-- Status Update -->
             <mat-form-field appearance="outline" class="compact-select">
@@ -110,7 +115,12 @@ import { forkJoin } from 'rxjs';
                 <mat-option value="rejected">Rejected</mat-option>
               </mat-select>
             </mat-form-field>
-            <button mat-flat-button color="primary" [disabled]="!bulkStatus || bulkLoading()" (click)="applyBulkStatus()">
+            <button
+              mat-flat-button
+              color="primary"
+              [disabled]="!bulkStatus || bulkLoading()"
+              (click)="applyBulkStatus()"
+            >
               Apply Status
             </button>
 
@@ -125,7 +135,12 @@ import { forkJoin } from 'rxjs';
                 }
               </mat-select>
             </mat-form-field>
-            <button mat-flat-button color="primary" [disabled]="!bulkWorker || bulkLoading()" (click)="applyBulkAssignment()">
+            <button
+              mat-flat-button
+              color="primary"
+              [disabled]="!bulkWorker || bulkLoading()"
+              (click)="applyBulkAssignment()"
+            >
               Assign Workers
             </button>
           </div>
@@ -182,7 +197,10 @@ import { forkJoin } from 'rxjs';
                 <td>
                   <div class="incident-cell">
                     <span class="incident-title">{{ c.title }}</span>
-                    <span class="incident-sub">Address: {{ c.location.address }} • Date: {{ c.createdAt | date:'shortDate' }}</span>
+                    <span class="incident-sub"
+                      >Address: {{ c.location.address }} • Date:
+                      {{ c.createdAt | date: 'shortDate' }}</span
+                    >
                   </div>
                 </td>
                 <td>{{ c.category }}</td>
@@ -204,7 +222,11 @@ import { forkJoin } from 'rxjs';
                   </span>
                 </td>
                 <td>
-                  <a mat-stroked-button color="primary" [routerLink]="['/officer/complaints', c._id]">
+                  <a
+                    mat-stroked-button
+                    color="primary"
+                    [routerLink]="['/officer/complaints', c._id]"
+                  >
                     Manage
                   </a>
                 </td>
@@ -216,7 +238,9 @@ import { forkJoin } from 'rxjs';
 
       <!-- Pagination Footer -->
       <div class="pagination-footer">
-        <span class="total-text">Showing {{ complaints().length }} of {{ totalCount() }} complaints</span>
+        <span class="total-text"
+          >Showing {{ complaints().length }} of {{ totalCount() }} complaints</span
+        >
 
         <div class="paginator-controls">
           <button mat-icon-button [disabled]="page() <= 1" (click)="prevPage()">
@@ -230,209 +254,248 @@ import { forkJoin } from 'rxjs';
       </div>
     }
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .filter-card {
-      padding: $spacing-4;
-      margin-bottom: $spacing-4;
-      border: 1px solid $border-light;
-      box-shadow: $shadow-sm;
-      background: $surface;
-    }
-
-    .filter-grid {
-      display: grid;
-      grid-template-columns: 2fr repeat(4, 1fr);
-      gap: $spacing-3;
-
-      @include tablet-only {
-        grid-template-columns: 1fr 1fr;
+      .filter-card {
+        padding: $spacing-4;
+        margin-bottom: $spacing-4;
+        border: 1px solid $border-light;
+        box-shadow: $shadow-sm;
+        background: $surface;
       }
 
-      @include mobile-only {
-        grid-template-columns: 1fr;
-      }
-    }
+      .filter-grid {
+        display: grid;
+        grid-template-columns: 2fr repeat(4, 1fr);
+        gap: $spacing-3;
 
-    /* Bulk Panel */
-    .bulk-card {
-      margin-bottom: $spacing-4;
-      background: rgba(98, 0, 234, 0.05);
-      border: 1px solid rgba(98, 0, 234, 0.15);
-      padding: $spacing-3 $spacing-4;
-    }
+        @include tablet-only {
+          grid-template-columns: 1fr 1fr;
+        }
 
-    .bulk-content {
-      @include flex-between;
-      flex-wrap: wrap;
-      gap: $spacing-3;
-
-      .selected-text {
-        font-size: $font-size-sm;
-        font-weight: $font-weight-semibold;
-        color: #6200ea;
-      }
-    }
-
-    .bulk-operations {
-      display: flex;
-      align-items: center;
-      gap: $spacing-3;
-      flex-wrap: wrap;
-
-      .compact-select {
-        width: 140px;
-        margin-bottom: -16px;
-      }
-
-      .divider {
-        color: $border;
-        font-weight: 300;
-      }
-    }
-
-    .bulk-progress {
-      @include flex-start;
-      gap: $spacing-3;
-      margin-top: $spacing-3;
-      font-size: $font-size-xs;
-      color: $text-secondary;
-    }
-
-    .loader-box {
-      @include flex-center;
-      min-height: 250px;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: $spacing-8 $spacing-4;
-      background: $surface;
-      border-radius: $radius-lg;
-      margin-top: $spacing-4;
-
-      .empty-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        color: $text-muted;
-        margin-bottom: $spacing-3;
-      }
-    }
-
-    /* Data Table Layout */
-    .table-container {
-      overflow-x: auto;
-      border: 1px solid $border-light;
-      border-radius: $radius-lg;
-      background: $surface;
-      margin-top: $spacing-4;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: $font-size-sm;
-
-      th, td {
-        padding: $spacing-3 $spacing-4;
-        border-bottom: 1px solid $border-light;
-      }
-
-      th {
-        background: rgba(255, 255, 255, 0.02);
-        color: $text-secondary;
-        font-weight: $font-weight-semibold;
-      }
-
-      tr {
-        transition: background $transition-fast;
-        &:hover {
-          background: rgba(255, 255, 255, 0.01);
+        @include mobile-only {
+          grid-template-columns: 1fr;
         }
       }
 
-      .row-selected {
-        background: rgba(98, 0, 234, 0.02) !important;
+      /* Bulk Panel */
+      .bulk-card {
+        margin-bottom: $spacing-4;
+        background: rgba(98, 0, 234, 0.05);
+        border: 1px solid rgba(98, 0, 234, 0.15);
+        padding: $spacing-3 $spacing-4;
       }
-    }
 
-    .incident-cell {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      .bulk-content {
+        @include flex-between;
+        flex-wrap: wrap;
+        gap: $spacing-3;
 
-      .incident-title {
-        font-weight: $font-weight-semibold;
-        color: $text-primary;
+        .selected-text {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-semibold;
+          color: #6200ea;
+        }
       }
-      .incident-sub {
-        font-size: $font-size-xs;
-        color: $text-muted;
+
+      .bulk-operations {
+        display: flex;
+        align-items: center;
+        gap: $spacing-3;
+        flex-wrap: wrap;
+
+        .compact-select {
+          width: 140px;
+          margin-bottom: -16px;
+        }
+
+        .divider {
+          color: $border;
+          font-weight: 300;
+        }
       }
-    }
 
-    /* Tags styling */
-    .priority-tag {
-      font-size: 10px;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 4px;
-
-      &.low { background: rgba(0, 230, 118, 0.1); color: #00e676; }
-      &.medium { background: rgba(0, 184, 212, 0.1); color: #00b8d4; }
-      &.high { background: rgba(255, 171, 0, 0.1); color: #ffab00; }
-      &.critical { background: rgba(255, 61, 0, 0.1); color: #ff3d00; }
-    }
-
-    .status-tag {
-      font-size: 10px;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 10px;
-
-      &.submitted { background: rgba(255, 255, 255, 0.05); color: #b3b3b3; }
-      &.verified { background: rgba(0, 184, 212, 0.1); color: #00b8d4; }
-      &.assigned { background: rgba(98, 0, 234, 0.1); color: #6200ea; }
-      &.in_progress { background: rgba(255, 171, 0, 0.1); color: #ffab00; }
-      &.waiting { background: rgba(255, 61, 0, 0.1); color: #ff3d00; }
-      &.resolved { background: rgba(0, 230, 118, 0.1); color: #00e676; }
-      &.rejected { background: rgba(255, 61, 0, 0.15); color: #ff3d00; }
-      &.closed { background: rgba(255, 255, 255, 0.1); color: #808080; }
-    }
-
-    .no-worker {
-      color: $text-muted;
-      font-style: italic;
-    }
-
-    /* Paginator footer */
-    .pagination-footer {
-      @include flex-between;
-      margin-top: $spacing-4;
-      padding: 0 $spacing-2;
-
-      .total-text {
+      .bulk-progress {
+        @include flex-start;
+        gap: $spacing-3;
+        margin-top: $spacing-3;
         font-size: $font-size-xs;
         color: $text-secondary;
       }
-    }
 
-    .paginator-controls {
-      display: flex;
-      align-items: center;
-      gap: $spacing-3;
-
-      .page-num {
-        font-size: $font-size-xs;
-        color: $text-primary;
-        font-weight: $font-weight-medium;
+      .loader-box {
+        @include flex-center;
+        min-height: 250px;
       }
-    }
-  `]
+
+      .empty-state {
+        text-align: center;
+        padding: $spacing-8 $spacing-4;
+        background: $surface;
+        border-radius: $radius-lg;
+        margin-top: $spacing-4;
+
+        .empty-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          color: $text-muted;
+          margin-bottom: $spacing-3;
+        }
+      }
+
+      /* Data Table Layout */
+      .table-container {
+        overflow-x: auto;
+        border: 1px solid $border-light;
+        border-radius: $radius-lg;
+        background: $surface;
+        margin-top: $spacing-4;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: $font-size-sm;
+
+        th,
+        td {
+          padding: $spacing-3 $spacing-4;
+          border-bottom: 1px solid $border-light;
+        }
+
+        th {
+          background: rgba(255, 255, 255, 0.02);
+          color: $text-secondary;
+          font-weight: $font-weight-semibold;
+        }
+
+        tr {
+          transition: background $transition-fast;
+          &:hover {
+            background: rgba(255, 255, 255, 0.01);
+          }
+        }
+
+        .row-selected {
+          background: rgba(98, 0, 234, 0.02) !important;
+        }
+      }
+
+      .incident-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .incident-title {
+          font-weight: $font-weight-semibold;
+          color: $text-primary;
+        }
+        .incident-sub {
+          font-size: $font-size-xs;
+          color: $text-muted;
+        }
+      }
+
+      /* Tags styling */
+      .priority-tag {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 4px;
+
+        &.low {
+          background: rgba(0, 230, 118, 0.1);
+          color: #00e676;
+        }
+        &.medium {
+          background: rgba(0, 184, 212, 0.1);
+          color: #00b8d4;
+        }
+        &.high {
+          background: rgba(255, 171, 0, 0.1);
+          color: #ffab00;
+        }
+        &.critical {
+          background: rgba(255, 61, 0, 0.1);
+          color: #ff3d00;
+        }
+      }
+
+      .status-tag {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 10px;
+
+        &.submitted {
+          background: rgba(255, 255, 255, 0.05);
+          color: #b3b3b3;
+        }
+        &.verified {
+          background: rgba(0, 184, 212, 0.1);
+          color: #00b8d4;
+        }
+        &.assigned {
+          background: rgba(98, 0, 234, 0.1);
+          color: #6200ea;
+        }
+        &.in_progress {
+          background: rgba(255, 171, 0, 0.1);
+          color: #ffab00;
+        }
+        &.waiting {
+          background: rgba(255, 61, 0, 0.1);
+          color: #ff3d00;
+        }
+        &.resolved {
+          background: rgba(0, 230, 118, 0.1);
+          color: #00e676;
+        }
+        &.rejected {
+          background: rgba(255, 61, 0, 0.15);
+          color: #ff3d00;
+        }
+        &.closed {
+          background: rgba(255, 255, 255, 0.1);
+          color: #808080;
+        }
+      }
+
+      .no-worker {
+        color: $text-muted;
+        font-style: italic;
+      }
+
+      /* Paginator footer */
+      .pagination-footer {
+        @include flex-between;
+        margin-top: $spacing-4;
+        padding: 0 $spacing-2;
+
+        .total-text {
+          font-size: $font-size-xs;
+          color: $text-secondary;
+        }
+      }
+
+      .paginator-controls {
+        display: flex;
+        align-items: center;
+        gap: $spacing-3;
+
+        .page-num {
+          font-size: $font-size-xs;
+          color: $text-primary;
+          font-weight: $font-weight-medium;
+        }
+      }
+    `,
+  ],
 })
 export class OfficerComplaintsListComponent implements OnInit {
   private readonly officerService = inject(OfficerService);
@@ -465,13 +528,13 @@ export class OfficerComplaintsListComponent implements OnInit {
   allSelected = computed(() => {
     const list = this.complaints();
     if (list.length === 0) return false;
-    return list.every(c => this.selectedIds().has(c._id));
+    return list.every((c) => this.selectedIds().has(c._id));
   });
 
   someSelected = computed(() => {
     const list = this.complaints();
     const selected = this.selectedIds();
-    const count = list.filter(c => selected.has(c._id)).length;
+    const count = list.filter((c) => selected.has(c._id)).length;
     return count > 0 && count < list.length;
   });
 
@@ -485,7 +548,7 @@ export class OfficerComplaintsListComponent implements OnInit {
     const params: Record<string, any> = {
       page: this.page(),
       limit: this.limit,
-      sortBy: this.sortBy
+      sortBy: this.sortBy,
     };
 
     if (this.searchQuery) params['search'] = this.searchQuery;
@@ -503,7 +566,7 @@ export class OfficerComplaintsListComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -513,13 +576,13 @@ export class OfficerComplaintsListComponent implements OnInit {
         if (res.success && res.data) {
           this.availableWorkers.set(res.data.workers);
         }
-      }
+      },
     });
   }
 
   onFilterChange(): void {
     this.page.set(1);
-    this.selectedIds.update(set => {
+    this.selectedIds.update((set) => {
       set.clear();
       return set;
     });
@@ -530,12 +593,12 @@ export class OfficerComplaintsListComponent implements OnInit {
     if (typeof workerId === 'object' && workerId !== null) {
       return `${workerId.firstName} ${workerId.lastName}`;
     }
-    const found = this.availableWorkers().find(w => w._id === workerId);
+    const found = this.availableWorkers().find((w) => w._id === workerId);
     return found ? `${found.firstName} ${found.lastName}` : 'Assigned Crew';
   }
 
   toggleSelect(id: string, checked: boolean): void {
-    this.selectedIds.update(set => {
+    this.selectedIds.update((set) => {
       if (checked) {
         set.add(id);
       } else {
@@ -546,11 +609,11 @@ export class OfficerComplaintsListComponent implements OnInit {
   }
 
   toggleSelectAll(checked: boolean): void {
-    this.selectedIds.update(set => {
+    this.selectedIds.update((set) => {
       if (checked) {
-        this.complaints().forEach(c => set.add(c._id));
+        this.complaints().forEach((c) => set.add(c._id));
       } else {
-        this.complaints().forEach(c => set.delete(c._id));
+        this.complaints().forEach((c) => set.delete(c._id));
       }
       return new Set(set);
     });
@@ -561,13 +624,18 @@ export class OfficerComplaintsListComponent implements OnInit {
     this.bulkLoading.set(true);
 
     const ids = Array.from(this.selectedIds());
-    const observables = ids.map(id =>
-      this.officerService.transitionStatus(id, this.bulkStatus, 'Bulk Status Update', 'Updated via dispatcher board')
+    const observables = ids.map((id) =>
+      this.officerService.transitionStatus(
+        id,
+        this.bulkStatus,
+        'Bulk Status Update',
+        'Updated via dispatcher board',
+      ),
     );
 
     forkJoin(observables).subscribe({
       next: () => {
-        this.selectedIds.update(set => {
+        this.selectedIds.update((set) => {
           set.clear();
           return set;
         });
@@ -577,7 +645,7 @@ export class OfficerComplaintsListComponent implements OnInit {
       },
       error: () => {
         this.bulkLoading.set(false);
-      }
+      },
     });
   }
 
@@ -586,13 +654,13 @@ export class OfficerComplaintsListComponent implements OnInit {
     this.bulkLoading.set(true);
 
     const ids = Array.from(this.selectedIds());
-    const observables = ids.map(id =>
-      this.officerService.assignWorker(id, this.bulkWorker, 'Bulk reallocated via control board')
+    const observables = ids.map((id) =>
+      this.officerService.assignWorker(id, this.bulkWorker, 'Bulk reallocated via control board'),
     );
 
     forkJoin(observables).subscribe({
       next: () => {
-        this.selectedIds.update(set => {
+        this.selectedIds.update((set) => {
           set.clear();
           return set;
         });
@@ -602,20 +670,20 @@ export class OfficerComplaintsListComponent implements OnInit {
       },
       error: () => {
         this.bulkLoading.set(false);
-      }
+      },
     });
   }
 
   prevPage(): void {
     if (this.page() > 1) {
-      this.page.update(p => p - 1);
+      this.page.update((p) => p - 1);
       this.loadComplaints();
     }
   }
 
   nextPage(): void {
     if (this.page() < this.maxPages()) {
-      this.page.update(p => p + 1);
+      this.page.update((p) => p + 1);
       this.loadComplaints();
     }
   }

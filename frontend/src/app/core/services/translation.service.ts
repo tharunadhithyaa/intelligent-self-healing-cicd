@@ -1,26 +1,26 @@
 import { Injectable, signal } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TranslationService {
   readonly currentLang = signal<'en' | 'ta'>('en');
 
   private readonly translations = {
-    'en': {
+    en: {
       'settings.appearance': 'Appearance',
       'settings.notifications': 'Notifications',
       'settings.privacy': 'Privacy',
       'settings.language': 'Language',
       'settings.accessibility': 'Accessibility',
     },
-    'ta': {
+    ta: {
       'settings.appearance': 'தோற்றம்',
       'settings.notifications': 'அறிவிப்புகள்',
       'settings.privacy': 'தனியுரிமை',
       'settings.language': 'மொழி',
       'settings.accessibility': 'அணுகல்',
-    }
+    },
   };
 
   setLanguage(lang: 'en' | 'ta') {

@@ -23,54 +23,56 @@ import { MatIconModule } from '@angular/material/icon';
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .not-found {
-      @include flex-column-center;
-      min-height: 100vh;
-      padding: $spacing-6;
-      background: $background;
+      .not-found {
+        @include flex-column-center;
+        min-height: 100vh;
+        padding: $spacing-6;
+        background: $background;
 
-      &__content {
-        text-align: center;
-        max-width: 480px;
+        &__content {
+          text-align: center;
+          max-width: 480px;
+        }
+
+        &__illustration {
+          margin-bottom: $spacing-6;
+        }
+
+        &__code {
+          font-size: 120px;
+          font-weight: $font-weight-bold;
+          background: $gradient-primary;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          line-height: 1;
+        }
+
+        &__title {
+          font-size: $font-size-3xl;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
+          margin-bottom: $spacing-3;
+        }
+
+        &__description {
+          font-size: $font-size-lg;
+          color: $text-secondary;
+          line-height: $line-height-relaxed;
+          margin-bottom: $spacing-8;
+        }
+
+        &__btn {
+          height: 48px;
+          padding: 0 $spacing-6;
+        }
       }
-
-      &__illustration {
-        margin-bottom: $spacing-6;
-      }
-
-      &__code {
-        font-size: 120px;
-        font-weight: $font-weight-bold;
-        background: $gradient-primary;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        line-height: 1;
-      }
-
-      &__title {
-        font-size: $font-size-3xl;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-        margin-bottom: $spacing-3;
-      }
-
-      &__description {
-        font-size: $font-size-lg;
-        color: $text-secondary;
-        line-height: $line-height-relaxed;
-        margin-bottom: $spacing-8;
-      }
-
-      &__btn {
-        height: 48px;
-        padding: 0 $spacing-6;
-      }
-    }
-  `],
+    `,
+  ],
 })
 export class NotFoundComponent {}

@@ -43,8 +43,8 @@ export class AuthService {
     private readonly http: HttpClient,
     private readonly tokenService: TokenService,
     private readonly notification: NotificationService,
-    private readonly router: Router
-  ) { }
+    private readonly router: Router,
+  ) {}
 
   login(data: LoginRequest, rememberMe = false): Observable<ApiResponse<AuthResponse>> {
     return this.http.post<ApiResponse<AuthResponse>>(API_ENDPOINTS.auth.login, data).pipe(
@@ -55,7 +55,7 @@ export class AuthService {
       }),
       catchError((error) => {
         return throwError(() => error);
-      })
+      }),
     );
   }
 
@@ -68,7 +68,7 @@ export class AuthService {
       }),
       catchError((error) => {
         return throwError(() => error);
-      })
+      }),
     );
   }
 
@@ -99,7 +99,7 @@ export class AuthService {
         catchError((error) => {
           this.logout();
           return throwError(() => error);
-        })
+        }),
       );
   }
 
@@ -110,16 +110,14 @@ export class AuthService {
           this.currentUser.set(response.data.user);
           this.storeUser(response.data.user);
         }
-      })
+      }),
     );
   }
 
   logout(): void {
     const refreshToken = this.tokenService.getRefreshToken();
     if (refreshToken) {
-      this.http
-        .post(API_ENDPOINTS.auth.logout, { refreshToken })
-        .subscribe({ error: () => { } });
+      this.http.post(API_ENDPOINTS.auth.logout, { refreshToken }).subscribe({ error: () => {} });
     }
 
     this.tokenService.clearTokens();
@@ -139,9 +137,10 @@ export class AuthService {
 
   private storeUser(user: User): void {
     try {
-      const storage = localStorage.getItem(APP_CONSTANTS.rememberMeKey) === 'true'
-        ? localStorage
-        : sessionStorage;
+      const storage =
+        localStorage.getItem(APP_CONSTANTS.rememberMeKey) === 'true'
+          ? localStorage
+          : sessionStorage;
       storage.setItem(APP_CONSTANTS.userKey, JSON.stringify(user));
     } catch (e) {
       console.warn('Unable to write user data to browser storage:', e);
@@ -150,8 +149,9 @@ export class AuthService {
 
   private loadStoredUser(): User | null {
     try {
-      const stored = localStorage.getItem(APP_CONSTANTS.userKey)
-        || sessionStorage.getItem(APP_CONSTANTS.userKey);
+      const stored =
+        localStorage.getItem(APP_CONSTANTS.userKey) ||
+        sessionStorage.getItem(APP_CONSTANTS.userKey);
       if (stored) {
         return JSON.parse(stored) as User;
       }

@@ -7,7 +7,7 @@ export const COMPLAINT_CATEGORIES = [
   'Traffic Issue',
   'Public Safety',
   'Electricity Issue',
-  'Other'
+  'Other',
 ] as const;
 
 export interface ComplaintImage {

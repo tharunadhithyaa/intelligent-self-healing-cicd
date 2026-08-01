@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-import User, { IUserDocument } from '../../models/user.model';
-import { ApiError } from '../../utils/api-error.util';
-import { hashPassword, comparePassword } from '../../utils/password.util';
+import mongoose from "mongoose";
+import User, { IUserDocument } from "../../models/user.model";
+import { ApiError } from "../../utils/api-error.util";
+import { hashPassword, comparePassword } from "../../utils/password.util";
 export interface UpdateProfileInput {
   firstName: string;
   lastName: string;
@@ -12,17 +12,29 @@ export interface UpdateProfileInput {
 
 export interface UpdateSettingsInput {
   appearance?: { theme: string; compactMode: boolean };
-  notifications?: { email: boolean; sms: boolean; complaints: boolean; system: boolean };
+  notifications?: {
+    email: boolean;
+    sms: boolean;
+    complaints: boolean;
+    system: boolean;
+  };
   privacy?: { showProfile: boolean; showContact: boolean };
   language?: { language: string };
-  accessibility?: { highContrast: boolean; reducedMotion: boolean; largerText: boolean };
+  accessibility?: {
+    highContrast: boolean;
+    reducedMotion: boolean;
+    largerText: boolean;
+  };
 }
 
 class CitizenService {
-  async updateProfile(userId: string, input: UpdateProfileInput): Promise<IUserDocument> {
+  async updateProfile(
+    userId: string,
+    input: UpdateProfileInput,
+  ): Promise<IUserDocument> {
     const user = await User.findById(userId);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
 
     user.firstName = input.firstName;
@@ -34,16 +46,20 @@ class CitizenService {
     return await user.save();
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
     // Select password field explicitly since select: false in model
-    const user = await User.findById(userId).select('+password');
+    const user = await User.findById(userId).select("+password");
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
 
     const isMatch = await comparePassword(currentPassword, user.password);
     if (!isMatch) {
-      throw ApiError.badRequest('Incorrect current password');
+      throw ApiError.badRequest("Incorrect current password");
     }
 
     user.password = await hashPassword(newPassword);
@@ -52,14 +68,17 @@ class CitizenService {
 
   async getSettings(userId: string): Promise<any> {
     const user = await User.findById(userId);
-    if (!user) throw ApiError.notFound('User not found');
+    if (!user) throw ApiError.notFound("User not found");
     return user.settings || {};
   }
 
-  async updateSettings(userId: string, input: UpdateSettingsInput): Promise<IUserDocument> {
+  async updateSettings(
+    userId: string,
+    input: UpdateSettingsInput,
+  ): Promise<IUserDocument> {
     const user = await User.findById(userId);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
 
     if (!user.settings) {
@@ -77,19 +96,28 @@ class CitizenService {
 
   async downloadData(userId: string): Promise<any> {
     const user = await User.findById(userId).lean();
-    if (!user) throw ApiError.notFound('User not found');
+    if (!user) throw ApiError.notFound("User not found");
 
     const [complaints, notifications, conversations] = await Promise.all([
-      mongoose.model('Complaint').find({ citizen: new mongoose.Types.ObjectId(userId) }).lean(),
-      mongoose.model('Notification').find({ recipient: new mongoose.Types.ObjectId(userId) }).lean(),
-      mongoose.model('Conversation').find({ userId: new mongoose.Types.ObjectId(userId) }).lean()
+      mongoose
+        .model("Complaint")
+        .find({ citizen: new mongoose.Types.ObjectId(userId) })
+        .lean(),
+      mongoose
+        .model("Notification")
+        .find({ recipient: new mongoose.Types.ObjectId(userId) })
+        .lean(),
+      mongoose
+        .model("Conversation")
+        .find({ userId: new mongoose.Types.ObjectId(userId) })
+        .lean(),
     ]);
 
     return {
       profile: user,
       complaints,
       notifications,
-      conversations
+      conversations,
     };
   }
 }

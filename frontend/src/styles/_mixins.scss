@@ -6,43 +6,63 @@
 
 // ─── Responsive Breakpoints ───
 @mixin xs {
-  @media (max-width: #{$breakpoint-sm - 1}) { @content; }
+  @media (max-width: #{$breakpoint-sm - 1}) {
+    @content;
+  }
 }
 
 @mixin sm {
-  @media (min-width: $breakpoint-sm) { @content; }
+  @media (min-width: $breakpoint-sm) {
+    @content;
+  }
 }
 
 @mixin md {
-  @media (min-width: $breakpoint-md) { @content; }
+  @media (min-width: $breakpoint-md) {
+    @content;
+  }
 }
 
 @mixin lg {
-  @media (min-width: $breakpoint-lg) { @content; }
+  @media (min-width: $breakpoint-lg) {
+    @content;
+  }
 }
 
 @mixin xl {
-  @media (min-width: $breakpoint-xl) { @content; }
+  @media (min-width: $breakpoint-xl) {
+    @content;
+  }
 }
 
 @mixin xxl {
-  @media (min-width: $breakpoint-2xl) { @content; }
+  @media (min-width: $breakpoint-2xl) {
+    @content;
+  }
 }
 
 @mixin ultra {
-  @media (min-width: $breakpoint-3xl) { @content; }
+  @media (min-width: $breakpoint-3xl) {
+    @content;
+  }
 }
 
 @mixin mobile-only {
-  @media (max-width: #{$breakpoint-md - 1}) { @content; }
+  @media (max-width: #{$breakpoint-md - 1}) {
+    @content;
+  }
 }
 
 @mixin tablet-only {
-  @media (min-width: $breakpoint-md) and (max-width: #{$breakpoint-lg - 1}) { @content; }
+  @media (min-width: $breakpoint-md) and (max-width: #{$breakpoint-lg - 1}) {
+    @content;
+  }
 }
 
 @mixin desktop-only {
-  @media (min-width: $breakpoint-lg) { @content; }
+  @media (min-width: $breakpoint-lg) {
+    @content;
+  }
 }
 
 // ─── Flex Helpers ───
@@ -96,7 +116,9 @@
   border-radius: $radius-lg;
   border: 1px solid $border-light;
   box-shadow: $shadow-card;
-  transition: box-shadow $transition-normal, transform $transition-normal;
+  transition:
+    box-shadow $transition-normal,
+    transform $transition-normal;
 }
 
 @mixin card-hover {

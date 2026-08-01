@@ -4,8 +4,7 @@ import { ROUTE_PATHS } from '../../core/constants/route.constants';
 export const AUTH_ROUTES: Routes = [
   {
     path: ROUTE_PATHS.auth.login,
-    loadComponent: () =>
-      import('./pages/login/login.component').then((m) => m.LoginComponent),
+    loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
     title: 'Sign In - CivicPulse',
   },
   {
@@ -17,13 +16,17 @@ export const AUTH_ROUTES: Routes = [
   {
     path: ROUTE_PATHS.auth.forgotPassword,
     loadComponent: () =>
-      import('./pages/forgot-password/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+      import('./pages/forgot-password/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent,
+      ),
     title: 'Forgot Password - CivicPulse',
   },
   {
     path: ROUTE_PATHS.auth.resetPassword,
     loadComponent: () =>
-      import('./pages/reset-password/reset-password.component').then((m) => m.ResetPasswordComponent),
+      import('./pages/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
     title: 'Reset Password - CivicPulse',
   },
   {

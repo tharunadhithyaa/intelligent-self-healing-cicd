@@ -1,32 +1,32 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export const COMPLAINT_CATEGORIES = [
-  'Road Damage',
-  'Garbage Management',
-  'Streetlight Issue',
-  'Water Supply',
-  'Drainage Problem',
-  'Traffic Issue',
-  'Public Safety',
-  'Electricity Issue',
-  'Other'
+  "Road Damage",
+  "Garbage Management",
+  "Streetlight Issue",
+  "Water Supply",
+  "Drainage Problem",
+  "Traffic Issue",
+  "Public Safety",
+  "Electricity Issue",
+  "Other",
 ] as const;
 
-export type ComplaintCategory = typeof COMPLAINT_CATEGORIES[number];
+export type ComplaintCategory = (typeof COMPLAINT_CATEGORIES)[number];
 
 export const COMPLAINT_STATUSES = [
-  'submitted',
-  'ai_reviewed',
-  'verified',
-  'assigned',
-  'in_progress',
-  'waiting',
-  'resolved',
-  'rejected',
-  'closed'
+  "submitted",
+  "ai_reviewed",
+  "verified",
+  "assigned",
+  "in_progress",
+  "waiting",
+  "resolved",
+  "rejected",
+  "closed",
 ] as const;
 
-export type ComplaintStatus = typeof COMPLAINT_STATUSES[number];
+export type ComplaintStatus = (typeof COMPLAINT_STATUSES)[number];
 
 export interface IComplaintImage {
   base64Data: string;
@@ -44,7 +44,7 @@ export interface IComplaintTimeline {
 
 export interface IAIAnalysis {
   category: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: "low" | "medium" | "high" | "critical";
   department: string;
   duplicateDetected: boolean;
   duplicateWarning?: string;
@@ -102,7 +102,7 @@ export interface IComplaintDocument extends IComplaint, Document {
 const complaintImageSchema = new Schema<IComplaintImage>({
   base64Data: { type: String, required: true },
   contentType: { type: String, required: true },
-  fileName: { type: String, required: true }
+  fileName: { type: String, required: true },
 });
 
 const complaintTimelineSchema = new Schema<IComplaintTimeline>({
@@ -110,54 +110,63 @@ const complaintTimelineSchema = new Schema<IComplaintTimeline>({
   title: { type: String, required: true },
   description: { type: String, required: true },
   timestamp: { type: Date, default: Date.now, required: true },
-  performedBy: { type: Schema.Types.ObjectId, ref: 'User' }
+  performedBy: { type: Schema.Types.ObjectId, ref: "User" },
 });
 
 const aiAnalysisSchema = new Schema<IAIAnalysis>({
   category: { type: String, required: true },
-  priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], required: true },
+  priority: {
+    type: String,
+    enum: ["low", "medium", "high", "critical"],
+    required: true,
+  },
   department: { type: String, required: true },
   duplicateDetected: { type: Boolean, default: false },
   duplicateWarning: { type: String },
   summary: { type: String, required: true },
-  confidenceScore: { type: Number, required: true }
+  confidenceScore: { type: Number, required: true },
 });
 
 const complaintSchema = new Schema<IComplaintDocument>(
   {
-    citizen: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    citizen: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     title: {
       type: String,
-      required: [true, 'Complaint title is required'],
+      required: [true, "Complaint title is required"],
       trim: true,
-      minlength: [5, 'Title must be at least 5 characters'],
-      maxlength: [100, 'Title cannot exceed 100 characters']
+      minlength: [5, "Title must be at least 5 characters"],
+      maxlength: [100, "Title cannot exceed 100 characters"],
     },
     description: {
       type: String,
-      required: [true, 'Complaint description is required'],
+      required: [true, "Complaint description is required"],
       trim: true,
-      minlength: [10, 'Description must be at least 10 characters']
+      minlength: [10, "Description must be at least 10 characters"],
     },
     category: {
       type: String,
       enum: COMPLAINT_CATEGORIES,
-      required: [true, 'Complaint category is required'],
-      index: true
+      required: [true, "Complaint category is required"],
+      index: true,
     },
     location: {
       latitude: { type: Number, required: true },
       longitude: { type: Number, required: true },
-      address: { type: String, required: true }
+      address: { type: String, required: true },
     },
     department: { type: String },
     date: { type: Date, default: Date.now, required: true },
     status: {
       type: String,
       enum: COMPLAINT_STATUSES,
-      default: 'submitted',
+      default: "submitted",
       required: true,
-      index: true
+      index: true,
     },
     aiAnalysis: { type: aiAnalysisSchema },
     images: [complaintImageSchema],
@@ -165,33 +174,38 @@ const complaintSchema = new Schema<IComplaintDocument>(
     afterImages: { type: [complaintImageSchema], default: [] },
     timeline: [complaintTimelineSchema],
     assignment: {
-      officer: { type: Schema.Types.ObjectId, ref: 'User' },
-      fieldWorker: { type: Schema.Types.ObjectId, ref: 'User' },
+      officer: { type: Schema.Types.ObjectId, ref: "User" },
+      fieldWorker: { type: Schema.Types.ObjectId, ref: "User" },
       assignedAt: { type: Date },
       officerNotes: { type: String },
-      resolutionUpdates: { type: String }
+      resolutionUpdates: { type: String },
     },
-    internalNotes: [{
-      text: { type: String, required: true },
-      authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-      authorName: { type: String, required: true },
-      timestamp: { type: Date, default: Date.now, required: true }
-    }],
+    internalNotes: [
+      {
+        text: { type: String, required: true },
+        authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        authorName: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now, required: true },
+      },
+    ],
     resolutionNotes: {
       description: { type: String },
       completedAt: { type: Date },
-      details: { type: String }
-    }
+      details: { type: String },
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
 // Indexes for common queries
 complaintSchema.index({ citizen: 1, status: 1 });
 complaintSchema.index({ status: 1, category: 1 });
 
-const Complaint: Model<IComplaintDocument> = mongoose.model<IComplaintDocument>('Complaint', complaintSchema);
+const Complaint: Model<IComplaintDocument> = mongoose.model<IComplaintDocument>(
+  "Complaint",
+  complaintSchema,
+);
 
 export default Complaint;

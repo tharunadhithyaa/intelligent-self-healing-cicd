@@ -8,9 +8,19 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, SidebarComponent, TopbarComponent, ChatbotWidgetComponent, MatProgressBarModule],
+  imports: [
+    RouterOutlet,
+    SidebarComponent,
+    TopbarComponent,
+    ChatbotWidgetComponent,
+    MatProgressBarModule,
+  ],
   template: `
-    <div class="layout" [class.sidebar-open]="sidebarOpen()" [class.sidebar-collapsed]="sidebarCollapsed()">
+    <div
+      class="layout"
+      [class.sidebar-open]="sidebarOpen()"
+      [class.sidebar-collapsed]="sidebarCollapsed()"
+    >
       <app-sidebar
         [isOpen]="sidebarOpen()"
         [isCollapsed]="sidebarCollapsed()"
@@ -23,9 +33,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
       }
 
       <div class="layout__main">
-        <app-topbar
-          (menuToggle)="toggleSidebar()"
-        />
+        <app-topbar (menuToggle)="toggleSidebar()" />
 
         <main class="layout__content">
           <div class="layout__content-inner">
@@ -41,68 +49,70 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
       <mat-progress-bar mode="indeterminate" class="global-progress-bar"></mat-progress-bar>
     }
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .layout {
-      display: flex;
-      min-height: 100vh;
-      background: $background;
-
-      &__backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: $z-backdrop;
-        animation: fadeIn 0.2s ease;
-      }
-
-      &__main {
-        flex: 1;
+      .layout {
         display: flex;
-        flex-direction: column;
-        min-width: 0;
-        transition: margin-left $transition-normal;
+        min-height: 100vh;
+        background: $background;
 
-        @include desktop-only {
-          margin-left: $sidebar-width;
+        &__backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+          z-index: $z-backdrop;
+          animation: fadeIn 0.2s ease;
+        }
+
+        &__main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          transition: margin-left $transition-normal;
+
+          @include desktop-only {
+            margin-left: $sidebar-width;
+          }
+        }
+
+        &.sidebar-collapsed &__main {
+          @include desktop-only {
+            margin-left: $sidebar-collapsed;
+          }
+        }
+
+        &__content {
+          flex: 1;
+          overflow-y: auto;
+          @include custom-scrollbar;
+        }
+
+        &__content-inner {
+          @include container;
+          padding-top: $spacing-6;
+          padding-bottom: $spacing-8;
+
+          @include mobile-only {
+            padding-top: $spacing-4;
+            padding-bottom: $spacing-6;
+          }
         }
       }
 
-      &.sidebar-collapsed &__main {
-        @include desktop-only {
-          margin-left: $sidebar-collapsed;
-        }
+      .global-progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: $z-tooltip;
+        height: 3px;
       }
-
-      &__content {
-        flex: 1;
-        overflow-y: auto;
-        @include custom-scrollbar;
-      }
-
-      &__content-inner {
-        @include container;
-        padding-top: $spacing-6;
-        padding-bottom: $spacing-8;
-
-        @include mobile-only {
-          padding-top: $spacing-4;
-          padding-bottom: $spacing-6;
-        }
-      }
-    }
-
-    .global-progress-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: $z-tooltip;
-      height: 3px;
-    }
-  `],
+    `,
+  ],
 })
 export class MainLayoutComponent {
   readonly sidebarOpen = signal(false);

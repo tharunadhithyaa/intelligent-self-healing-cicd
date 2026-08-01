@@ -24,7 +24,7 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
     PageHeaderComponent,
     EmptyStateComponent,
     DatePipe,
-    UpperCasePipe
+    UpperCasePipe,
   ],
   template: `
     <div class="list-page animate-fade-in-up">
@@ -33,7 +33,12 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
         subtitle="Manage and track resolution progress for all complaints you have submitted."
         icon="assignment"
       >
-        <button mat-flat-button color="primary" [routerLink]="['/', paths.report]" class="header-action-btn">
+        <button
+          mat-flat-button
+          color="primary"
+          [routerLink]="['/', paths.report]"
+          class="header-action-btn"
+        >
           <mat-icon>add_circle</mat-icon> Report Issue
         </button>
       </app-page-header>
@@ -55,7 +60,10 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
 
         <mat-form-field appearance="outline" class="filter-field">
           <mat-label>Category Filter</mat-label>
-          <mat-select [value]="categoryFilter()" (selectionChange)="updateCategoryFilter($event.value)">
+          <mat-select
+            [value]="categoryFilter()"
+            (selectionChange)="updateCategoryFilter($event.value)"
+          >
             <mat-option value="all">All Categories</mat-option>
             @for (cat of categories; track cat) {
               <mat-option [value]="cat">{{ cat }}</mat-option>
@@ -86,7 +94,10 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
         } @else {
           <div class="complaints-grid">
             @for (item of filteredComplaints(); track item._id) {
-              <mat-card class="complaint-card" [routerLink]="['/', paths.complaints.root, item._id]">
+              <mat-card
+                class="complaint-card"
+                [routerLink]="['/', paths.complaints.root, item._id]"
+              >
                 <div class="complaint-card__header">
                   <span class="category-tag">{{ item.category }}</span>
                   <span class="status-badge" [class]="item.status">
@@ -97,7 +108,7 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
                 <div class="complaint-card__body">
                   <h3 class="complaint-card__title">{{ item.title }}</h3>
                   <p class="complaint-card__description">{{ item.description }}</p>
-                  
+
                   <div class="complaint-card__meta">
                     <div class="meta-item">
                       <mat-icon>location_on</mat-icon>
@@ -105,7 +116,7 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
                     </div>
                     <div class="meta-item">
                       <mat-icon>calendar_today</mat-icon>
-                      <span>{{ item.date | date:'mediumDate' }}</span>
+                      <span>{{ item.date | date: 'mediumDate' }}</span>
                     </div>
                   </div>
                 </div>
@@ -128,203 +139,225 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
       }
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .list-page {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .header-action-btn {
-      @include flex-center;
-      gap: $spacing-2;
-    }
-
-    // ─── Filters Row ───
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: $spacing-4;
-      margin-bottom: $spacing-6;
-      background: $surface;
-      padding: $spacing-4;
-      border-radius: $radius-lg;
-      border: 1px solid $border;
-    }
-
-    .filter-field {
-      flex: 1;
-      min-width: 200px;
-    }
-
-    // ─── Loading state ───
-    .loading-state {
-      @include flex-column-center;
-      padding: $spacing-12 $spacing-4;
-      color: $text-secondary;
-      gap: $spacing-3;
-
-      .spinner {
-        animation: spin 1.5s linear infinite;
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
-      }
-    }
-
-    // ─── Empty state adjustment ───
-    .empty-container {
-      @include flex-column-center;
-      background: $surface;
-      border-radius: $radius-xl;
-      border: 1px solid $border;
-      padding-bottom: $spacing-10;
-
-      button {
-        margin-top: -$spacing-4;
-      }
-    }
-
-    // ─── Grid ───
-    .complaints-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: $spacing-6;
-    }
-
-    .complaint-card {
-      @include card-base;
-      @include card-hover;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      border: 1px solid $border;
-
-      &__header {
-        @include flex-between;
-        padding: $spacing-4 $spacing-5;
-        border-bottom: 1px solid $border-light;
-      }
-
-      &__body {
-        padding: $spacing-5;
-        flex: 1;
+      .list-page {
         display: flex;
         flex-direction: column;
       }
 
-      &__title {
-        font-size: $font-size-base;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-        margin-bottom: $spacing-2;
-        @include line-clamp(1);
-      }
-
-      &__description {
-        font-size: $font-size-sm;
-        color: $text-secondary;
-        line-height: $line-height-normal;
-        margin-bottom: $spacing-4;
-        @include line-clamp(3);
-      }
-
-      &__meta {
-        margin-top: auto;
-        display: flex;
-        flex-direction: column;
+      .header-action-btn {
+        @include flex-center;
         gap: $spacing-2;
       }
 
-      &__footer {
-        @include flex-between;
-        padding: $spacing-3 $spacing-5;
-        border-top: 1px solid $border-light;
-        background: $background;
-        border-bottom-left-radius: $radius-lg;
-        border-bottom-right-radius: $radius-lg;
-      }
-    }
-
-    .category-tag {
-      background: $primary-light;
-      color: $primary-dark;
-      padding: 2px $spacing-2;
-      border-radius: $radius-sm;
-      font-size: $font-size-xs;
-      font-weight: $font-weight-semibold;
-    }
-
-    .status-badge {
-      font-size: 10px;
-      font-weight: $font-weight-bold;
-      text-transform: uppercase;
-      padding: 3px $spacing-2;
-      border-radius: $radius-full;
-
-      &.submitted { background-color: $warning-light; color: $warning; }
-      &.ai_reviewed { background-color: $info-light; color: $info; }
-      &.assigned { background-color: #EDE9FE; color: #8B5CF6; }
-      &.in_progress { background-color: #ECFEFF; color: #0891B2; }
-      &.resolved { background-color: #D1FAE5; color: #059669; }
-      &.closed { background-color: #F1F5F9; color: #64748B; }
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: $spacing-2;
-      font-size: $font-size-xs;
-      color: $text-secondary;
-
-      mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
-        color: $icon-secondary;
+      // ─── Filters Row ───
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-4;
+        margin-bottom: $spacing-6;
+        background: $surface;
+        padding: $spacing-4;
+        border-radius: $radius-lg;
+        border: 1px solid $border;
       }
 
-      span {
-        @include text-truncate;
+      .filter-field {
+        flex: 1;
+        min-width: 200px;
       }
-    }
 
-    .ai-pill {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: $font-weight-semibold;
-      color: $primary-dark;
+      // ─── Loading state ───
+      .loading-state {
+        @include flex-column-center;
+        padding: $spacing-12 $spacing-4;
+        color: $text-secondary;
+        gap: $spacing-3;
 
-      mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
+        .spinner {
+          animation: spin 1.5s linear infinite;
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+        }
+      }
+
+      // ─── Empty state adjustment ───
+      .empty-container {
+        @include flex-column-center;
+        background: $surface;
+        border-radius: $radius-xl;
+        border: 1px solid $border;
+        padding-bottom: $spacing-10;
+
+        button {
+          margin-top: -$spacing-4;
+        }
+      }
+
+      // ─── Grid ───
+      .complaints-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: $spacing-6;
+      }
+
+      .complaint-card {
+        @include card-base;
+        @include card-hover;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        border: 1px solid $border;
+
+        &__header {
+          @include flex-between;
+          padding: $spacing-4 $spacing-5;
+          border-bottom: 1px solid $border-light;
+        }
+
+        &__body {
+          padding: $spacing-5;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+
+        &__title {
+          font-size: $font-size-base;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
+          margin-bottom: $spacing-2;
+          @include line-clamp(1);
+        }
+
+        &__description {
+          font-size: $font-size-sm;
+          color: $text-secondary;
+          line-height: $line-height-normal;
+          margin-bottom: $spacing-4;
+          @include line-clamp(3);
+        }
+
+        &__meta {
+          margin-top: auto;
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-2;
+        }
+
+        &__footer {
+          @include flex-between;
+          padding: $spacing-3 $spacing-5;
+          border-top: 1px solid $border-light;
+          background: $background;
+          border-bottom-left-radius: $radius-lg;
+          border-bottom-right-radius: $radius-lg;
+        }
+      }
+
+      .category-tag {
+        background: $primary-light;
+        color: $primary-dark;
+        padding: 2px $spacing-2;
+        border-radius: $radius-sm;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-semibold;
+      }
+
+      .status-badge {
+        font-size: 10px;
+        font-weight: $font-weight-bold;
+        text-transform: uppercase;
+        padding: 3px $spacing-2;
+        border-radius: $radius-full;
+
+        &.submitted {
+          background-color: $warning-light;
+          color: $warning;
+        }
+        &.ai_reviewed {
+          background-color: $info-light;
+          color: $info;
+        }
+        &.assigned {
+          background-color: #ede9fe;
+          color: #8b5cf6;
+        }
+        &.in_progress {
+          background-color: #ecfeff;
+          color: #0891b2;
+        }
+        &.resolved {
+          background-color: #d1fae5;
+          color: #059669;
+        }
+        &.closed {
+          background-color: #f1f5f9;
+          color: #64748b;
+        }
+      }
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: $spacing-2;
+        font-size: $font-size-xs;
+        color: $text-secondary;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: $icon-secondary;
+        }
+
+        span {
+          @include text-truncate;
+        }
+      }
+
+      .ai-pill {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: $font-weight-semibold;
+        color: $primary-dark;
+
+        mat-icon {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+          color: $primary;
+        }
+      }
+
+      .view-btn {
         color: $primary;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-semibold;
+        padding: 0;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
       }
-    }
 
-    .view-btn {
-      color: $primary;
-      font-size: $font-size-xs;
-      font-weight: $font-weight-semibold;
-      padding: 0;
-
-      mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
+      @keyframes spin {
+        100% {
+          transform: rotate(360deg);
+        }
       }
-    }
-
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
-  `],
+    `,
+  ],
 })
 export class ComplaintListComponent implements OnInit {
   readonly paths = ROUTE_PATHS;
@@ -354,7 +387,7 @@ export class ComplaintListComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         console.error('Error fetching complaints:', err);
-      }
+      },
     });
   }
 
@@ -368,7 +401,7 @@ export class ComplaintListComponent implements OnInit {
 
   // Filter complaints list dynamically using Signals
   readonly filteredComplaints = computed(() => {
-    return this.complaints().filter(c => {
+    return this.complaints().filter((c) => {
       const matchStatus = this.statusFilter() === 'all' || c.status === this.statusFilter();
       const matchCategory = this.categoryFilter() === 'all' || c.category === this.categoryFilter();
       return matchStatus && matchCategory;
@@ -377,13 +410,20 @@ export class ComplaintListComponent implements OnInit {
 
   getStatusLabel(status: string): string {
     switch (status) {
-      case 'submitted': return 'Submitted';
-      case 'ai_reviewed': return 'AI Reviewed';
-      case 'assigned': return 'Assigned';
-      case 'in_progress': return 'In Progress';
-      case 'resolved': return 'Resolved';
-      case 'closed': return 'Closed';
-      default: return status;
+      case 'submitted':
+        return 'Submitted';
+      case 'ai_reviewed':
+        return 'AI Reviewed';
+      case 'assigned':
+        return 'Assigned';
+      case 'in_progress':
+        return 'In Progress';
+      case 'resolved':
+        return 'Resolved';
+      case 'closed':
+        return 'Closed';
+      default:
+        return status;
     }
   }
 }

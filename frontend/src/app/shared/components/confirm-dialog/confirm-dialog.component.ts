@@ -40,78 +40,86 @@ export interface ConfirmDialogData {
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .confirm-dialog {
-      padding: $spacing-6;
-      max-width: 420px;
+      .confirm-dialog {
+        padding: $spacing-6;
+        max-width: 420px;
 
-      &__header {
-        @include flex-start;
-        gap: $spacing-4;
-        margin-bottom: $spacing-4;
-      }
-
-      &__icon {
-        @include flex-center;
-        width: 48px;
-        height: 48px;
-        border-radius: $radius-full;
-        flex-shrink: 0;
-
-        &.type-warning {
-          background: $warning-light;
-          mat-icon { color: $warning; }
+        &__header {
+          @include flex-start;
+          gap: $spacing-4;
+          margin-bottom: $spacing-4;
         }
 
-        &.type-danger {
-          background: $danger-light;
-          mat-icon { color: $danger; }
+        &__icon {
+          @include flex-center;
+          width: 48px;
+          height: 48px;
+          border-radius: $radius-full;
+          flex-shrink: 0;
+
+          &.type-warning {
+            background: $warning-light;
+            mat-icon {
+              color: $warning;
+            }
+          }
+
+          &.type-danger {
+            background: $danger-light;
+            mat-icon {
+              color: $danger;
+            }
+          }
+
+          &.type-info {
+            background: $primary-light;
+            mat-icon {
+              color: $primary;
+            }
+          }
         }
 
-        &.type-info {
-          background: $primary-light;
-          mat-icon { color: $primary; }
+        &__title {
+          font-size: $font-size-lg;
+          font-weight: $font-weight-semibold;
+          color: $text-primary;
+        }
+
+        &__message {
+          font-size: $font-size-base;
+          color: $text-secondary;
+          line-height: $line-height-relaxed;
+          margin-bottom: $spacing-6;
+        }
+
+        &__actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: $spacing-3;
         }
       }
 
-      &__title {
-        font-size: $font-size-lg;
-        font-weight: $font-weight-semibold;
-        color: $text-primary;
+      .btn-danger {
+        --mdc-filled-button-container-color: #{$danger};
+        --mdc-filled-button-label-text-color: #{$text-inverse};
       }
 
-      &__message {
-        font-size: $font-size-base;
-        color: $text-secondary;
-        line-height: $line-height-relaxed;
-        margin-bottom: $spacing-6;
+      .btn-warning {
+        --mdc-filled-button-container-color: #{$warning};
+        --mdc-filled-button-label-text-color: #{$text-primary};
       }
 
-      &__actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: $spacing-3;
+      .btn-info {
+        --mdc-filled-button-container-color: #{$primary};
+        --mdc-filled-button-label-text-color: #{$text-inverse};
       }
-    }
-
-    .btn-danger {
-      --mdc-filled-button-container-color: #{$danger};
-      --mdc-filled-button-label-text-color: #{$text-inverse};
-    }
-
-    .btn-warning {
-      --mdc-filled-button-container-color: #{$warning};
-      --mdc-filled-button-label-text-color: #{$text-primary};
-    }
-
-    .btn-info {
-      --mdc-filled-button-container-color: #{$primary};
-      --mdc-filled-button-label-text-color: #{$text-inverse};
-    }
-  `],
+    `,
+  ],
 })
 export class ConfirmDialogComponent {
   readonly data: ConfirmDialogData = inject(MAT_DIALOG_DATA);
@@ -120,9 +128,12 @@ export class ConfirmDialogComponent {
 
   getIcon(): string {
     switch (this.data.type) {
-      case 'danger': return 'error_outline';
-      case 'warning': return 'warning_amber';
-      default: return 'info';
+      case 'danger':
+        return 'error_outline';
+      case 'warning':
+        return 'warning_amber';
+      default:
+        return 'info';
     }
   }
 

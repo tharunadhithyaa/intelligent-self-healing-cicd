@@ -1,4 +1,10 @@
-import { Model, Document, FilterQuery, UpdateQuery, QueryOptions } from 'mongoose';
+import {
+  Model,
+  Document,
+  FilterQuery,
+  UpdateQuery,
+  QueryOptions,
+} from "mongoose";
 
 export class BaseRepository<T extends Document> {
   constructor(protected readonly model: Model<T>) {}
@@ -26,7 +32,7 @@ export class BaseRepository<T extends Document> {
   async find(
     filter: FilterQuery<T> = {},
     select?: string,
-    options?: QueryOptions
+    options?: QueryOptions,
   ): Promise<T[]> {
     const query = this.model.find(filter);
     if (select) {
@@ -47,20 +53,28 @@ export class BaseRepository<T extends Document> {
   async updateById(
     id: string,
     data: UpdateQuery<T>,
-    options?: QueryOptions
+    options?: QueryOptions,
   ): Promise<T | null> {
     return this.model
-      .findByIdAndUpdate(id, data, { new: true, runValidators: true, ...options })
+      .findByIdAndUpdate(id, data, {
+        new: true,
+        runValidators: true,
+        ...options,
+      })
       .exec();
   }
 
   async updateOne(
     filter: FilterQuery<T>,
     data: UpdateQuery<T>,
-    options?: QueryOptions
+    options?: QueryOptions,
   ): Promise<T | null> {
     return this.model
-      .findOneAndUpdate(filter, data, { new: true, runValidators: true, ...options })
+      .findOneAndUpdate(filter, data, {
+        new: true,
+        runValidators: true,
+        ...options,
+      })
       .exec();
   }
 

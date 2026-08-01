@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IAuditLog {
   actor?: mongoose.Types.ObjectId; // User performing the action, undefined for anonymous (failed login)
@@ -19,53 +19,56 @@ const auditLogSchema = new Schema<IAuditLogDocument>(
   {
     actor: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
-      index: true
+      ref: "User",
+      index: true,
     },
     actorEmail: {
       type: String,
-      trim: true
+      trim: true,
     },
     actorRole: {
-      type: String
+      type: String,
     },
     action: {
       type: String,
       required: true,
-      index: true
+      index: true,
     },
     target: {
       type: String,
-      index: true
+      index: true,
     },
     targetId: {
       type: String,
-      index: true
+      index: true,
     },
     details: {
-      type: Schema.Types.Mixed
+      type: Schema.Types.Mixed,
     },
     ipAddress: {
-      type: String
+      type: String,
     },
     userAgent: {
-      type: String
+      type: String,
     },
     timestamp: {
       type: Date,
       default: Date.now,
       required: true,
-      index: true
-    }
+      index: true,
+    },
   },
   {
-    timestamps: false // Action timestamp itself functions as standard createdAt
-  }
+    timestamps: false, // Action timestamp itself functions as standard createdAt
+  },
 );
 
 // Compound index for querying log history
 auditLogSchema.index({ timestamp: -1, action: 1 });
 
-const AuditLog: Model<IAuditLogDocument> = mongoose.model<IAuditLogDocument>('AuditLog', auditLogSchema);
+const AuditLog: Model<IAuditLogDocument> = mongoose.model<IAuditLogDocument>(
+  "AuditLog",
+  auditLogSchema,
+);
 
 export default AuditLog;

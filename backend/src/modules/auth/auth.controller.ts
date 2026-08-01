@@ -1,12 +1,22 @@
-import { Response, NextFunction } from 'express';
-import { authService } from './auth.service';
-import { ApiResponse } from '../../utils/api-response.util';
-import { SuccessMessages } from '../../constants/error-messages.constants';
-import { AuthenticatedRequest } from '../../interfaces/request.interface';
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, RefreshTokenDto } from './dtos/auth.dto';
+import { Response, NextFunction } from "express";
+import { authService } from "./auth.service";
+import { ApiResponse } from "../../utils/api-response.util";
+import { SuccessMessages } from "../../constants/error-messages.constants";
+import { AuthenticatedRequest } from "../../interfaces/request.interface";
+import {
+  RegisterDto,
+  LoginDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  RefreshTokenDto,
+} from "./dtos/auth.dto";
 
 class AuthController {
-  async register(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async register(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const data: RegisterDto = req.body;
       const result = await authService.register(data);
@@ -19,7 +29,11 @@ class AuthController {
     }
   }
 
-  async login(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async login(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const data: LoginDto = req.body;
       const result = await authService.login(data);
@@ -32,7 +46,11 @@ class AuthController {
     }
   }
 
-  async refreshToken(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async refreshToken(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { refreshToken }: RefreshTokenDto = req.body;
       const tokens = await authService.refreshToken(refreshToken);
@@ -42,7 +60,11 @@ class AuthController {
     }
   }
 
-  async logout(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async logout(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { refreshToken }: RefreshTokenDto = req.body;
       await authService.logout(refreshToken);
@@ -52,7 +74,11 @@ class AuthController {
     }
   }
 
-  async forgotPassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async forgotPassword(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { email }: ForgotPasswordDto = req.body;
       await authService.forgotPassword(email);
@@ -62,7 +88,11 @@ class AuthController {
     }
   }
 
-  async resetPassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async resetPassword(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const data: ResetPasswordDto = req.body;
       await authService.resetPassword(data);
@@ -72,7 +102,11 @@ class AuthController {
     }
   }
 
-  async getMe(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async getMe(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const userId = req.user!.userId;
       const user = await authService.getMe(userId);

@@ -1,17 +1,22 @@
-import mongoose from 'mongoose';
-import Complaint, { IComplaintDocument, ComplaintStatus } from '../../models/complaint.model';
-import Department from '../../models/department.model';
-import User from '../../models/user.model';
-import { ApiError } from '../../utils/api-error.util';
-import { TokenPayload } from '../../utils/jwt.util';
-import { WorkflowService } from '../complaints/workflow.service';
-import { auditService } from '../admin/services/audit.service';
+import mongoose from "mongoose";
+import Complaint, {
+  IComplaintDocument,
+  ComplaintStatus,
+} from "../../models/complaint.model";
+import Department from "../../models/department.model";
+import User from "../../models/user.model";
+import { ApiError } from "../../utils/api-error.util";
+import { TokenPayload } from "../../utils/jwt.util";
+import { WorkflowService } from "../complaints/workflow.service";
+import { auditService } from "../admin/services/audit.service";
 
 class OfficerService {
-  private async getOfficerDepartment(officerId: string): Promise<string | null> {
+  private async getOfficerDepartment(
+    officerId: string,
+  ): Promise<string | null> {
     const dept = await Department.findOne({
       officers: new mongoose.Types.ObjectId(officerId),
-      status: 'active'
+      status: "active",
     });
     return dept ? dept.name : null;
   }
@@ -22,8 +27,8 @@ class OfficerService {
 
     // 1. Assigned Complaints count
     const assignedCount = await Complaint.countDocuments({
-      'assignment.officer': officerId,
-      status: { $nin: ['resolved', 'closed', 'rejected'] }
+      "assignment.officer": officerId,
+      status: { $nin: ["resolved", "closed", "rejected"] },
     });
 
     let pendingCount = 0;
@@ -32,34 +37,34 @@ class OfficerService {
     let deptQuery: Record<string, any> = {};
 
     if (deptName) {
-      deptQuery['department'] = deptName;
+      deptQuery["department"] = deptName;
       pendingCount = await Complaint.countDocuments({
         department: deptName,
-        status: { $in: ['submitted', 'verified'] }
+        status: { $in: ["submitted", "verified"] },
       });
       highPriorityCount = await Complaint.countDocuments({
         department: deptName,
-        'aiAnalysis.priority': { $in: ['high', 'critical'] },
-        status: { $nin: ['resolved', 'closed', 'rejected'] }
+        "aiAnalysis.priority": { $in: ["high", "critical"] },
+        status: { $nin: ["resolved", "closed", "rejected"] },
       });
       completedCount = await Complaint.countDocuments({
         department: deptName,
-        status: { $in: ['resolved', 'closed'] }
+        status: { $in: ["resolved", "closed"] },
       });
     } else {
       // Fallback if not mapped to a department
       pendingCount = await Complaint.countDocuments({
-        'assignment.officer': officerId,
-        status: { $in: ['submitted', 'verified'] }
+        "assignment.officer": officerId,
+        status: { $in: ["submitted", "verified"] },
       });
       highPriorityCount = await Complaint.countDocuments({
-        'assignment.officer': officerId,
-        'aiAnalysis.priority': { $in: ['high', 'critical'] },
-        status: { $nin: ['resolved', 'closed', 'rejected'] }
+        "assignment.officer": officerId,
+        "aiAnalysis.priority": { $in: ["high", "critical"] },
+        status: { $nin: ["resolved", "closed", "rejected"] },
       });
       completedCount = await Complaint.countDocuments({
-        'assignment.officer': officerId,
-        status: { $in: ['resolved', 'closed'] }
+        "assignment.officer": officerId,
+        status: { $in: ["resolved", "closed"] },
       });
     }
 
@@ -68,7 +73,7 @@ class OfficerService {
       pending: pendingCount,
       highPriority: highPriorityCount,
       completed: completedCount,
-      averageResponseHours: 4.8 // Mocked performance metrics
+      averageResponseHours: 4.8, // Mocked performance metrics
     };
   }
 
@@ -79,10 +84,22 @@ class OfficerService {
     }
 
     const total = await Complaint.countDocuments({ department: deptName });
-    const resolved = await Complaint.countDocuments({ department: deptName, status: { $in: ['resolved', 'closed'] } });
-    const inProgress = await Complaint.countDocuments({ department: deptName, status: 'in_progress' });
-    const waiting = await Complaint.countDocuments({ department: deptName, status: 'waiting' });
-    const submitted = await Complaint.countDocuments({ department: deptName, status: 'submitted' });
+    const resolved = await Complaint.countDocuments({
+      department: deptName,
+      status: { $in: ["resolved", "closed"] },
+    });
+    const inProgress = await Complaint.countDocuments({
+      department: deptName,
+      status: "in_progress",
+    });
+    const waiting = await Complaint.countDocuments({
+      department: deptName,
+      status: "waiting",
+    });
+    const submitted = await Complaint.countDocuments({
+      department: deptName,
+      status: "submitted",
+    });
 
     return {
       total,
@@ -91,99 +108,110 @@ class OfficerService {
         submitted,
         inProgress,
         waiting,
-        resolved
-      }
+        resolved,
+      },
     };
   }
 
-  async getComplaints(user: TokenPayload, params: Record<string, any>): Promise<any> {
+  async getComplaints(
+    user: TokenPayload,
+    params: Record<string, any>,
+  ): Promise<any> {
     const deptName = await this.getOfficerDepartment(user.userId);
     const filter: Record<string, any> = {};
 
     // Scope to department or direct assignments
     if (deptName) {
-      filter['department'] = deptName;
+      filter["department"] = deptName;
     } else {
-      filter['assignment.officer'] = new mongoose.Types.ObjectId(user.userId);
+      filter["assignment.officer"] = new mongoose.Types.ObjectId(user.userId);
     }
 
     // Filters
-    if (params['status']) {
-      filter['status'] = params['status'];
+    if (params["status"]) {
+      filter["status"] = params["status"];
     }
-    if (params['priority']) {
-      filter['aiAnalysis.priority'] = params['priority'];
+    if (params["priority"]) {
+      filter["aiAnalysis.priority"] = params["priority"];
     }
-    if (params['assignedWorker']) {
-      filter['assignment.fieldWorker'] = new mongoose.Types.ObjectId(params['assignedWorker']);
+    if (params["assignedWorker"]) {
+      filter["assignment.fieldWorker"] = new mongoose.Types.ObjectId(
+        params["assignedWorker"],
+      );
     }
 
     // Search Query
-    if (params['search']) {
-      const searchRegex = new RegExp(params['search'], 'i');
-      filter['$or'] = [
-        { title: searchRegex },
-        { description: searchRegex }
-      ];
+    if (params["search"]) {
+      const searchRegex = new RegExp(params["search"], "i");
+      filter["$or"] = [{ title: searchRegex }, { description: searchRegex }];
       // Check if search is a valid ObjectId hex
-      if (mongoose.Types.ObjectId.isValid(params['search'])) {
-        filter['$or'].push({ _id: new mongoose.Types.ObjectId(params['search']) });
+      if (mongoose.Types.ObjectId.isValid(params["search"])) {
+        filter["$or"].push({
+          _id: new mongoose.Types.ObjectId(params["search"]),
+        });
       }
     }
 
     // Sorting
     let sortObj: Record<string, any> = { createdAt: -1 };
-    if (params['sortBy'] === 'priority') {
-      sortObj = { 'aiAnalysis.priority': -1 };
-    } else if (params['sortBy'] === 'status') {
+    if (params["sortBy"] === "priority") {
+      sortObj = { "aiAnalysis.priority": -1 };
+    } else if (params["sortBy"] === "status") {
       sortObj = { status: 1 };
-    } else if (params['sortBy'] === 'assignmentDate') {
-      sortObj = { 'assignment.assignedAt': -1 };
+    } else if (params["sortBy"] === "assignmentDate") {
+      sortObj = { "assignment.assignedAt": -1 };
     }
 
     // Pagination
-    const page = Math.max(1, parseInt(params['page']) || 1);
-    const limit = Math.max(1, parseInt(params['limit']) || 10);
+    const page = Math.max(1, parseInt(params["page"]) || 1);
+    const limit = Math.max(1, parseInt(params["limit"]) || 10);
     const skip = (page - 1) * limit;
 
     const [complaints, total] = await Promise.all([
       Complaint.find(filter)
-        .populate('citizen', 'firstName lastName email phone')
-        .populate('assignment.fieldWorker', 'firstName lastName email')
+        .populate("citizen", "firstName lastName email phone")
+        .populate("assignment.fieldWorker", "firstName lastName email")
         .sort(sortObj)
         .skip(skip)
         .limit(limit)
         .exec(),
-      Complaint.countDocuments(filter)
+      Complaint.countDocuments(filter),
     ]);
 
     return {
       complaints,
       total,
       page,
-      limit
+      limit,
     };
   }
 
-  async getComplaintDetails(user: TokenPayload, id: string): Promise<IComplaintDocument> {
+  async getComplaintDetails(
+    user: TokenPayload,
+    id: string,
+  ): Promise<IComplaintDocument> {
     const deptName = await this.getOfficerDepartment(user.userId);
     const complaint = await Complaint.findById(id)
-      .populate('citizen', 'firstName lastName email phone')
-      .populate('assignment.fieldWorker', 'firstName lastName email')
+      .populate("citizen", "firstName lastName email phone")
+      .populate("assignment.fieldWorker", "firstName lastName email")
       .exec();
 
     if (!complaint) {
-      throw ApiError.notFound('Complaint record not found');
+      throw ApiError.notFound("Complaint record not found");
     }
 
     // Security verify: Officer must manage their assigned department or directly assigned issues
     if (deptName) {
       if (complaint.department !== deptName) {
-        throw ApiError.forbidden('You are not authorized to view complaints outside your department');
+        throw ApiError.forbidden(
+          "You are not authorized to view complaints outside your department",
+        );
       }
     } else {
       if (complaint.assignment?.officer?.toString() !== user.userId) {
-        throw ApiError.forbidden('You are not authorized to view complaints not assigned to you');
+        throw ApiError.forbidden(
+          "You are not authorized to view complaints not assigned to you",
+        );
       }
     }
 
@@ -197,7 +225,7 @@ class OfficerService {
     title: string,
     description: string,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<IComplaintDocument> {
     const complaint = await this.getComplaintDetails(user, id);
     const currentStatus = complaint.status;
@@ -211,7 +239,7 @@ class OfficerService {
       title: title || `Status advanced to ${nextStatus}`,
       description: description || `Status updated by officer ${user.email}`,
       timestamp: new Date(),
-      performedBy: new mongoose.Types.ObjectId(user.userId)
+      performedBy: new mongoose.Types.ObjectId(user.userId),
     });
 
     const saved = await complaint.save();
@@ -220,12 +248,12 @@ class OfficerService {
       actorId: user.userId,
       actorEmail: user.email,
       actorRole: user.role,
-      action: 'complaint_status_updated',
-      target: 'Complaint',
+      action: "complaint_status_updated",
+      target: "Complaint",
       targetId: id,
       details: { from: currentStatus, to: nextStatus, comment: title },
       ipAddress,
-      userAgent
+      userAgent,
     });
 
     return saved;
@@ -237,23 +265,31 @@ class OfficerService {
     workerId: string,
     notes?: string,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<IComplaintDocument> {
     const complaint = await this.getComplaintDetails(user, id);
     const wid = new mongoose.Types.ObjectId(workerId);
 
     // Verify worker exists and is a field_worker
-    const workerObj = await User.findOne({ _id: wid, role: 'field_worker', isActive: true });
+    const workerObj = await User.findOne({
+      _id: wid,
+      role: "field_worker",
+      isActive: true,
+    });
     if (!workerObj) {
-      throw ApiError.badRequest('Invalid or inactive field worker selected');
+      throw ApiError.badRequest("Invalid or inactive field worker selected");
     }
 
     const previousStatus = complaint.status;
     let nextStatus = previousStatus;
 
     // If submitted or verified, automatically update status to assigned
-    if (previousStatus === 'submitted' || previousStatus === 'verified' || previousStatus === 'ai_reviewed') {
-      nextStatus = 'assigned';
+    if (
+      previousStatus === "submitted" ||
+      previousStatus === "verified" ||
+      previousStatus === "ai_reviewed"
+    ) {
+      nextStatus = "assigned";
     }
 
     complaint.status = nextStatus;
@@ -262,15 +298,15 @@ class OfficerService {
       fieldWorker: wid,
       assignedAt: new Date(),
       officerNotes: notes || complaint.assignment?.officerNotes,
-      resolutionUpdates: complaint.assignment?.resolutionUpdates
+      resolutionUpdates: complaint.assignment?.resolutionUpdates,
     };
 
     complaint.timeline.push({
       status: nextStatus,
-      title: 'Field Worker Assigned',
+      title: "Field Worker Assigned",
       description: `Assigned to ${workerObj.firstName} ${workerObj.lastName} by officer ${user.email}`,
       timestamp: new Date(),
-      performedBy: new mongoose.Types.ObjectId(user.userId)
+      performedBy: new mongoose.Types.ObjectId(user.userId),
     });
 
     const saved = await complaint.save();
@@ -279,25 +315,29 @@ class OfficerService {
       actorId: user.userId,
       actorEmail: user.email,
       actorRole: user.role,
-      action: 'complaint_assigned_worker',
-      target: 'Complaint',
+      action: "complaint_assigned_worker",
+      target: "Complaint",
       targetId: id,
       details: { workerId, workerEmail: workerObj.email },
       ipAddress,
-      userAgent
+      userAgent,
     });
 
     return saved;
   }
 
-  async addInternalNote(user: TokenPayload, id: string, text: string): Promise<IComplaintDocument> {
+  async addInternalNote(
+    user: TokenPayload,
+    id: string,
+    text: string,
+  ): Promise<IComplaintDocument> {
     const complaint = await this.getComplaintDetails(user, id);
-    
+
     complaint.internalNotes.push({
       text,
       authorId: new mongoose.Types.ObjectId(user.userId),
       authorName: `${user.email}`,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     return await complaint.save();
@@ -309,27 +349,27 @@ class OfficerService {
     description: string,
     details?: string,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<IComplaintDocument> {
     const complaint = await this.getComplaintDetails(user, id);
     const currentStatus = complaint.status;
 
     // Validate transition
-    WorkflowService.validateTransition(currentStatus, 'resolved');
+    WorkflowService.validateTransition(currentStatus, "resolved");
 
-    complaint.status = 'resolved';
+    complaint.status = "resolved";
     complaint.resolutionNotes = {
       description,
       completedAt: new Date(),
-      details
+      details,
     };
 
     complaint.timeline.push({
-      status: 'resolved',
-      title: 'Resolution Recorded',
+      status: "resolved",
+      title: "Resolution Recorded",
       description: `Incident marked as resolved. Summary: ${description}`,
       timestamp: new Date(),
-      performedBy: new mongoose.Types.ObjectId(user.userId)
+      performedBy: new mongoose.Types.ObjectId(user.userId),
     });
 
     const saved = await complaint.save();
@@ -338,12 +378,12 @@ class OfficerService {
       actorId: user.userId,
       actorEmail: user.email,
       actorRole: user.role,
-      action: 'complaint_resolved_by_officer',
-      target: 'Complaint',
+      action: "complaint_resolved_by_officer",
+      target: "Complaint",
       targetId: id,
       details: { description },
       ipAddress,
-      userAgent
+      userAgent,
     });
 
     return saved;
@@ -351,22 +391,26 @@ class OfficerService {
 
   async getAvailableWorkers(user: TokenPayload): Promise<any[]> {
     const deptName = await this.getOfficerDepartment(user.userId);
-    
+
     if (deptName) {
-      const deptObj = await Department.findOne({ name: deptName }).select('officers').exec();
+      const deptObj = await Department.findOne({ name: deptName })
+        .select("officers")
+        .exec();
       if (deptObj && deptObj.officers.length > 0) {
         // Query users in the department roster with field_worker role
         return await User.find({
           _id: { $in: deptObj.officers },
-          role: 'field_worker',
-          isActive: true
-        }).select('_id firstName lastName email phone').exec();
+          role: "field_worker",
+          isActive: true,
+        })
+          .select("_id firstName lastName email phone")
+          .exec();
       }
     }
 
     // Fallback: Query all active field workers in system
-    return await User.find({ role: 'field_worker', isActive: true })
-      .select('_id firstName lastName email phone')
+    return await User.find({ role: "field_worker", isActive: true })
+      .select("_id firstName lastName email phone")
       .exec();
   }
 }

@@ -23,26 +23,28 @@ import { Component, input, computed } from '@angular/core';
       </div>
     }
   `,
-  styles: [`
-    @use 'styles/variables' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
 
-    .avatar {
-      border-radius: $radius-full;
-      object-fit: cover;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      .avatar {
+        border-radius: $radius-full;
+        object-fit: cover;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
 
-      &--initials {
-        background: $gradient-primary;
-        color: $text-inverse;
-        font-weight: $font-weight-semibold;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        &--initials {
+          background: $gradient-primary;
+          color: $text-inverse;
+          font-weight: $font-weight-semibold;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
       }
-    }
-  `],
+    `,
+  ],
 })
 export class AvatarComponent {
   readonly src = input<string>('');

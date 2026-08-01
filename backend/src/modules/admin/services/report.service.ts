@@ -1,5 +1,5 @@
-import Complaint from '../../../models/complaint.model';
-import Department from '../../../models/department.model';
+import Complaint from "../../../models/complaint.model";
+import Department from "../../../models/department.model";
 
 export interface ReportData {
   timeframe: string;
@@ -27,15 +27,17 @@ export interface ReportData {
 }
 
 class ReportService {
-  async generateReport(range: 'daily' | 'weekly' | 'monthly' | 'yearly'): Promise<ReportData> {
+  async generateReport(
+    range: "daily" | "weekly" | "monthly" | "yearly",
+  ): Promise<ReportData> {
     const endDate = new Date();
     const startDate = new Date();
 
-    if (range === 'daily') {
+    if (range === "daily") {
       startDate.setDate(endDate.getDate() - 1);
-    } else if (range === 'weekly') {
+    } else if (range === "weekly") {
       startDate.setDate(endDate.getDate() - 7);
-    } else if (range === 'monthly') {
+    } else if (range === "monthly") {
       startDate.setMonth(endDate.getMonth() - 1);
     } else {
       startDate.setFullYear(endDate.getFullYear() - 1);
@@ -43,7 +45,7 @@ class ReportService {
 
     // 1. Fetch complaints in range
     const complaints = await Complaint.find({
-      createdAt: { $gte: startDate, $lte: endDate }
+      createdAt: { $gte: startDate, $lte: endDate },
     }).exec();
 
     // 2. Compute status counts
@@ -59,16 +61,18 @@ class ReportService {
     let duplicateCount = 0;
 
     for (const c of complaints) {
-      if (c.status === 'submitted') pendingCount++;
-      else if (['ai_reviewed', 'assigned', 'in_progress'].includes(c.status)) inProgressCount++;
-      else if (c.status === 'resolved') resolvedCount++;
-      else if (c.status === 'closed') closedCount++;
+      if (c.status === "submitted") pendingCount++;
+      else if (["ai_reviewed", "assigned", "in_progress"].includes(c.status))
+        inProgressCount++;
+      else if (c.status === "resolved") resolvedCount++;
+      else if (c.status === "closed") closedCount++;
 
       // Resolution speed check: duration between createdAt and resolution date (last timeline step)
-      if (['resolved', 'closed'].includes(c.status)) {
-        const resolutionStep = c.timeline.find(t => t.status === 'resolved');
+      if (["resolved", "closed"].includes(c.status)) {
+        const resolutionStep = c.timeline.find((t) => t.status === "resolved");
         if (resolutionStep) {
-          const duration = resolutionStep.timestamp.getTime() - c.createdAt.getTime();
+          const duration =
+            resolutionStep.timestamp.getTime() - c.createdAt.getTime();
           totalResolutionTimeMs += duration;
           resolvedWithTimeCount++;
         }
@@ -83,29 +87,36 @@ class ReportService {
       }
     }
 
-    const avgResolutionHours = resolvedWithTimeCount > 0 
-      ? Math.round((totalResolutionTimeMs / (1000 * 60 * 60)) / resolvedWithTimeCount) 
-      : 0;
+    const avgResolutionHours =
+      resolvedWithTimeCount > 0
+        ? Math.round(
+            totalResolutionTimeMs / (1000 * 60 * 60) / resolvedWithTimeCount,
+          )
+        : 0;
 
-    const avgConfidence = aiConfidenceCount > 0 
-      ? Math.round(aiConfidenceSum / aiConfidenceCount) 
-      : 0;
+    const avgConfidence =
+      aiConfidenceCount > 0
+        ? Math.round(aiConfidenceSum / aiConfidenceCount)
+        : 0;
 
     // 3. Compute department allocations
     const depts = await Department.find().exec();
-    const departmentStats = depts.map(d => {
-      const deptComplaints = complaints.filter(c => c.department === d.name);
+    const departmentStats = depts.map((d) => {
+      const deptComplaints = complaints.filter((c) => c.department === d.name);
       const total = deptComplaints.length;
-      const resolved = deptComplaints.filter(c => ['resolved', 'closed'].includes(c.status)).length;
+      const resolved = deptComplaints.filter((c) =>
+        ["resolved", "closed"].includes(c.status),
+      ).length;
       const pending = total - resolved;
-      const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+      const resolutionRate =
+        total > 0 ? Math.round((resolved / total) * 100) : 0;
 
       return {
         name: d.name,
         total,
         resolved,
         pending,
-        resolutionRate
+        resolutionRate,
       };
     });
 
@@ -119,13 +130,13 @@ class ReportService {
         inProgressCount,
         resolvedCount,
         closedCount,
-        avgResolutionHours
+        avgResolutionHours,
       },
       departments: departmentStats,
       aiStats: {
         avgConfidence,
-        duplicateCount
-      }
+        duplicateCount,
+      },
     };
   }
 
@@ -133,36 +144,46 @@ class ReportService {
     const lines: string[] = [];
 
     // Header
-    lines.push(`CivicPulse Administrative Summary Report (${report.timeframe.toUpperCase()})`);
-    lines.push(`Date Range: ${report.startDate.toLocaleDateString()} to ${report.endDate.toLocaleDateString()}`);
-    lines.push('');
+    lines.push(
+      `CivicPulse Administrative Summary Report (${report.timeframe.toUpperCase()})`,
+    );
+    lines.push(
+      `Date Range: ${report.startDate.toLocaleDateString()} to ${report.endDate.toLocaleDateString()}`,
+    );
+    lines.push("");
 
     // Summary Section
-    lines.push('--- SUMMARY STATISTICS ---');
-    lines.push('Metric,Value');
+    lines.push("--- SUMMARY STATISTICS ---");
+    lines.push("Metric,Value");
     lines.push(`Total Incident Tickets,${report.summary.totalComplaints}`);
     lines.push(`Pending Review,${report.summary.pendingCount}`);
     lines.push(`Work In Progress,${report.summary.inProgressCount}`);
     lines.push(`Resolved Tickets,${report.summary.resolvedCount}`);
     lines.push(`Closed Tickets,${report.summary.closedCount}`);
-    lines.push(`Average Resolution Duration (Hours),${report.summary.avgResolutionHours}`);
-    lines.push('');
+    lines.push(
+      `Average Resolution Duration (Hours),${report.summary.avgResolutionHours}`,
+    );
+    lines.push("");
 
     // AI Section
-    lines.push('--- AI CLASSIFIER STATISTICS ---');
-    lines.push('Metric,Value');
+    lines.push("--- AI CLASSIFIER STATISTICS ---");
+    lines.push("Metric,Value");
     lines.push(`AI Classifier Confidence,${report.aiStats.avgConfidence}%`);
     lines.push(`Duplicate Flags Triggered,${report.aiStats.duplicateCount}`);
-    lines.push('');
+    lines.push("");
 
     // Department Section
-    lines.push('--- DEPARTMENT PERFORMANCE ---');
-    lines.push('Department Name,Total Assigned,Resolved Cases,Active Load,Resolution Rate (%)');
+    lines.push("--- DEPARTMENT PERFORMANCE ---");
+    lines.push(
+      "Department Name,Total Assigned,Resolved Cases,Active Load,Resolution Rate (%)",
+    );
     for (const d of report.departments) {
-      lines.push(`"${d.name}",${d.total},${d.resolved},${d.pending},${d.resolutionRate}%`);
+      lines.push(
+        `"${d.name}",${d.total},${d.resolved},${d.pending},${d.resolutionRate}%`,
+      );
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }
 

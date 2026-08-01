@@ -35,5 +35,8 @@
     "eslint": "^10.8.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
+  },
+  "allowScripts": {
+    "bcrypt@6.0.0": true
   }
 }

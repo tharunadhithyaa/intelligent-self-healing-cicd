@@ -7,7 +7,10 @@ export interface IGpsCoordinates {
 
 export interface IGpsLocationService {
   getCurrentPosition(workerId: string): Promise<IGpsCoordinates>;
-  updateWorkerLocation(workerId: string, location: IGpsCoordinates): Promise<void>;
+  updateWorkerLocation(
+    workerId: string,
+    location: IGpsCoordinates,
+  ): Promise<void>;
 }
 
 export class MockGpsLocationService implements IGpsLocationService {
@@ -17,13 +20,18 @@ export class MockGpsLocationService implements IGpsLocationService {
       latitude: 12.971598,
       longitude: 77.594562,
       accuracy: 10, // 10 meters precision
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
-  async updateWorkerLocation(workerId: string, location: IGpsCoordinates): Promise<void> {
+  async updateWorkerLocation(
+    workerId: string,
+    location: IGpsCoordinates,
+  ): Promise<void> {
     // Placeholder log for future MongoDB geospacial coordinates mapping
-    console.log(`[GEOLOCATION] Geolocation trace for Field Worker: ${workerId} at coords: (${location.latitude}, ${location.longitude})`);
+    console.log(
+      `[GEOLOCATION] Geolocation trace for Field Worker: ${workerId} at coords: (${location.latitude}, ${location.longitude})`,
+    );
   }
 }
 export const gpsLocationService = new MockGpsLocationService();

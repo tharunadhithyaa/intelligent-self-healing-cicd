@@ -29,7 +29,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
     MatSelectModule,
     MatProgressSpinnerModule,
     MatDialogModule,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <div class="settings-page animate-fade-in-up">
@@ -77,13 +77,17 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
                   </div>
                   <div class="form-section">
                     <h4>Layout Settings</h4>
-                    <mat-slide-toggle formControlName="compactMode" color="primary">Enable Compact Mode</mat-slide-toggle>
+                    <mat-slide-toggle formControlName="compactMode" color="primary"
+                      >Enable Compact Mode</mat-slide-toggle
+                    >
                     <p class="help-text">Reduces spacing and shows more information on screen.</p>
                   </div>
                 </form>
               </div>
               <div class="settings-card__actions">
-                <button mat-flat-button color="primary" (click)="saveSettings()">Save Preferences</button>
+                <button mat-flat-button color="primary" (click)="saveSettings()">
+                  Save Preferences
+                </button>
               </div>
             </mat-card>
           }
@@ -126,7 +130,9 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
                 </form>
               </div>
               <div class="settings-card__actions">
-                <button mat-flat-button color="primary" (click)="saveSettings()">Save Preferences</button>
+                <button mat-flat-button color="primary" (click)="saveSettings()">
+                  Save Preferences
+                </button>
               </div>
             </mat-card>
           }
@@ -158,16 +164,33 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
                       </mat-checkbox>
                     </div>
                   </div>
-                  
+
                   <div class="data-actions">
                     <h4>Data Management</h4>
-                    <button mat-stroked-button color="primary" type="button" (click)="downloadData()">Download Account Data</button>
-                    <button mat-stroked-button color="warn" type="button" style="margin-left: 12px;" (click)="deleteConversations()">Delete Conversation History</button>
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      type="button"
+                      (click)="downloadData()"
+                    >
+                      Download Account Data
+                    </button>
+                    <button
+                      mat-stroked-button
+                      color="warn"
+                      type="button"
+                      style="margin-left: 12px;"
+                      (click)="deleteConversations()"
+                    >
+                      Delete Conversation History
+                    </button>
                   </div>
                 </form>
               </div>
               <div class="settings-card__actions">
-                <button mat-flat-button color="primary" (click)="saveSettings()">Save Preferences</button>
+                <button mat-flat-button color="primary" (click)="saveSettings()">
+                  Save Preferences
+                </button>
               </div>
             </mat-card>
           }
@@ -193,7 +216,9 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
                 </form>
               </div>
               <div class="settings-card__actions">
-                <button mat-flat-button color="primary" (click)="saveSettings()">Save Preferences</button>
+                <button mat-flat-button color="primary" (click)="saveSettings()">
+                  Save Preferences
+                </button>
               </div>
             </mat-card>
           }
@@ -230,7 +255,9 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
                 </form>
               </div>
               <div class="settings-card__actions">
-                <button mat-flat-button color="primary" (click)="saveSettings()">Save Preferences</button>
+                <button mat-flat-button color="primary" (click)="saveSettings()">
+                  Save Preferences
+                </button>
               </div>
             </mat-card>
           }
@@ -238,215 +265,218 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .settings-page {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .settings-layout {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-6;
-      margin-top: $spacing-4;
-
-      @include md {
-        flex-direction: row;
-        align-items: flex-start;
-      }
-    }
-
-    .settings-sidebar {
-      display: flex;
-      flex-direction: row;
-      gap: $spacing-2;
-      background: $surface;
-      padding: $spacing-2;
-      border-radius: $radius-lg;
-      border: 1px solid $border;
-      width: 100%;
-      overflow-x: auto;
-      flex-shrink: 0;
-
-      @include md {
+      .settings-page {
+        display: flex;
         flex-direction: column;
-        width: 240px;
-        overflow-x: visible;
-      }
-    }
-
-    .sidebar-tab {
-      @include flex-start;
-      gap: $spacing-3;
-      padding: $spacing-3 $spacing-4;
-      background: transparent;
-      border: none;
-      border-radius: $radius-md;
-      color: $text-secondary;
-      font-size: $font-size-sm;
-      font-weight: $font-weight-medium;
-      cursor: pointer;
-      width: 100%;
-      white-space: nowrap;
-      transition: all $transition-fast;
-
-      &:hover {
-        background: $background;
-        color: $primary;
       }
 
-      &--active {
-        background: $primary-light;
-        color: $primary-dark;
-        font-weight: $font-weight-semibold;
+      .settings-layout {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-6;
+        margin-top: $spacing-4;
 
-        mat-icon {
+        @include md {
+          flex-direction: row;
+          align-items: flex-start;
+        }
+      }
+
+      .settings-sidebar {
+        display: flex;
+        flex-direction: row;
+        gap: $spacing-2;
+        background: $surface;
+        padding: $spacing-2;
+        border-radius: $radius-lg;
+        border: 1px solid $border;
+        width: 100%;
+        overflow-x: auto;
+        flex-shrink: 0;
+
+        @include md {
+          flex-direction: column;
+          width: 240px;
+          overflow-x: visible;
+        }
+      }
+
+      .sidebar-tab {
+        @include flex-start;
+        gap: $spacing-3;
+        padding: $spacing-3 $spacing-4;
+        background: transparent;
+        border: none;
+        border-radius: $radius-md;
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        width: 100%;
+        white-space: nowrap;
+        transition: all $transition-fast;
+
+        &:hover {
+          background: $background;
           color: $primary;
         }
-      }
 
-      mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-        color: $icon-secondary;
-      }
-    }
+        &--active {
+          background: $primary-light;
+          color: $primary-dark;
+          font-weight: $font-weight-semibold;
 
-    .settings-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .settings-card {
-      @include card-base;
-      border: 1px solid $border;
-      padding: $spacing-6 $spacing-8;
-
-      @include mobile-only {
-        padding: $spacing-5 $spacing-4;
-      }
-
-      &__header {
-        margin-bottom: $spacing-6;
-        border-bottom: 1px solid $border-light;
-        padding-bottom: $spacing-4;
-
-        h3 {
-          font-size: $font-size-lg;
-          font-weight: $font-weight-bold;
-          color: $text-primary;
-          margin-bottom: 2px;
+          mat-icon {
+            color: $primary;
+          }
         }
 
-        p {
-          font-size: $font-size-xs;
-          color: $text-secondary;
-          margin: 0;
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+          color: $icon-secondary;
         }
       }
-      
-      &__actions {
+
+      .settings-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .settings-card {
+        @include card-base;
+        border: 1px solid $border;
+        padding: $spacing-6 $spacing-8;
+
+        @include mobile-only {
+          padding: $spacing-5 $spacing-4;
+        }
+
+        &__header {
+          margin-bottom: $spacing-6;
+          border-bottom: 1px solid $border-light;
+          padding-bottom: $spacing-4;
+
+          h3 {
+            font-size: $font-size-lg;
+            font-weight: $font-weight-bold;
+            color: $text-primary;
+            margin-bottom: 2px;
+          }
+
+          p {
+            font-size: $font-size-xs;
+            color: $text-secondary;
+            margin: 0;
+          }
+        }
+
+        &__actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: $spacing-6;
+          padding-top: $spacing-4;
+          border-top: 1px solid $border-light;
+        }
+      }
+
+      .settings-form {
         display: flex;
-        justify-content: flex-end;
-        margin-top: $spacing-6;
-        padding-top: $spacing-4;
-        border-top: 1px solid $border-light;
-      }
-    }
-
-    .settings-form {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-5;
-    }
-
-    .form-section {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-3;
-      
-      h4 {
-        margin: 0;
-        font-size: $font-size-base;
-        color: $text-primary;
-        font-weight: 500;
-      }
-      
-      .help-text {
-        font-size: $font-size-xs;
-        color: $text-muted;
-        margin: -4px 0 0 0;
-      }
-    }
-
-    .prefs-list {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-4;
-    }
-
-    .pref-item {
-      padding: $spacing-3 $spacing-4;
-      border-radius: $radius-md;
-      background: $background;
-      border: 1px solid $border-light;
-      transition: all $transition-fast;
-
-      &:hover {
-        border-color: $border;
-        background: $surface;
-      }
-      
-      strong {
-        display: block;
-        font-size: $font-size-sm;
-        color: $text-primary;
-        margin-bottom: 2px;
-      }
-      
-      p {
-        font-size: $font-size-xs;
-        color: $text-secondary;
-        margin: 0;
-        line-height: $line-height-normal;
+        flex-direction: column;
+        gap: $spacing-5;
       }
 
-      ::ng-deep .mdc-checkbox, ::ng-deep .mdc-switch {
-        align-self: flex-start;
+      .form-section {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-3;
+
+        h4 {
+          margin: 0;
+          font-size: $font-size-base;
+          color: $text-primary;
+          font-weight: 500;
+        }
+
+        .help-text {
+          font-size: $font-size-xs;
+          color: $text-muted;
+          margin: -4px 0 0 0;
+        }
       }
 
-      &__label {
+      .prefs-list {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-4;
+      }
+
+      .pref-item {
+        padding: $spacing-3 $spacing-4;
+        border-radius: $radius-md;
+        background: $background;
+        border: 1px solid $border-light;
+        transition: all $transition-fast;
+
+        &:hover {
+          border-color: $border;
+          background: $surface;
+        }
+
         strong {
           display: block;
           font-size: $font-size-sm;
           color: $text-primary;
           margin-bottom: 2px;
         }
+
         p {
           font-size: $font-size-xs;
           color: $text-secondary;
           margin: 0;
           line-height: $line-height-normal;
         }
+
+        ::ng-deep .mdc-checkbox,
+        ::ng-deep .mdc-switch {
+          align-self: flex-start;
+        }
+
+        &__label {
+          strong {
+            display: block;
+            font-size: $font-size-sm;
+            color: $text-primary;
+            margin-bottom: 2px;
+          }
+          p {
+            font-size: $font-size-xs;
+            color: $text-secondary;
+            margin: 0;
+            line-height: $line-height-normal;
+          }
+        }
       }
-    }
-    
-    .data-actions {
-      margin-top: $spacing-6;
-      padding-top: $spacing-4;
-      border-top: 1px dashed $border-light;
-      
-      h4 {
-        margin: 0 0 $spacing-3 0;
-        font-size: $font-size-base;
-        color: $text-primary;
+
+      .data-actions {
+        margin-top: $spacing-6;
+        padding-top: $spacing-4;
+        border-top: 1px dashed $border-light;
+
+        h4 {
+          margin: 0 0 $spacing-3 0;
+          font-size: $font-size-base;
+          color: $text-primary;
+        }
       }
-    }
-  `]
+    `,
+  ],
 })
 export class SettingsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -462,7 +492,7 @@ export class SettingsComponent implements OnInit {
     { id: 'notifications', label: 'Notifications', icon: 'notifications' },
     { id: 'privacy', label: 'Privacy', icon: 'security' },
     { id: 'language', label: 'Language', icon: 'language' },
-    { id: 'accessibility', label: 'Accessibility', icon: 'accessibility' }
+    { id: 'accessibility', label: 'Accessibility', icon: 'accessibility' },
   ];
 
   appearanceForm!: FormGroup;
@@ -476,29 +506,29 @@ export class SettingsComponent implements OnInit {
 
     this.appearanceForm = this.fb.group({
       theme: [current.appearance?.theme || 'system'],
-      compactMode: [current.appearance?.compactMode || false]
+      compactMode: [current.appearance?.compactMode || false],
     });
 
     this.notificationsForm = this.fb.group({
       email: [current.notifications?.email ?? true],
       sms: [current.notifications?.sms ?? false],
       complaints: [current.notifications?.complaints ?? true],
-      system: [current.notifications?.system ?? true]
+      system: [current.notifications?.system ?? true],
     });
 
     this.privacyForm = this.fb.group({
       showProfile: [current.privacy?.showProfile ?? true],
-      showContact: [current.privacy?.showContact ?? false]
+      showContact: [current.privacy?.showContact ?? false],
     });
 
     this.languageForm = this.fb.group({
-      language: [current.language?.language || 'en']
+      language: [current.language?.language || 'en'],
     });
 
     this.accessibilityForm = this.fb.group({
       highContrast: [current.accessibility?.highContrast || false],
       reducedMotion: [current.accessibility?.reducedMotion || false],
-      largerText: [current.accessibility?.largerText || false]
+      largerText: [current.accessibility?.largerText || false],
     });
   }
 
@@ -507,26 +537,32 @@ export class SettingsComponent implements OnInit {
   }
 
   saveSettings(): void {
-    this.settingsService.updateSettings({
-      appearance: this.appearanceForm.value,
-      notifications: this.notificationsForm.value,
-      privacy: this.privacyForm.value,
-      language: this.languageForm.value,
-      accessibility: this.accessibilityForm.value
-    }).subscribe({
-      next: () => {
-        this.notification.success('Settings updated successfully.');
-        this.translationService.setLanguage(this.languageForm.value.language);
-      },
-      error: () => this.notification.error('Failed to update settings')
-    });
+    this.settingsService
+      .updateSettings({
+        appearance: this.appearanceForm.value,
+        notifications: this.notificationsForm.value,
+        privacy: this.privacyForm.value,
+        language: this.languageForm.value,
+        accessibility: this.accessibilityForm.value,
+      })
+      .subscribe({
+        next: () => {
+          this.notification.success('Settings updated successfully.');
+          this.translationService.setLanguage(this.languageForm.value.language);
+        },
+        error: () => this.notification.error('Failed to update settings'),
+      });
   }
 
   deleteConversations(): void {
-    if (confirm('Are you sure you want to permanently delete all AI conversation history? This action cannot be undone.')) {
+    if (
+      confirm(
+        'Are you sure you want to permanently delete all AI conversation history? This action cannot be undone.',
+      )
+    ) {
       this.aiChatService.deleteAllConversations().subscribe({
         next: () => this.notification.success('AI conversation history deleted.'),
-        error: () => this.notification.error('Failed to delete conversations.')
+        error: () => this.notification.error('Failed to delete conversations.'),
       });
     }
   }
@@ -544,7 +580,7 @@ export class SettingsComponent implements OnInit {
         window.URL.revokeObjectURL(url);
         this.notification.success('Data download started.');
       },
-      error: () => this.notification.error('Failed to download data.')
+      error: () => this.notification.error('Failed to download data.'),
     });
   }
 }

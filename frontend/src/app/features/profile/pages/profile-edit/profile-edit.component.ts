@@ -23,7 +23,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
     MatInputModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <div class="profile-page animate-fade-in-up">
@@ -64,7 +64,10 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
                       <mat-label>First Name</mat-label>
                       <input matInput formControlName="firstName" />
                       <mat-icon matPrefix>person</mat-icon>
-                      @if (profileForm.get('firstName')?.hasError('required') && profileForm.get('firstName')?.touched) {
+                      @if (
+                        profileForm.get('firstName')?.hasError('required') &&
+                        profileForm.get('firstName')?.touched
+                      ) {
                         <mat-error>First name is required</mat-error>
                       }
                     </mat-form-field>
@@ -73,7 +76,10 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
                       <mat-label>Last Name</mat-label>
                       <input matInput formControlName="lastName" />
                       <mat-icon matPrefix>person</mat-icon>
-                      @if (profileForm.get('lastName')?.hasError('required') && profileForm.get('lastName')?.touched) {
+                      @if (
+                        profileForm.get('lastName')?.hasError('required') &&
+                        profileForm.get('lastName')?.touched
+                      ) {
                         <mat-error>Last name is required</mat-error>
                       }
                     </mat-form-field>
@@ -82,28 +88,49 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
                       <mat-label>Phone Number</mat-label>
                       <input matInput formControlName="phone" placeholder="+1234567890" />
                       <mat-icon matPrefix>phone</mat-icon>
-                      @if (profileForm.get('phone')?.hasError('pattern') && profileForm.get('phone')?.touched) {
+                      @if (
+                        profileForm.get('phone')?.hasError('pattern') &&
+                        profileForm.get('phone')?.touched
+                      ) {
                         <mat-error>Enter a valid phone number (10-15 digits)</mat-error>
                       }
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="col-6">
                       <mat-label>Home Address</mat-label>
-                      <input matInput formControlName="address" placeholder="123 Main St, Springfield" />
+                      <input
+                        matInput
+                        formControlName="address"
+                        placeholder="123 Main St, Springfield"
+                      />
                       <mat-icon matPrefix>home</mat-icon>
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="col-12">
                       <mat-label>Personal Bio / Info</mat-label>
-                      <textarea matInput formControlName="bio" rows="3" placeholder="Briefly describe your connection to the community..."></textarea>
+                      <textarea
+                        matInput
+                        formControlName="bio"
+                        rows="3"
+                        placeholder="Briefly describe your connection to the community..."
+                      ></textarea>
                       <mat-icon matPrefix>info</mat-icon>
                     </mat-form-field>
                   </div>
 
                   <div class="form-actions">
-                    <button mat-flat-button color="primary" type="submit" [disabled]="profileForm.invalid || profileSaving()">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      type="submit"
+                      [disabled]="profileForm.invalid || profileSaving()"
+                    >
                       @if (profileSaving()) {
-                        <mat-progress-spinner mode="indeterminate" diameter="20" style="display:inline-block; margin-right:6px"></mat-progress-spinner>
+                        <mat-progress-spinner
+                          mode="indeterminate"
+                          diameter="20"
+                          style="display:inline-block; margin-right:6px"
+                        ></mat-progress-spinner>
                         Saving Changes...
                       } @else {
                         Save Profile
@@ -127,48 +154,99 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
                   <div class="form-grid">
                     <mat-form-field appearance="outline" class="col-12">
                       <mat-label>Current Password</mat-label>
-                      <input matInput [type]="hideCurrent() ? 'password' : 'text'" formControlName="currentPassword" />
+                      <input
+                        matInput
+                        [type]="hideCurrent() ? 'password' : 'text'"
+                        formControlName="currentPassword"
+                      />
                       <mat-icon matPrefix>lock</mat-icon>
-                      <button type="button" mat-icon-button matSuffix (click)="hideCurrent.set(!hideCurrent())" aria-label="Toggle password visibility">
+                      <button
+                        type="button"
+                        mat-icon-button
+                        matSuffix
+                        (click)="hideCurrent.set(!hideCurrent())"
+                        aria-label="Toggle password visibility"
+                      >
                         <mat-icon>{{ hideCurrent() ? 'visibility_off' : 'visibility' }}</mat-icon>
                       </button>
-                      @if (passwordForm.get('currentPassword')?.hasError('required') && passwordForm.get('currentPassword')?.touched) {
+                      @if (
+                        passwordForm.get('currentPassword')?.hasError('required') &&
+                        passwordForm.get('currentPassword')?.touched
+                      ) {
                         <mat-error>Current password is required</mat-error>
                       }
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="col-6">
                       <mat-label>New Password</mat-label>
-                      <input matInput [type]="hideNew() ? 'password' : 'text'" formControlName="newPassword" />
+                      <input
+                        matInput
+                        [type]="hideNew() ? 'password' : 'text'"
+                        formControlName="newPassword"
+                      />
                       <mat-icon matPrefix>lock_open</mat-icon>
-                      <button type="button" mat-icon-button matSuffix (click)="hideNew.set(!hideNew())" aria-label="Toggle password visibility">
+                      <button
+                        type="button"
+                        mat-icon-button
+                        matSuffix
+                        (click)="hideNew.set(!hideNew())"
+                        aria-label="Toggle password visibility"
+                      >
                         <mat-icon>{{ hideNew() ? 'visibility_off' : 'visibility' }}</mat-icon>
                       </button>
-                      @if (passwordForm.get('newPassword')?.hasError('required') && passwordForm.get('newPassword')?.touched) {
+                      @if (
+                        passwordForm.get('newPassword')?.hasError('required') &&
+                        passwordForm.get('newPassword')?.touched
+                      ) {
                         <mat-error>New password is required</mat-error>
                       }
-                      @if (passwordForm.get('newPassword')?.hasError('minlength') && passwordForm.get('newPassword')?.touched) {
+                      @if (
+                        passwordForm.get('newPassword')?.hasError('minlength') &&
+                        passwordForm.get('newPassword')?.touched
+                      ) {
                         <mat-error>Password must be at least 8 characters</mat-error>
                       }
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="col-6">
                       <mat-label>Confirm New Password</mat-label>
-                      <input matInput [type]="hideConfirm() ? 'password' : 'text'" formControlName="confirmPassword" />
+                      <input
+                        matInput
+                        [type]="hideConfirm() ? 'password' : 'text'"
+                        formControlName="confirmPassword"
+                      />
                       <mat-icon matPrefix>lock</mat-icon>
-                      <button type="button" mat-icon-button matSuffix (click)="hideConfirm.set(!hideConfirm())" aria-label="Toggle password visibility">
+                      <button
+                        type="button"
+                        mat-icon-button
+                        matSuffix
+                        (click)="hideConfirm.set(!hideConfirm())"
+                        aria-label="Toggle password visibility"
+                      >
                         <mat-icon>{{ hideConfirm() ? 'visibility_off' : 'visibility' }}</mat-icon>
                       </button>
-                      @if (passwordForm.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched) {
+                      @if (
+                        passwordForm.hasError('mismatch') &&
+                        passwordForm.get('confirmPassword')?.touched
+                      ) {
                         <mat-error>Passwords do not match</mat-error>
                       }
                     </mat-form-field>
                   </div>
 
                   <div class="form-actions">
-                    <button mat-flat-button color="primary" type="submit" [disabled]="passwordForm.invalid || passwordSaving()">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      type="submit"
+                      [disabled]="passwordForm.invalid || passwordSaving()"
+                    >
                       @if (passwordSaving()) {
-                        <mat-progress-spinner mode="indeterminate" diameter="20" style="display:inline-block; margin-right:6px"></mat-progress-spinner>
+                        <mat-progress-spinner
+                          mode="indeterminate"
+                          diameter="20"
+                          style="display:inline-block; margin-right:6px"
+                        ></mat-progress-spinner>
                         Updating Password...
                       } @else {
                         Change Password
@@ -218,230 +296,238 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .profile-page {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .profile-layout {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-6;
-      margin-top: $spacing-4;
-
-      @include md {
-        flex-direction: row;
-        align-items: flex-start;
-      }
-    }
-
-    // ─── Left Sidebar Tabs ───
-    .profile-sidebar {
-      display: flex;
-      flex-direction: row;
-      gap: $spacing-2;
-      background: $surface;
-      padding: $spacing-2;
-      border-radius: $radius-lg;
-      border: 1px solid $border;
-      width: 100%;
-      overflow-x: auto;
-      flex-shrink: 0;
-
-      @include md {
+      .profile-page {
+        display: flex;
         flex-direction: column;
-        width: 240px;
-        overflow-x: visible;
-      }
-    }
-
-    .sidebar-tab {
-      @include flex-start;
-      gap: $spacing-3;
-      padding: $spacing-3 $spacing-4;
-      background: transparent;
-      border: none;
-      border-radius: $radius-md;
-      color: $text-secondary;
-      font-size: $font-size-sm;
-      font-weight: $font-weight-medium;
-      cursor: pointer;
-      width: 100%;
-      white-space: nowrap;
-      transition: all $transition-fast;
-
-      &:hover {
-        background: $background;
-        color: $primary;
       }
 
-      &--active {
-        background: $primary-light;
-        color: $primary-dark;
-        font-weight: $font-weight-semibold;
+      .profile-layout {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-6;
+        margin-top: $spacing-4;
 
-        mat-icon {
+        @include md {
+          flex-direction: row;
+          align-items: flex-start;
+        }
+      }
+
+      // ─── Left Sidebar Tabs ───
+      .profile-sidebar {
+        display: flex;
+        flex-direction: row;
+        gap: $spacing-2;
+        background: $surface;
+        padding: $spacing-2;
+        border-radius: $radius-lg;
+        border: 1px solid $border;
+        width: 100%;
+        overflow-x: auto;
+        flex-shrink: 0;
+
+        @include md {
+          flex-direction: column;
+          width: 240px;
+          overflow-x: visible;
+        }
+      }
+
+      .sidebar-tab {
+        @include flex-start;
+        gap: $spacing-3;
+        padding: $spacing-3 $spacing-4;
+        background: transparent;
+        border: none;
+        border-radius: $radius-md;
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        width: 100%;
+        white-space: nowrap;
+        transition: all $transition-fast;
+
+        &:hover {
+          background: $background;
           color: $primary;
         }
 
-        &:hover {
+        &--active {
           background: $primary-light;
           color: $primary-dark;
+          font-weight: $font-weight-semibold;
+
+          mat-icon {
+            color: $primary;
+          }
+
+          &:hover {
+            background: $primary-light;
+            color: $primary-dark;
+          }
+        }
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+          color: $icon-secondary;
         }
       }
 
-      mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-        color: $icon-secondary;
-      }
-    }
-
-    // ─── Right Content Card ───
-    .profile-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .settings-card {
-      @include card-base;
-      border: 1px solid $border;
-      padding: $spacing-6 $spacing-8;
-
-      @include mobile-only {
-        padding: $spacing-5 $spacing-4;
+      // ─── Right Content Card ───
+      .profile-content {
+        flex: 1;
+        min-width: 0;
       }
 
-      &__header {
-        margin-bottom: $spacing-6;
-        border-bottom: 1px solid $border-light;
-        padding-bottom: $spacing-4;
+      .settings-card {
+        @include card-base;
+        border: 1px solid $border;
+        padding: $spacing-6 $spacing-8;
 
-        h3 {
-          font-size: $font-size-lg;
-          font-weight: $font-weight-bold;
-          color: $text-primary;
-          margin-bottom: 2px;
+        @include mobile-only {
+          padding: $spacing-5 $spacing-4;
         }
 
-        p {
-          font-size: $font-size-xs;
-          color: $text-secondary;
-          margin: 0;
+        &__header {
+          margin-bottom: $spacing-6;
+          border-bottom: 1px solid $border-light;
+          padding-bottom: $spacing-4;
+
+          h3 {
+            font-size: $font-size-lg;
+            font-weight: $font-weight-bold;
+            color: $text-primary;
+            margin-bottom: 2px;
+          }
+
+          p {
+            font-size: $font-size-xs;
+            color: $text-secondary;
+            margin: 0;
+          }
         }
       }
-    }
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 0 $spacing-4;
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 0 $spacing-4;
 
-      .col-12 { grid-column: span 12; }
-      .col-6 { grid-column: span 12; }
-
-      @include sm {
-        .col-6 { grid-column: span 6; }
-      }
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: $spacing-6;
-      border-top: 1px solid $border-light;
-      padding-top: $spacing-4;
-
-      button {
-        @include flex-center;
-        gap: 6px;
-      }
-    }
-
-    // ─── Notification preferences item formatting ───
-    .prefs-list {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-5;
-    }
-
-    .pref-item {
-      padding: $spacing-3;
-      border-radius: $radius-md;
-      background: $background;
-      border: 1px solid $border-light;
-      transition: all $transition-fast;
-
-      &:hover {
-        border-color: $border;
-        background: $surface;
-      }
-
-      ::ng-deep .mdc-checkbox {
-        align-self: flex-start;
-        margin-top: -8px;
-      }
-
-      &__label {
-        strong {
-          display: block;
-          font-size: $font-size-sm;
-          color: $text-primary;
-          margin-bottom: 2px;
+        .col-12 {
+          grid-column: span 12;
         }
-        p {
-          font-size: $font-size-xs;
-          color: $text-secondary;
-          margin: 0;
-          line-height: $line-height-normal;
+        .col-6 {
+          grid-column: span 12;
+        }
+
+        @include sm {
+          .col-6 {
+            grid-column: span 6;
+          }
         }
       }
-    }
 
-    // ─── Activity List ───
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-4;
-    }
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: $spacing-6;
+        border-top: 1px solid $border-light;
+        padding-top: $spacing-4;
 
-    .activity-item {
-      display: flex;
-      align-items: center;
-      gap: $spacing-4;
-      padding: $spacing-3;
-      border-radius: $radius-md;
-      background: $background;
-      border: 1px solid $border-light;
-
-      mat-icon {
-        background: $primary-light;
-        padding: 8px;
-        border-radius: 50%;
-        color: $primary;
+        button {
+          @include flex-center;
+          gap: 6px;
+        }
       }
 
-      .activity-details {
+      // ─── Notification preferences item formatting ───
+      .prefs-list {
         display: flex;
         flex-direction: column;
+        gap: $spacing-5;
+      }
 
-        strong {
-          font-size: $font-size-sm;
-          color: $text-primary;
+      .pref-item {
+        padding: $spacing-3;
+        border-radius: $radius-md;
+        background: $background;
+        border: 1px solid $border-light;
+        transition: all $transition-fast;
+
+        &:hover {
+          border-color: $border;
+          background: $surface;
         }
 
-        span {
-          font-size: $font-size-xs;
-          color: $text-secondary;
+        ::ng-deep .mdc-checkbox {
+          align-self: flex-start;
+          margin-top: -8px;
+        }
+
+        &__label {
+          strong {
+            display: block;
+            font-size: $font-size-sm;
+            color: $text-primary;
+            margin-bottom: 2px;
+          }
+          p {
+            font-size: $font-size-xs;
+            color: $text-secondary;
+            margin: 0;
+            line-height: $line-height-normal;
+          }
         }
       }
-    }
-  `],
+
+      // ─── Activity List ───
+      .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-4;
+      }
+
+      .activity-item {
+        display: flex;
+        align-items: center;
+        gap: $spacing-4;
+        padding: $spacing-3;
+        border-radius: $radius-md;
+        background: $background;
+        border: 1px solid $border-light;
+
+        mat-icon {
+          background: $primary-light;
+          padding: 8px;
+          border-radius: 50%;
+          color: $primary;
+        }
+
+        .activity-details {
+          display: flex;
+          flex-direction: column;
+
+          strong {
+            font-size: $font-size-sm;
+            color: $text-primary;
+          }
+
+          span {
+            font-size: $font-size-xs;
+            color: $text-secondary;
+          }
+        }
+      }
+    `,
+  ],
 })
 export class ProfileEditComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -453,7 +539,7 @@ export class ProfileEditComponent implements OnInit {
   readonly tabs = [
     { id: 'general', label: 'Profile details', icon: 'person' },
     { id: 'security', label: 'Security & login', icon: 'shield' },
-    { id: 'activity', label: 'Recent Activity', icon: 'history' }
+    { id: 'activity', label: 'Recent Activity', icon: 'history' },
   ];
 
   // Passwords hiding
@@ -471,24 +557,27 @@ export class ProfileEditComponent implements OnInit {
 
   ngOnInit(): void {
     const user = this.authService.user();
-    
+
     // Initialize Profile details form
     this.profileForm = this.fb.group({
       firstName: [user?.firstName || '', Validators.required],
       lastName: [user?.lastName || '', Validators.required],
       phone: [user?.phone || '', Validators.pattern(/^\+?[\d\s-]{10,15}$/)],
       address: [user?.address || ''],
-      bio: [user?.bio || '']
+      bio: [user?.bio || ''],
     });
 
     // Initialize password changes form
-    this.passwordForm = this.fb.group({
-      currentPassword: ['', Validators.required],
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', Validators.required]
-    }, {
-      validators: this.passwordMatchValidator
-    });
+    this.passwordForm = this.fb.group(
+      {
+        currentPassword: ['', Validators.required],
+        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        confirmPassword: ['', Validators.required],
+      },
+      {
+        validators: this.passwordMatchValidator,
+      },
+    );
   }
 
   setActiveTab(tabId: string): void {
@@ -517,7 +606,7 @@ export class ProfileEditComponent implements OnInit {
       error: (err) => {
         this.profileSaving.set(false);
         this.notification.error(err.error?.message || 'Failed to update profile details.');
-      }
+      },
     });
   }
 
@@ -527,7 +616,7 @@ export class ProfileEditComponent implements OnInit {
 
     const payload = {
       currentPassword: this.passwordForm.value.currentPassword,
-      newPassword: this.passwordForm.value.newPassword
+      newPassword: this.passwordForm.value.newPassword,
     };
 
     this.citizenService.changePassword(payload).subscribe({
@@ -538,8 +627,10 @@ export class ProfileEditComponent implements OnInit {
       },
       error: (err) => {
         this.passwordSaving.set(false);
-        this.notification.error(err.error?.message || 'Incorrect current password or change failed.');
-      }
+        this.notification.error(
+          err.error?.message || 'Incorrect current password or change failed.',
+        );
+      },
     });
   }
 }

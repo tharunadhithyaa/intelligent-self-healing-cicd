@@ -14,7 +14,7 @@ class SimpleCache {
   set(key: string, value: any, ttlMs: number): void {
     this.cache.set(key, {
       value,
-      expiresAt: Date.now() + ttlMs
+      expiresAt: Date.now() + ttlMs,
     });
   }
 

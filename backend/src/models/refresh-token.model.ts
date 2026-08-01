@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IRefreshToken {
   token: string;
@@ -21,7 +21,7 @@ const refreshTokenSchema = new Schema<IRefreshTokenDocument>(
     },
     userId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       index: true,
     },
@@ -36,7 +36,7 @@ const refreshTokenSchema = new Schema<IRefreshTokenDocument>(
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
-  }
+  },
 );
 
 // TTL index: automatically delete expired tokens
@@ -45,9 +45,7 @@ refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 // Compound index for efficient lookups
 refreshTokenSchema.index({ userId: 1, isRevoked: 1 });
 
-const RefreshToken: Model<IRefreshTokenDocument> = mongoose.model<IRefreshTokenDocument>(
-  'RefreshToken',
-  refreshTokenSchema
-);
+const RefreshToken: Model<IRefreshTokenDocument> =
+  mongoose.model<IRefreshTokenDocument>("RefreshToken", refreshTokenSchema);
 
 export default RefreshToken;

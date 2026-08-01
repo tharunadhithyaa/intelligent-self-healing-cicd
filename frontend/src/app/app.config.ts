@@ -13,12 +13,6 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
     provideAnimations(),
-    provideHttpClient(
-      withInterceptors([
-        loadingInterceptor,
-        authInterceptor,
-        errorInterceptor
-      ])
-    )
-  ]
+    provideHttpClient(withInterceptors([loadingInterceptor, authInterceptor, errorInterceptor])),
+  ],
 };

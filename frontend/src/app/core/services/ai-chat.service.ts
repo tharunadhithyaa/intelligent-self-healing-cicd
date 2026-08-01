@@ -26,29 +26,34 @@ export interface ConversationSession {
 export class AIChatService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/ai-chat`;
-  
+
   readonly historyCleared$ = new Subject<void>();
 
   getConversations(): Observable<ApiResponse<{ conversations: ConversationSession[] }>> {
-    return this.http.get<ApiResponse<{ conversations: ConversationSession[] }>>(`${this.baseUrl}/conversations`);
+    return this.http.get<ApiResponse<{ conversations: ConversationSession[] }>>(
+      `${this.baseUrl}/conversations`,
+    );
   }
 
   getConversationById(id: string): Observable<ApiResponse<{ conversation: ConversationSession }>> {
-    return this.http.get<ApiResponse<{ conversation: ConversationSession }>>(`${this.baseUrl}/conversations/${id}`);
+    return this.http.get<ApiResponse<{ conversation: ConversationSession }>>(
+      `${this.baseUrl}/conversations/${id}`,
+    );
   }
 
-  sendMessage(message: string, conversationId?: string): Observable<
-    ApiResponse<{ conversation: ConversationSession; reply: string }>
-  > {
+  sendMessage(
+    message: string,
+    conversationId?: string,
+  ): Observable<ApiResponse<{ conversation: ConversationSession; reply: string }>> {
     return this.http.post<ApiResponse<{ conversation: ConversationSession; reply: string }>>(
       `${this.baseUrl}/message`,
-      { message, conversationId }
+      { message, conversationId },
     );
   }
 
   deleteAllConversations(): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/conversations`).pipe(
-      tap(() => this.historyCleared$.next())
-    );
+    return this.http
+      .delete(`${this.baseUrl}/conversations`)
+      .pipe(tap(() => this.historyCleared$.next()));
   }
 }

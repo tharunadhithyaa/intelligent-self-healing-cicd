@@ -30,11 +30,16 @@ export class ComplaintsService {
   }
 
   getComplaintById(id: string): Observable<ApiResponse<{ complaint: Complaint }>> {
-    return this.http.get<ApiResponse<{ complaint: Complaint }>>(API_ENDPOINTS.complaints.details(id));
+    return this.http.get<ApiResponse<{ complaint: Complaint }>>(
+      API_ENDPOINTS.complaints.details(id),
+    );
   }
 
   submitComplaint(data: SubmitComplaintRequest): Observable<ApiResponse<{ complaint: Complaint }>> {
-    return this.http.post<ApiResponse<{ complaint: Complaint }>>(API_ENDPOINTS.complaints.base, data);
+    return this.http.post<ApiResponse<{ complaint: Complaint }>>(
+      API_ENDPOINTS.complaints.base,
+      data,
+    );
   }
 
   analyzeDraft(data: {
@@ -42,6 +47,9 @@ export class ComplaintsService {
     description: string;
     location: { latitude: number; longitude: number; address: string };
   }): Observable<ApiResponse<{ analysis: AIAnalysis }>> {
-    return this.http.post<ApiResponse<{ analysis: AIAnalysis }>>(API_ENDPOINTS.complaints.analyze, data);
+    return this.http.post<ApiResponse<{ analysis: AIAnalysis }>>(
+      API_ENDPOINTS.complaints.analyze,
+      data,
+    );
   }
 }

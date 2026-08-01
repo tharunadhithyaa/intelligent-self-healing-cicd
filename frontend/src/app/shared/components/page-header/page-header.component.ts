@@ -24,56 +24,58 @@ import { MatIconModule } from '@angular/material/icon';
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .page-header {
-      @include flex-between;
-      flex-wrap: wrap;
-      gap: $spacing-4;
-      margin-bottom: $spacing-6;
-
-      &__content {
-        @include flex-start;
+      .page-header {
+        @include flex-between;
+        flex-wrap: wrap;
         gap: $spacing-4;
-      }
+        margin-bottom: $spacing-6;
 
-      &__icon-wrapper {
-        @include flex-center;
-        width: 48px;
-        height: 48px;
-        border-radius: $radius-lg;
-        background: $primary-light;
+        &__content {
+          @include flex-start;
+          gap: $spacing-4;
+        }
 
-        mat-icon {
-          color: $primary;
-          font-size: 24px;
+        &__icon-wrapper {
+          @include flex-center;
+          width: 48px;
+          height: 48px;
+          border-radius: $radius-lg;
+          background: $primary-light;
+
+          mat-icon {
+            color: $primary;
+            font-size: 24px;
+          }
+        }
+
+        &__title {
+          font-size: $font-size-2xl;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
+
+          @include mobile-only {
+            font-size: $font-size-xl;
+          }
+        }
+
+        &__subtitle {
+          font-size: $font-size-sm;
+          color: $text-secondary;
+          margin-top: $spacing-1;
+        }
+
+        &__actions {
+          @include flex-start;
+          gap: $spacing-3;
         }
       }
-
-      &__title {
-        font-size: $font-size-2xl;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-
-        @include mobile-only {
-          font-size: $font-size-xl;
-        }
-      }
-
-      &__subtitle {
-        font-size: $font-size-sm;
-        color: $text-secondary;
-        margin-top: $spacing-1;
-      }
-
-      &__actions {
-        @include flex-start;
-        gap: $spacing-3;
-      }
-    }
-  `],
+    `,
+  ],
 })
 export class PageHeaderComponent {
   readonly title = input.required<string>();

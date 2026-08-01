@@ -1,5 +1,5 @@
-import { BaseRepository } from './base.repository';
-import Department, { IDepartmentDocument } from '../models/department.model';
+import { BaseRepository } from "./base.repository";
+import Department, { IDepartmentDocument } from "../models/department.model";
 
 export class DepartmentRepository extends BaseRepository<IDepartmentDocument> {
   constructor() {
@@ -9,7 +9,7 @@ export class DepartmentRepository extends BaseRepository<IDepartmentDocument> {
   async findWithOfficers(): Promise<IDepartmentDocument[]> {
     return this.model
       .find()
-      .populate('officers', 'firstName lastName email role phone')
+      .populate("officers", "firstName lastName email role phone")
       .exec();
   }
 }

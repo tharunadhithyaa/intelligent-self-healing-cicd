@@ -30,7 +30,11 @@ import { AutoFocusDirective } from '../../../../shared/directives/auto-focus.dir
       <!-- Mobile Logo -->
       <div class="login__mobile-brand">
         <div class="login__logo" style="background: transparent;">
-          <img src="logo.jpg" alt="Logo" style="width: 56px; height: 56px; border-radius: inherit; object-fit: cover;">
+          <img
+            src="logo.jpg"
+            alt="Logo"
+            style="width: 56px; height: 56px; border-radius: inherit; object-fit: cover;"
+          />
         </div>
         <h2>CivicPulse</h2>
       </div>
@@ -80,15 +84,15 @@ import { AutoFocusDirective } from '../../../../shared/directives/auto-focus.dir
             >
               <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
-            @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
+            @if (
+              loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched
+            ) {
               <mat-error>Password is required</mat-error>
             }
           </mat-form-field>
 
           <div class="login__options">
-            <mat-checkbox formControlName="rememberMe" color="primary">
-              Remember me
-            </mat-checkbox>
+            <mat-checkbox formControlName="rememberMe" color="primary"> Remember me </mat-checkbox>
             <a
               class="login__forgot-link"
               [routerLink]="['/', routePaths.auth.root, routePaths.auth.forgotPassword]"
@@ -114,129 +118,130 @@ import { AutoFocusDirective } from '../../../../shared/directives/auto-focus.dir
         </form>
 
         <div class="login__footer">
-          <p>Don't have an account?
-            <a [routerLink]="['/', routePaths.auth.root, routePaths.auth.register]">
-              Create one
-            </a>
+          <p>
+            Don't have an account?
+            <a [routerLink]="['/', routePaths.auth.root, routePaths.auth.register]"> Create one </a>
           </p>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .login {
-      &__mobile-brand {
-        @include flex-column-center;
-        gap: $spacing-2;
-        margin-bottom: $spacing-8;
+      .login {
+        &__mobile-brand {
+          @include flex-column-center;
+          gap: $spacing-2;
+          margin-bottom: $spacing-8;
 
-        @include lg {
-          display: none;
-        }
+          @include lg {
+            display: none;
+          }
 
-        .login__logo {
-          @include flex-center;
-          width: 56px;
-          height: 56px;
-          border-radius: $radius-xl;
-          background: $gradient-primary;
+          .login__logo {
+            @include flex-center;
+            width: 56px;
+            height: 56px;
+            border-radius: $radius-xl;
+            background: $gradient-primary;
 
-          mat-icon {
-            color: $text-inverse;
-            font-size: 28px;
-            width: 28px;
-            height: 28px;
+            mat-icon {
+              color: $text-inverse;
+              font-size: 28px;
+              width: 28px;
+              height: 28px;
+            }
+          }
+
+          h2 {
+            font-size: $font-size-2xl;
+            color: $text-primary;
           }
         }
 
-        h2 {
+        &__card {
+          @include card-base;
+          padding: $spacing-8;
+
+          @include mobile-only {
+            padding: $spacing-6;
+          }
+        }
+
+        &__header {
+          margin-bottom: $spacing-6;
+        }
+
+        &__title {
           font-size: $font-size-2xl;
+          font-weight: $font-weight-bold;
           color: $text-primary;
+          margin-bottom: $spacing-2;
         }
-      }
 
-      &__card {
-        @include card-base;
-        padding: $spacing-8;
-
-        @include mobile-only {
-          padding: $spacing-6;
-        }
-      }
-
-      &__header {
-        margin-bottom: $spacing-6;
-      }
-
-      &__title {
-        font-size: $font-size-2xl;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-        margin-bottom: $spacing-2;
-      }
-
-      &__subtitle {
-        font-size: $font-size-base;
-        color: $text-secondary;
-      }
-
-      &__form {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-1;
-      }
-
-      &__options {
-        @include flex-between;
-        margin-bottom: $spacing-4;
-        flex-wrap: wrap;
-        gap: $spacing-2;
-      }
-
-      &__forgot-link {
-        font-size: $font-size-sm;
-        color: $primary;
-        font-weight: $font-weight-medium;
-
-        &:hover {
-          color: $primary-hover;
-        }
-      }
-
-      &__submit-btn {
-        height: 48px;
-        font-size: $font-size-base;
-        font-weight: $font-weight-semibold;
-        border-radius: $radius-md;
-        margin-bottom: $spacing-2;
-
-        mat-spinner {
-          display: inline-block;
-          margin-right: $spacing-2;
-        }
-      }
-
-      &__footer {
-        text-align: center;
-        margin-top: $spacing-6;
-        padding-top: $spacing-6;
-        border-top: 1px solid $border-light;
-
-        p {
-          font-size: $font-size-sm;
+        &__subtitle {
+          font-size: $font-size-base;
           color: $text-secondary;
         }
 
-        a {
+        &__form {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-1;
+        }
+
+        &__options {
+          @include flex-between;
+          margin-bottom: $spacing-4;
+          flex-wrap: wrap;
+          gap: $spacing-2;
+        }
+
+        &__forgot-link {
+          font-size: $font-size-sm;
           color: $primary;
+          font-weight: $font-weight-medium;
+
+          &:hover {
+            color: $primary-hover;
+          }
+        }
+
+        &__submit-btn {
+          height: 48px;
+          font-size: $font-size-base;
           font-weight: $font-weight-semibold;
+          border-radius: $radius-md;
+          margin-bottom: $spacing-2;
+
+          mat-spinner {
+            display: inline-block;
+            margin-right: $spacing-2;
+          }
+        }
+
+        &__footer {
+          text-align: center;
+          margin-top: $spacing-6;
+          padding-top: $spacing-6;
+          border-top: 1px solid $border-light;
+
+          p {
+            font-size: $font-size-sm;
+            color: $text-secondary;
+          }
+
+          a {
+            color: $primary;
+            font-weight: $font-weight-semibold;
+          }
         }
       }
-    }
-  `],
+    `,
+  ],
 })
 export class LoginComponent {
   readonly routePaths = ROUTE_PATHS;
@@ -249,7 +254,7 @@ export class LoginComponent {
     private readonly fb: FormBuilder,
     private readonly authService: AuthService,
     private readonly notification: NotificationService,
-    private readonly router: Router
+    private readonly router: Router,
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],

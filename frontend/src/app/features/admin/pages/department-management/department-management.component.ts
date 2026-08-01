@@ -1,6 +1,12 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+  FormsModule,
+} from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -28,11 +34,14 @@ import { User } from '../../../../core/models/user.model';
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <div class="department-management-container animate-fade-in-up">
-      <app-page-header title="Department Administration" subtitle="Define municipal departments, configure support contact sheets, and manage officer rosters."></app-page-header>
+      <app-page-header
+        title="Department Administration"
+        subtitle="Define municipal departments, configure support contact sheets, and manage officer rosters."
+      ></app-page-header>
 
       <div class="workspace-layout">
         <!-- Roster / Listing of Agencies -->
@@ -53,7 +62,9 @@ import { User } from '../../../../core/models/user.model';
                   <mat-card-header>
                     <mat-card-title>{{ d.name }}</mat-card-title>
                     <mat-card-subtitle>{{ d.contactInfo }}</mat-card-subtitle>
-                    <span class="status-badge" [ngClass]="d.status">{{ d.status | uppercase }}</span>
+                    <span class="status-badge" [ngClass]="d.status">{{
+                      d.status | uppercase
+                    }}</span>
                   </mat-card-header>
                   <mat-card-content>
                     <p class="description">{{ d.description }}</p>
@@ -69,7 +80,11 @@ import { User } from '../../../../core/models/user.model';
                             <span class="officer-chip">
                               <mat-icon>person</mat-icon>
                               <span class="name">{{ off.firstName }} {{ off.lastName }}</span>
-                              <button (click)="removeOfficer(d._id, off._id)" title="Remove officer from roster" class="btn-remove-chip">
+                              <button
+                                (click)="removeOfficer(d._id, off._id)"
+                                title="Remove officer from roster"
+                                class="btn-remove-chip"
+                              >
                                 <mat-icon>close</mat-icon>
                               </button>
                             </span>
@@ -84,7 +99,9 @@ import { User } from '../../../../core/models/user.model';
                         <mat-label>Assign Personnel</mat-label>
                         <mat-select (selectionChange)="assignOfficer(d._id, $event.value)">
                           @for (o of availableOfficers(); track o._id) {
-                            <mat-option [value]="o._id">{{ o.firstName }} {{ o.lastName }} ({{ o.role }})</mat-option>
+                            <mat-option [value]="o._id"
+                              >{{ o.firstName }} {{ o.lastName }} ({{ o.role }})</mat-option
+                            >
                           }
                         </mat-select>
                       </mat-form-field>
@@ -108,14 +125,24 @@ import { User } from '../../../../core/models/user.model';
         <div class="form-section">
           <mat-card class="form-card">
             <mat-card-header>
-              <mat-card-title>{{ isEditing() ? 'Modify Department' : 'Create Department' }}</mat-card-title>
-              <mat-card-subtitle>{{ isEditing() ? 'Update details of the selected agency' : 'Register a new support agency in CivicPulse' }}</mat-card-subtitle>
+              <mat-card-title>{{
+                isEditing() ? 'Modify Department' : 'Create Department'
+              }}</mat-card-title>
+              <mat-card-subtitle>{{
+                isEditing()
+                  ? 'Update details of the selected agency'
+                  : 'Register a new support agency in CivicPulse'
+              }}</mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
               <form [formGroup]="deptForm" (ngSubmit)="saveDepartment()" class="dept-form">
                 <mat-form-field appearance="outline">
                   <mat-label>Department Name</mat-label>
-                  <input matInput formControlName="name" placeholder="e.g. Sanitation, Transit Authority...">
+                  <input
+                    matInput
+                    formControlName="name"
+                    placeholder="e.g. Sanitation, Transit Authority..."
+                  />
                   @if (deptForm.get('name')?.hasError('required')) {
                     <mat-error>Name is required</mat-error>
                   }
@@ -123,7 +150,11 @@ import { User } from '../../../../core/models/user.model';
 
                 <mat-form-field appearance="outline">
                   <mat-label>Contact Coordinates (Email / Phone)</mat-label>
-                  <input matInput formControlName="contactInfo" placeholder="e.g. sanitation@civicpulse.org...">
+                  <input
+                    matInput
+                    formControlName="contactInfo"
+                    placeholder="e.g. sanitation@civicpulse.org..."
+                  />
                   @if (deptForm.get('contactInfo')?.hasError('required')) {
                     <mat-error>Contact coordinates are required</mat-error>
                   }
@@ -131,7 +162,12 @@ import { User } from '../../../../core/models/user.model';
 
                 <mat-form-field appearance="outline">
                   <mat-label>Agency Description</mat-label>
-                  <textarea matInput formControlName="description" rows="4" placeholder="Brief outline of support services..."></textarea>
+                  <textarea
+                    matInput
+                    formControlName="description"
+                    rows="4"
+                    placeholder="Brief outline of support services..."
+                  ></textarea>
                   @if (deptForm.get('description')?.hasError('required')) {
                     <mat-error>Description is required</mat-error>
                   }
@@ -151,7 +187,12 @@ import { User } from '../../../../core/models/user.model';
                   @if (isEditing()) {
                     <button mat-stroked-button type="button" (click)="resetForm()">Cancel</button>
                   }
-                  <button mat-flat-button color="primary" type="submit" [disabled]="deptForm.invalid">
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    type="submit"
+                    [disabled]="deptForm.invalid"
+                  >
                     {{ isEditing() ? 'Save Changes' : 'Create Department' }}
                   </button>
                 </div>
@@ -162,221 +203,223 @@ import { User } from '../../../../core/models/user.model';
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
 
-    .department-management-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .workspace-layout {
-      display: grid;
-      grid-template-columns: 1.8fr 1.2fr;
-      gap: 24px;
-      align-items: start;
-      @media (max-width: 959px) {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .loader-box {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 60px 0;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 48px;
-      color: var(--text-secondary);
-      background: var(--surface-card);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        margin-bottom: 8px;
-      }
-    }
-
-    /* Grid cards */
-    .departments-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .dept-card {
-      background: var(--surface-card);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-      mat-card-header {
-        position: relative;
-        padding: 16px 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      }
-      mat-card-title {
-        font-size: 16px;
-        font-weight: 700;
-      }
-      mat-card-subtitle {
-        font-size: 11px;
-        color: var(--primary-color);
-        margin-top: 4px;
-      }
-      mat-card-content {
-        padding: 20px;
-      }
-      mat-card-actions {
-        padding: 12px 20px;
-        border-top: 1px solid rgba(255, 255, 255, 0.04);
+      .department-management-container {
         display: flex;
-        justify-content: flex-end;
-        gap: 8px;
+        flex-direction: column;
+        gap: 20px;
       }
-    }
 
-    .status-badge {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      font-size: 9px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 20px;
-      &.active {
-        background: rgba(76, 175, 80, 0.12);
-        color: #4caf50;
+      .workspace-layout {
+        display: grid;
+        grid-template-columns: 1.8fr 1.2fr;
+        gap: 24px;
+        align-items: start;
+        @media (max-width: 959px) {
+          grid-template-columns: 1fr;
+        }
       }
-      &.inactive {
-        background: rgba(244, 67, 54, 0.12);
-        color: var(--warn-color);
-      }
-    }
 
-    .description {
-      color: var(--text-primary);
-      line-height: 1.5;
-      font-size: 13px;
-      margin: 0 0 20px 0;
-    }
-
-    /* Officers roster list inside cards */
-    .officers-section {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      padding: 14px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      h4 {
-        margin: 0 0 10px 0;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        color: var(--text-secondary);
-        letter-spacing: 0.5px;
-      }
-      .no-officers {
-        font-size: 12px;
-        color: var(--text-secondary);
-        font-style: italic;
-      }
-    }
-
-    .officers-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .officer-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 4px 8px 4px 6px;
-      border-radius: 6px;
-      font-size: 11px;
-      color: var(--text-primary);
-      mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
-        color: var(--primary-color);
-      }
-      .btn-remove-chip {
-        background: none;
-        border: none;
-        padding: 0;
-        margin: 0;
+      .loader-box {
         display: flex;
-        align-items: center;
         justify-content: center;
+        align-items: center;
+        padding: 60px 0;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 48px;
         color: var(--text-secondary);
-        cursor: pointer;
-        &:hover {
+        background: var(--surface-card);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        mat-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          margin-bottom: 8px;
+        }
+      }
+
+      /* Grid cards */
+      .departments-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .dept-card {
+        background: var(--surface-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        mat-card-header {
+          position: relative;
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        mat-card-title {
+          font-size: 16px;
+          font-weight: 700;
+        }
+        mat-card-subtitle {
+          font-size: 11px;
+          color: var(--primary-color);
+          margin-top: 4px;
+        }
+        mat-card-content {
+          padding: 20px;
+        }
+        mat-card-actions {
+          padding: 12px 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.04);
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+      }
+
+      .status-badge {
+        position: absolute;
+        top: 16px;
+        right: 20px;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 20px;
+        &.active {
+          background: rgba(76, 175, 80, 0.12);
+          color: #4caf50;
+        }
+        &.inactive {
+          background: rgba(244, 67, 54, 0.12);
           color: var(--warn-color);
         }
-        mat-icon {
+      }
+
+      .description {
+        color: var(--text-primary);
+        line-height: 1.5;
+        font-size: 13px;
+        margin: 0 0 20px 0;
+      }
+
+      /* Officers roster list inside cards */
+      .officers-section {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        padding: 14px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        h4 {
+          margin: 0 0 10px 0;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: var(--text-secondary);
+          letter-spacing: 0.5px;
+        }
+        .no-officers {
           font-size: 12px;
-          width: 12px;
-          height: 12px;
-          color: inherit;
+          color: var(--text-secondary);
+          font-style: italic;
         }
       }
-    }
 
-    .assign-action {
-      .select-field {
-        width: 100%;
-        margin: 0;
-      }
-    }
-
-    /* Form Card styling */
-    .form-card {
-      background: var(--surface-card);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-      mat-card-header {
-        padding: 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      }
-      mat-card-title {
-        font-size: 16px;
-        font-weight: 700;
-      }
-      mat-card-subtitle {
-        font-size: 11px;
-        color: var(--text-secondary);
-      }
-      mat-card-content {
-        padding: 20px;
-      }
-    }
-
-    .dept-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      mat-form-field {
-        width: 100%;
-      }
-      .form-buttons {
+      .officers-list {
         display: flex;
-        justify-content: flex-end;
+        flex-wrap: wrap;
         gap: 8px;
-        margin-top: 8px;
       }
-    }
-  `]
+
+      .officer-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 4px 8px 4px 6px;
+        border-radius: 6px;
+        font-size: 11px;
+        color: var(--text-primary);
+        mat-icon {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+          color: var(--primary-color);
+        }
+        .btn-remove-chip {
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-secondary);
+          cursor: pointer;
+          &:hover {
+            color: var(--warn-color);
+          }
+          mat-icon {
+            font-size: 12px;
+            width: 12px;
+            height: 12px;
+            color: inherit;
+          }
+        }
+      }
+
+      .assign-action {
+        .select-field {
+          width: 100%;
+          margin: 0;
+        }
+      }
+
+      /* Form Card styling */
+      .form-card {
+        background: var(--surface-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        mat-card-header {
+          padding: 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        mat-card-title {
+          font-size: 16px;
+          font-weight: 700;
+        }
+        mat-card-subtitle {
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+        mat-card-content {
+          padding: 20px;
+        }
+      }
+
+      .dept-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        mat-form-field {
+          width: 100%;
+        }
+        .form-buttons {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+          margin-top: 8px;
+        }
+      }
+    `,
+  ],
 })
 export class DepartmentManagementComponent implements OnInit {
   private readonly adminService = inject(AdminService);
@@ -406,7 +449,7 @@ export class DepartmentManagementComponent implements OnInit {
       name: ['', [Validators.required, Validators.minLength(2)]],
       description: ['', [Validators.required, Validators.minLength(5)]],
       contactInfo: ['', [Validators.required]],
-      status: ['active']
+      status: ['active'],
     });
   }
 
@@ -422,7 +465,7 @@ export class DepartmentManagementComponent implements OnInit {
       error: (err) => {
         this.notificationService.error(err.error?.message || 'Failed to fetch departments');
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -432,10 +475,12 @@ export class DepartmentManagementComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data) {
           // Filter to officers or field workers
-          const officers = res.data.users.filter(u => u.role === 'officer' || u.role === 'field_worker');
+          const officers = res.data.users.filter(
+            (u) => u.role === 'officer' || u.role === 'field_worker',
+          );
           this.availableOfficers.set(officers);
         }
-      }
+      },
     });
   }
 
@@ -456,7 +501,7 @@ export class DepartmentManagementComponent implements OnInit {
         },
         error: (err) => {
           this.notificationService.error(err.error?.message || 'Failed to update department');
-        }
+        },
       });
     } else {
       this.adminService.createDepartment(payload).subscribe({
@@ -469,7 +514,7 @@ export class DepartmentManagementComponent implements OnInit {
         },
         error: (err) => {
           this.notificationService.error(err.error?.message || 'Failed to create department');
-        }
+        },
       });
     }
   }
@@ -481,12 +526,16 @@ export class DepartmentManagementComponent implements OnInit {
       name: dept.name,
       description: dept.description,
       contactInfo: dept.contactInfo,
-      status: dept.status
+      status: dept.status,
     });
   }
 
   deleteDepartment(dept: Department): void {
-    if (confirm(`WARNING: Are you sure you want to delete the department "${dept.name}"? This action is permanent and cannot be undone.`)) {
+    if (
+      confirm(
+        `WARNING: Are you sure you want to delete the department "${dept.name}"? This action is permanent and cannot be undone.`,
+      )
+    ) {
       this.adminService.deleteDepartment(dept._id).subscribe({
         next: (res) => {
           if (res.success) {
@@ -497,7 +546,7 @@ export class DepartmentManagementComponent implements OnInit {
         error: (err) => {
           // Trigger error if active complaints assignment exists
           this.notificationService.error(err.error?.message || 'Failed to delete department');
-        }
+        },
       });
     }
   }
@@ -514,7 +563,7 @@ export class DepartmentManagementComponent implements OnInit {
       },
       error: (err) => {
         this.notificationService.error(err.error?.message || 'Failed to assign officer');
-      }
+      },
     });
   }
 
@@ -529,7 +578,7 @@ export class DepartmentManagementComponent implements OnInit {
         },
         error: (err) => {
           this.notificationService.error(err.error?.message || 'Failed to remove officer');
-        }
+        },
       });
     }
   }
@@ -541,7 +590,7 @@ export class DepartmentManagementComponent implements OnInit {
       name: '',
       description: '',
       contactInfo: '',
-      status: 'active'
+      status: 'active',
     });
   }
 }

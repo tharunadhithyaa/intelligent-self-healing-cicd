@@ -1,5 +1,5 @@
-import { BaseRepository } from './base.repository';
-import AuditLog, { IAuditLogDocument } from '../models/audit-log.model';
+import { BaseRepository } from "./base.repository";
+import AuditLog, { IAuditLogDocument } from "../models/audit-log.model";
 
 export class AuditLogRepository extends BaseRepository<IAuditLogDocument> {
   constructor() {
@@ -10,14 +10,14 @@ export class AuditLogRepository extends BaseRepository<IAuditLogDocument> {
     filter: Record<string, any>,
     sort: Record<string, any>,
     skip: number,
-    limit: number
+    limit: number,
   ): Promise<IAuditLogDocument[]> {
     return this.model
       .find(filter)
       .sort(sort)
       .skip(skip)
       .limit(limit)
-      .populate('actor', 'firstName lastName email role')
+      .populate("actor", "firstName lastName email role")
       .exec();
   }
 }

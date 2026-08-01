@@ -1,17 +1,25 @@
-import mongoose from 'mongoose';
-import Notification, { INotificationDocument } from '../../../models/notification.model';
-import User from '../../../models/user.model';
-import { ApiError } from '../../../utils/api-error.util';
-import { auditService } from './audit.service';
-import { TokenPayload } from '../../../utils/jwt.util';
+import mongoose from "mongoose";
+import Notification, {
+  INotificationDocument,
+} from "../../../models/notification.model";
+import User from "../../../models/user.model";
+import { ApiError } from "../../../utils/api-error.util";
+import { auditService } from "./audit.service";
+import { TokenPayload } from "../../../utils/jwt.util";
 
 class NotificationService {
   async sendNotification(
     recipientId: string,
-    type: 'status_update' | 'assignment' | 'escalation' | 'job_alert' | 'announcement' | 'system_alert',
+    type:
+      | "status_update"
+      | "assignment"
+      | "escalation"
+      | "job_alert"
+      | "announcement"
+      | "system_alert",
     title: string,
     message: string,
-    relatedEntityId?: string
+    relatedEntityId?: string,
   ): Promise<INotificationDocument | null> {
     const user = await User.findById(recipientId);
     if (!user) return null;
@@ -19,8 +27,9 @@ class NotificationService {
     // Verify user preferences
     const prefs = user.settings?.notifications;
     if (prefs) {
-      if (type === 'status_update' && !prefs.complaints) return null;
-      if (['system_alert', 'announcement'].includes(type) && !prefs.system) return null;
+      if (type === "status_update" && !prefs.complaints) return null;
+      if (["system_alert", "announcement"].includes(type) && !prefs.system)
+        return null;
     }
 
     const notif = new Notification({
@@ -29,7 +38,7 @@ class NotificationService {
       title,
       message,
       isRead: false,
-      relatedEntityId
+      relatedEntityId,
     });
 
     return await notif.save();
@@ -41,26 +50,28 @@ class NotificationService {
     title: string,
     message: string,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<void> {
     const filter: Record<string, any> = { isActive: true };
     if (targetRoles.length > 0) {
       filter.role = { $in: targetRoles };
     }
 
-    const users = await User.find(filter).select('_id email settings.notifications').exec();
+    const users = await User.find(filter)
+      .select("_id email settings.notifications")
+      .exec();
 
     const notificationsToInsert = users
-      .filter(u => {
+      .filter((u) => {
         // Respect alerts preference
         return u.settings?.notifications?.system !== false;
       })
-      .map(u => ({
+      .map((u) => ({
         recipient: u._id,
-        type: 'announcement' as const,
+        type: "announcement" as const,
         title,
         message,
-        isRead: false
+        isRead: false,
       }));
 
     if (notificationsToInsert.length > 0) {
@@ -71,29 +82,38 @@ class NotificationService {
       actorId: admin.userId,
       actorEmail: admin.email,
       actorRole: admin.role,
-      action: 'notification_broadcasted',
-      target: 'Notification',
-      details: { title, targetRoles, recipientCount: notificationsToInsert.length },
+      action: "notification_broadcasted",
+      target: "Notification",
+      details: {
+        title,
+        targetRoles,
+        recipientCount: notificationsToInsert.length,
+      },
       ipAddress,
-      userAgent
+      userAgent,
     });
   }
 
   async getUserNotifications(userId: string): Promise<INotificationDocument[]> {
-    return await Notification.find({ recipient: new mongoose.Types.ObjectId(userId) })
+    return await Notification.find({
+      recipient: new mongoose.Types.ObjectId(userId),
+    })
       .sort({ createdAt: -1 })
       .limit(50)
       .exec();
   }
 
-  async markNotificationAsRead(userId: string, notificationId: string): Promise<INotificationDocument> {
+  async markNotificationAsRead(
+    userId: string,
+    notificationId: string,
+  ): Promise<INotificationDocument> {
     const notif = await Notification.findOne({
       _id: new mongoose.Types.ObjectId(notificationId),
-      recipient: new mongoose.Types.ObjectId(userId)
+      recipient: new mongoose.Types.ObjectId(userId),
     });
 
     if (!notif) {
-      throw ApiError.notFound('Notification not found');
+      throw ApiError.notFound("Notification not found");
     }
 
     notif.isRead = true;
@@ -103,18 +123,21 @@ class NotificationService {
   async markAllAsRead(userId: string): Promise<void> {
     await Notification.updateMany(
       { recipient: new mongoose.Types.ObjectId(userId), isRead: false },
-      { $set: { isRead: true } }
+      { $set: { isRead: true } },
     );
   }
 
-  async deleteNotification(userId: string, notificationId: string): Promise<void> {
+  async deleteNotification(
+    userId: string,
+    notificationId: string,
+  ): Promise<void> {
     const result = await Notification.deleteOne({
       _id: new mongoose.Types.ObjectId(notificationId),
-      recipient: new mongoose.Types.ObjectId(userId)
+      recipient: new mongoose.Types.ObjectId(userId),
     });
 
     if (result.deletedCount === 0) {
-      throw ApiError.notFound('Notification not found');
+      throw ApiError.notFound("Notification not found");
     }
   }
 }

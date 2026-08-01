@@ -28,17 +28,25 @@ import { User } from '../../../../core/models/user.model';
     MatSelectModule,
     MatTabsModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <div class="user-management-container animate-fade-in-up">
-      <app-page-header title="Identity & Access Control" subtitle="Configure system access, activate/deactivate accounts, lock records, or perform password updates."></app-page-header>
+      <app-page-header
+        title="Identity & Access Control"
+        subtitle="Configure system access, activate/deactivate accounts, lock records, or perform password updates."
+      ></app-page-header>
 
       <div class="control-bar">
         <div class="search-filters">
           <mat-form-field appearance="outline" class="search-field">
             <mat-label>Search users...</mat-label>
-            <input matInput [(ngModel)]="searchQuery" (input)="onSearchChange()" placeholder="Search by name, email, or phone...">
+            <input
+              matInput
+              [(ngModel)]="searchQuery"
+              (input)="onSearchChange()"
+              placeholder="Search by name, email, or phone..."
+            />
             <mat-icon matSuffix>search</mat-icon>
           </mat-form-field>
 
@@ -102,7 +110,9 @@ import { User } from '../../../../core/models/user.model';
                       </div>
                     </td>
                     <td>
-                      <span class="last-login">{{ u.lastLogin ? (u.lastLogin | date:'short') : 'Never logged in' }}</span>
+                      <span class="last-login">{{
+                        u.lastLogin ? (u.lastLogin | date: 'short') : 'Never logged in'
+                      }}</span>
                     </td>
                     <td>
                       <div class="status-indicators">
@@ -118,12 +128,21 @@ import { User } from '../../../../core/models/user.model';
                     <td align="right">
                       <div class="action-buttons">
                         <!-- Reset password -->
-                        <button mat-icon-button (click)="resetPassword(u)" title="Reset password to temporary default">
+                        <button
+                          mat-icon-button
+                          (click)="resetPassword(u)"
+                          title="Reset password to temporary default"
+                        >
                           <mat-icon>lock_reset</mat-icon>
                         </button>
 
                         <!-- Lock/Unlock account -->
-                        <button mat-icon-button (click)="toggleLock(u)" [ngClass]="{'locked': u.isLocked}" title="Lock/Unlock account">
+                        <button
+                          mat-icon-button
+                          (click)="toggleLock(u)"
+                          [ngClass]="{ locked: u.isLocked }"
+                          title="Lock/Unlock account"
+                        >
                           <mat-icon>{{ u.isLocked ? 'lock_open' : 'lock' }}</mat-icon>
                         </button>
 
@@ -146,203 +165,205 @@ import { User } from '../../../../core/models/user.model';
       </mat-card>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
 
-    .user-management-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .control-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .search-filters {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      width: 100%;
-      .search-field {
-        flex: 1;
-        min-width: 280px;
+      .user-management-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
-      .status-field {
-        width: 200px;
+
+      .control-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
       }
-    }
 
-    .table-card {
-      background: var(--surface-card);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .role-tabs {
-      background: rgba(255, 255, 255, 0.01);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .table-container {
-      padding: 16px;
-      min-height: 250px;
-      position: relative;
-    }
-
-    .table-spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 60px 0;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 0;
-      color: var(--text-secondary);
-      mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        margin-bottom: 8px;
+      .search-filters {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        width: 100%;
+        .search-field {
+          flex: 1;
+          min-width: 280px;
+        }
+        .status-field {
+          width: 200px;
+        }
       }
-    }
 
-    .users-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 13px;
+      .table-card {
+        background: var(--surface-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        overflow: hidden;
+      }
 
-      th {
-        padding: 12px;
-        color: var(--text-secondary);
-        font-weight: 600;
+      .role-tabs {
+        background: rgba(255, 255, 255, 0.01);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       }
 
-      td {
-        padding: 14px 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-        vertical-align: middle;
+      .table-container {
+        padding: 16px;
+        min-height: 250px;
+        position: relative;
       }
 
-      tr:hover td {
-        background: rgba(255, 255, 255, 0.01);
+      .table-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 60px 0;
       }
-    }
 
-    /* User Badge */
-    .user-badge {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      .avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: var(--primary-color);
-        color: var(--text-inverse);
+      .empty-state {
+        text-align: center;
+        padding: 60px 0;
+        color: var(--text-secondary);
+        mat-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          margin-bottom: 8px;
+        }
+      }
+
+      .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 13px;
+
+        th {
+          padding: 12px;
+          color: var(--text-secondary);
+          font-weight: 600;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        td {
+          padding: 14px 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+          vertical-align: middle;
+        }
+
+        tr:hover td {
+          background: rgba(255, 255, 255, 0.01);
+        }
+      }
+
+      /* User Badge */
+      .user-badge {
         display: flex;
         align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 13px;
+        gap: 12px;
+        .avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: var(--primary-color);
+          color: var(--text-inverse);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 13px;
+        }
+        .info {
+          display: flex;
+          flex-direction: column;
+          .name {
+            font-weight: 600;
+            color: var(--text-primary);
+          }
+          .role {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-weight: 600;
+          }
+        }
       }
-      .info {
+
+      /* Contact info */
+      .contact {
         display: flex;
         flex-direction: column;
-        .name {
-          font-weight: 600;
+        .email {
           color: var(--text-primary);
         }
-        .role {
-          font-size: 10px;
+        .phone {
           color: var(--text-secondary);
-          margin-top: 2px;
-          font-weight: 600;
-        }
-      }
-    }
-
-    /* Contact info */
-    .contact {
-      display: flex;
-      flex-direction: column;
-      .email {
-        color: var(--text-primary);
-      }
-      .phone {
-        color: var(--text-secondary);
-        font-size: 11px;
-        margin-top: 2px;
-      }
-    }
-
-    /* Badges */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      &.active {
-        background: rgba(76, 175, 80, 0.12);
-        color: #4caf50;
-      }
-      &.inactive {
-        background: rgba(255, 152, 0, 0.12);
-        color: #ff9800;
-      }
-      &.locked {
-        background: rgba(244, 67, 54, 0.12);
-        color: var(--warn-color);
-        mat-icon {
           font-size: 11px;
-          width: 11px;
-          height: 11px;
+          margin-top: 2px;
         }
       }
-    }
 
-    /* Actions styling */
-    .action-buttons {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 8px;
-      button[mat-icon-button] {
-        color: var(--text-secondary);
-        &:hover {
-          color: var(--text-primary);
+      /* Badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        &.active {
+          background: rgba(76, 175, 80, 0.12);
+          color: #4caf50;
+        }
+        &.inactive {
+          background: rgba(255, 152, 0, 0.12);
+          color: #ff9800;
         }
         &.locked {
+          background: rgba(244, 67, 54, 0.12);
           color: var(--warn-color);
+          mat-icon {
+            font-size: 11px;
+            width: 11px;
+            height: 11px;
+          }
         }
       }
-    }
 
-    .btn-deactivate {
-      background: rgba(244, 67, 54, 0.15) !important;
-      color: var(--warn-color) !important;
-      border: 1px solid rgba(244, 67, 54, 0.2);
-    }
+      /* Actions styling */
+      .action-buttons {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        button[mat-icon-button] {
+          color: var(--text-secondary);
+          &:hover {
+            color: var(--text-primary);
+          }
+          &.locked {
+            color: var(--warn-color);
+          }
+        }
+      }
 
-    .btn-activate {
-      background: rgba(76, 175, 80, 0.15) !important;
-      color: #4caf50 !important;
-      border: 1px solid rgba(76, 175, 80, 0.2);
-    }
-  `]
+      .btn-deactivate {
+        background: rgba(244, 67, 54, 0.15) !important;
+        color: var(--warn-color) !important;
+        border: 1px solid rgba(244, 67, 54, 0.2);
+      }
+
+      .btn-activate {
+        background: rgba(76, 175, 80, 0.15) !important;
+        color: #4caf50 !important;
+        border: 1px solid rgba(76, 175, 80, 0.2);
+      }
+    `,
+  ],
 })
 export class UserManagementComponent implements OnInit {
   private readonly adminService = inject(AdminService);
@@ -366,7 +387,7 @@ export class UserManagementComponent implements OnInit {
     const params: Record<string, any> = {
       role: this.selectedRole,
       page: 1,
-      limit: 50
+      limit: 50,
     };
 
     if (this.searchQuery) {
@@ -392,7 +413,7 @@ export class UserManagementComponent implements OnInit {
       error: (err) => {
         this.notificationService.error(err.error?.message || 'Failed to fetch user accounts');
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -414,13 +435,15 @@ export class UserManagementComponent implements OnInit {
       this.adminService.toggleUserStatus(u._id, nextState).subscribe({
         next: (res) => {
           if (res.success) {
-            this.notificationService.success(`Account for ${u.firstName} successfully ${actionLabel}d`);
+            this.notificationService.success(
+              `Account for ${u.firstName} successfully ${actionLabel}d`,
+            );
             this.loadUsers();
           }
         },
         error: (err) => {
           this.notificationService.error(err.error?.message || `Failed to ${actionLabel} account`);
-        }
+        },
       });
     }
   }
@@ -439,24 +462,30 @@ export class UserManagementComponent implements OnInit {
         },
         error: (err) => {
           this.notificationService.error(err.error?.message || `Failed to update lock status`);
-        }
+        },
       });
     }
   }
 
   resetPassword(u: User): void {
-    if (confirm(`Are you sure you want to reset password for ${u.firstName} ${u.lastName}? This will set it to a default temporary state.`)) {
+    if (
+      confirm(
+        `Are you sure you want to reset password for ${u.firstName} ${u.lastName}? This will set it to a default temporary state.`,
+      )
+    ) {
       this.adminService.resetUserPassword(u._id).subscribe({
         next: (res) => {
           if (res.success && res.data) {
-            alert(`Password reset successful!\nThe new temporary password is: ${res.data.defaultPassword}\n\nPlease share this securely with the user.`);
+            alert(
+              `Password reset successful!\nThe new temporary password is: ${res.data.defaultPassword}\n\nPlease share this securely with the user.`,
+            );
             this.notificationService.success(`Password reset completed for ${u.firstName}`);
             this.loadUsers();
           }
         },
         error: (err) => {
           this.notificationService.error(err.error?.message || 'Failed to reset password');
-        }
+        },
       });
     }
   }

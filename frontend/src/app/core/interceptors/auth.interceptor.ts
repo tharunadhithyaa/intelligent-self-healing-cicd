@@ -1,10 +1,18 @@
-import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpInterceptorFn,
+  HttpRequest,
+  HttpHandlerFn,
+  HttpErrorResponse,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, filter, take, throwError } from 'rxjs';
 import { TokenService } from '../services/token.service';
 import { AuthService } from '../services/auth.service';
 
-export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next: HttpHandlerFn) => {
+export const authInterceptor: HttpInterceptorFn = (
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+) => {
   const tokenService = inject(TokenService);
   const authService = inject(AuthService);
 
@@ -25,7 +33,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
         return handleTokenRefresh(authService, tokenService, req, next);
       }
       return throwError(() => error);
-    })
+    }),
   );
 };
 
@@ -33,7 +41,7 @@ function handleTokenRefresh(
   authService: AuthService,
   tokenService: TokenService,
   req: HttpRequest<unknown>,
-  next: HttpHandlerFn
+  next: HttpHandlerFn,
 ) {
   const isRefreshing = authService.getRefreshingState();
 
@@ -53,7 +61,7 @@ function handleTokenRefresh(
         isRefreshing.next(false);
         authService.logout();
         return throwError(() => err);
-      })
+      }),
     );
   }
 
@@ -67,6 +75,6 @@ function handleTokenRefresh(
         setHeaders: { Authorization: `Bearer ${token}` },
       });
       return next(cloned);
-    })
+    }),
   );
 }

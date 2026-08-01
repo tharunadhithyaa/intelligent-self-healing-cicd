@@ -11,25 +11,43 @@ export class FieldWorkerService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/field-worker`;
 
-  getAssignedJobs(params: Record<string, any>): Observable<ApiResponse<{ jobs: Complaint[]; total: number; page: number; limit: number }>> {
+  getAssignedJobs(
+    params: Record<string, any>,
+  ): Observable<ApiResponse<{ jobs: Complaint[]; total: number; page: number; limit: number }>> {
     let httpParams = new HttpParams();
-    Object.keys(params).forEach(key => {
+    Object.keys(params).forEach((key) => {
       if (params[key] !== undefined && params[key] !== null) {
         httpParams = httpParams.set(key, params[key].toString());
       }
     });
-    return this.http.get<ApiResponse<{ jobs: Complaint[]; total: number; page: number; limit: number }>>(`${this.baseUrl}/jobs`, { params: httpParams });
+    return this.http.get<
+      ApiResponse<{ jobs: Complaint[]; total: number; page: number; limit: number }>
+    >(`${this.baseUrl}/jobs`, { params: httpParams });
   }
 
   getJobDetails(id: string): Observable<ApiResponse<{ job: Complaint }>> {
     return this.http.get<ApiResponse<{ job: Complaint }>>(`${this.baseUrl}/jobs/${id}`);
   }
 
-  updateJobStatus(id: string, status: string, notes?: string): Observable<ApiResponse<{ job: Complaint }>> {
-    return this.http.put<ApiResponse<{ job: Complaint }>>(`${this.baseUrl}/jobs/${id}/status`, { status, notes });
+  updateJobStatus(
+    id: string,
+    status: string,
+    notes?: string,
+  ): Observable<ApiResponse<{ job: Complaint }>> {
+    return this.http.put<ApiResponse<{ job: Complaint }>>(`${this.baseUrl}/jobs/${id}/status`, {
+      status,
+      notes,
+    });
   }
 
-  uploadPhotos(id: string, photoType: 'before' | 'after', images: Array<{ base64Data: string; contentType: string; fileName: string }>): Observable<ApiResponse<{ job: Complaint }>> {
-    return this.http.post<ApiResponse<{ job: Complaint }>>(`${this.baseUrl}/jobs/${id}/photos`, { photoType, images });
+  uploadPhotos(
+    id: string,
+    photoType: 'before' | 'after',
+    images: Array<{ base64Data: string; contentType: string; fileName: string }>,
+  ): Observable<ApiResponse<{ job: Complaint }>> {
+    return this.http.post<ApiResponse<{ job: Complaint }>>(`${this.baseUrl}/jobs/${id}/photos`, {
+      photoType,
+      images,
+    });
   }
 }

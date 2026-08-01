@@ -1,5 +1,12 @@
 import { Component, signal } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+  AbstractControl,
+  ValidationErrors,
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -28,7 +35,11 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
       <!-- Mobile Logo -->
       <div class="register__mobile-brand">
         <div class="register__logo" style="background: transparent;">
-          <img src="logo.jpg" alt="Logo" style="width: 56px; height: 56px; border-radius: inherit; object-fit: cover;">
+          <img
+            src="logo.jpg"
+            alt="Logo"
+            style="width: 56px; height: 56px; border-radius: inherit; object-fit: cover;"
+          />
         </div>
         <h2>CivicPulse</h2>
       </div>
@@ -43,21 +54,40 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
           <div class="register__row">
             <mat-form-field appearance="outline">
               <mat-label>First Name</mat-label>
-              <input matInput formControlName="firstName" placeholder="John" autocomplete="given-name" />
+              <input
+                matInput
+                formControlName="firstName"
+                placeholder="John"
+                autocomplete="given-name"
+              />
               <mat-icon matPrefix>person</mat-icon>
-              @if (registerForm.get('firstName')?.hasError('required') && registerForm.get('firstName')?.touched) {
+              @if (
+                registerForm.get('firstName')?.hasError('required') &&
+                registerForm.get('firstName')?.touched
+              ) {
                 <mat-error>First name is required</mat-error>
               }
-              @if (registerForm.get('firstName')?.hasError('minlength') && registerForm.get('firstName')?.touched) {
+              @if (
+                registerForm.get('firstName')?.hasError('minlength') &&
+                registerForm.get('firstName')?.touched
+              ) {
                 <mat-error>Minimum 2 characters</mat-error>
               }
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Last Name</mat-label>
-              <input matInput formControlName="lastName" placeholder="Doe" autocomplete="family-name" />
+              <input
+                matInput
+                formControlName="lastName"
+                placeholder="Doe"
+                autocomplete="family-name"
+              />
               <mat-icon matPrefix>person</mat-icon>
-              @if (registerForm.get('lastName')?.hasError('required') && registerForm.get('lastName')?.touched) {
+              @if (
+                registerForm.get('lastName')?.hasError('required') &&
+                registerForm.get('lastName')?.touched
+              ) {
                 <mat-error>Last name is required</mat-error>
               }
             </mat-form-field>
@@ -65,19 +95,34 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
 
           <mat-form-field appearance="outline">
             <mat-label>Email Address</mat-label>
-            <input matInput formControlName="email" type="email" placeholder="you&#64;example.com" autocomplete="email" />
+            <input
+              matInput
+              formControlName="email"
+              type="email"
+              placeholder="you&#64;example.com"
+              autocomplete="email"
+            />
             <mat-icon matPrefix>email</mat-icon>
-            @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
+            @if (
+              registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched
+            ) {
               <mat-error>Email is required</mat-error>
             }
-            @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
+            @if (
+              registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched
+            ) {
               <mat-error>Please enter a valid email</mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Phone (Optional)</mat-label>
-            <input matInput formControlName="phone" placeholder="+1 234 567 8900" autocomplete="tel" />
+            <input
+              matInput
+              formControlName="phone"
+              placeholder="+1 234 567 8900"
+              autocomplete="tel"
+            />
             <mat-icon matPrefix>phone</mat-icon>
           </mat-form-field>
 
@@ -91,16 +136,30 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
               autocomplete="new-password"
             />
             <mat-icon matPrefix>lock</mat-icon>
-            <button mat-icon-button matSuffix type="button" (click)="showPassword.set(!showPassword())">
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+            >
               <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
-            @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
+            @if (
+              registerForm.get('password')?.hasError('required') &&
+              registerForm.get('password')?.touched
+            ) {
               <mat-error>Password is required</mat-error>
             }
-            @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
+            @if (
+              registerForm.get('password')?.hasError('minlength') &&
+              registerForm.get('password')?.touched
+            ) {
               <mat-error>Minimum 8 characters</mat-error>
             }
-            @if (registerForm.get('password')?.hasError('pattern') && registerForm.get('password')?.touched) {
+            @if (
+              registerForm.get('password')?.hasError('pattern') &&
+              registerForm.get('password')?.touched
+            ) {
               <mat-error>Must include uppercase, lowercase, number & special character</mat-error>
             }
           </mat-form-field>
@@ -115,13 +174,24 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
               autocomplete="new-password"
             />
             <mat-icon matPrefix>lock</mat-icon>
-            <button mat-icon-button matSuffix type="button" (click)="showConfirmPassword.set(!showConfirmPassword())">
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="showConfirmPassword.set(!showConfirmPassword())"
+            >
               <mat-icon>{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
-            @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
+            @if (
+              registerForm.get('confirmPassword')?.hasError('required') &&
+              registerForm.get('confirmPassword')?.touched
+            ) {
               <mat-error>Please confirm your password</mat-error>
             }
-            @if (registerForm.get('confirmPassword')?.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
+            @if (
+              registerForm.get('confirmPassword')?.hasError('passwordMismatch') &&
+              registerForm.get('confirmPassword')?.touched
+            ) {
               <mat-error>Passwords do not match</mat-error>
             }
           </mat-form-field>
@@ -129,7 +199,10 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
           <mat-checkbox formControlName="acceptTerms" color="primary" class="register__terms">
             I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
           </mat-checkbox>
-          @if (registerForm.get('acceptTerms')?.hasError('requiredTrue') && registerForm.get('acceptTerms')?.touched) {
+          @if (
+            registerForm.get('acceptTerms')?.hasError('requiredTrue') &&
+            registerForm.get('acceptTerms')?.touched
+          ) {
             <p class="register__terms-error">You must accept the terms to continue</p>
           }
 
@@ -150,139 +223,140 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
         </form>
 
         <div class="register__footer">
-          <p>Already have an account?
-            <a [routerLink]="['/', routePaths.auth.root, routePaths.auth.login]">
-              Sign in
-            </a>
+          <p>
+            Already have an account?
+            <a [routerLink]="['/', routePaths.auth.root, routePaths.auth.login]"> Sign in </a>
           </p>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .register {
-      &__mobile-brand {
-        @include flex-column-center;
-        gap: $spacing-2;
-        margin-bottom: $spacing-6;
+      .register {
+        &__mobile-brand {
+          @include flex-column-center;
+          gap: $spacing-2;
+          margin-bottom: $spacing-6;
 
-        @include lg {
-          display: none;
-        }
+          @include lg {
+            display: none;
+          }
 
-        .register__logo {
-          @include flex-center;
-          width: 56px;
-          height: 56px;
-          border-radius: $radius-xl;
-          background: $gradient-primary;
+          .register__logo {
+            @include flex-center;
+            width: 56px;
+            height: 56px;
+            border-radius: $radius-xl;
+            background: $gradient-primary;
 
-          mat-icon {
-            color: $text-inverse;
-            font-size: 28px;
-            width: 28px;
-            height: 28px;
+            mat-icon {
+              color: $text-inverse;
+              font-size: 28px;
+              width: 28px;
+              height: 28px;
+            }
+          }
+
+          h2 {
+            font-size: $font-size-2xl;
+            color: $text-primary;
           }
         }
 
-        h2 {
+        &__card {
+          @include card-base;
+          padding: $spacing-8;
+
+          @include mobile-only {
+            padding: $spacing-5;
+          }
+        }
+
+        &__header {
+          margin-bottom: $spacing-6;
+        }
+
+        &__title {
           font-size: $font-size-2xl;
+          font-weight: $font-weight-bold;
           color: $text-primary;
+          margin-bottom: $spacing-2;
         }
-      }
 
-      &__card {
-        @include card-base;
-        padding: $spacing-8;
-
-        @include mobile-only {
-          padding: $spacing-5;
-        }
-      }
-
-      &__header {
-        margin-bottom: $spacing-6;
-      }
-
-      &__title {
-        font-size: $font-size-2xl;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-        margin-bottom: $spacing-2;
-      }
-
-      &__subtitle {
-        font-size: $font-size-base;
-        color: $text-secondary;
-      }
-
-      &__form {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-1;
-      }
-
-      &__row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: $spacing-3;
-
-        @include xs {
-          grid-template-columns: 1fr;
-          gap: 0;
-        }
-      }
-
-      &__terms {
-        margin-bottom: $spacing-4;
-        font-size: $font-size-sm;
-
-        a {
-          color: $primary;
-          font-weight: $font-weight-medium;
-        }
-      }
-
-      &__terms-error {
-        font-size: $font-size-xs;
-        color: $danger;
-        margin-top: -$spacing-3;
-        margin-bottom: $spacing-3;
-      }
-
-      &__submit-btn {
-        height: 48px;
-        font-size: $font-size-base;
-        font-weight: $font-weight-semibold;
-        border-radius: $radius-md;
-
-        mat-spinner {
-          display: inline-block;
-          margin-right: $spacing-2;
-        }
-      }
-
-      &__footer {
-        text-align: center;
-        margin-top: $spacing-6;
-        padding-top: $spacing-6;
-        border-top: 1px solid $border-light;
-
-        p {
-          font-size: $font-size-sm;
+        &__subtitle {
+          font-size: $font-size-base;
           color: $text-secondary;
         }
 
-        a {
-          color: $primary;
+        &__form {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-1;
+        }
+
+        &__row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: $spacing-3;
+
+          @include xs {
+            grid-template-columns: 1fr;
+            gap: 0;
+          }
+        }
+
+        &__terms {
+          margin-bottom: $spacing-4;
+          font-size: $font-size-sm;
+
+          a {
+            color: $primary;
+            font-weight: $font-weight-medium;
+          }
+        }
+
+        &__terms-error {
+          font-size: $font-size-xs;
+          color: $danger;
+          margin-top: -$spacing-3;
+          margin-bottom: $spacing-3;
+        }
+
+        &__submit-btn {
+          height: 48px;
+          font-size: $font-size-base;
           font-weight: $font-weight-semibold;
+          border-radius: $radius-md;
+
+          mat-spinner {
+            display: inline-block;
+            margin-right: $spacing-2;
+          }
+        }
+
+        &__footer {
+          text-align: center;
+          margin-top: $spacing-6;
+          padding-top: $spacing-6;
+          border-top: 1px solid $border-light;
+
+          p {
+            font-size: $font-size-sm;
+            color: $text-secondary;
+          }
+
+          a {
+            color: $primary;
+            font-weight: $font-weight-semibold;
+          }
         }
       }
-    }
-  `],
+    `,
+  ],
 })
 export class RegisterComponent {
   readonly routePaths = ROUTE_PATHS;
@@ -296,26 +370,29 @@ export class RegisterComponent {
     private readonly fb: FormBuilder,
     private readonly authService: AuthService,
     private readonly notification: NotificationService,
-    private readonly router: Router
+    private readonly router: Router,
   ) {
     this.registerForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
       lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
       email: ['', [Validators.required, Validators.email]],
       phone: [''],
-      password: ['', [
-        Validators.required,
-        Validators.minLength(8),
-        Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/),
-      ]],
+      password: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(8),
+          Validators.pattern(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+          ),
+        ],
+      ],
       confirmPassword: ['', [Validators.required]],
       acceptTerms: [false, [Validators.requiredTrue]],
     });
 
     // Cross-field validation for password match
-    this.registerForm.get('confirmPassword')?.addValidators(
-      this.passwordMatchValidator.bind(this)
-    );
+    this.registerForm.get('confirmPassword')?.addValidators(this.passwordMatchValidator.bind(this));
   }
 
   onSubmit(): void {
@@ -325,17 +402,20 @@ export class RegisterComponent {
     }
 
     this.isSubmitting.set(true);
-    const { firstName, lastName, email, phone, password, confirmPassword } = this.registerForm.value;
+    const { firstName, lastName, email, phone, password, confirmPassword } =
+      this.registerForm.value;
 
-    this.authService.register({ firstName, lastName, email, phone, password, confirmPassword }).subscribe({
-      next: () => {
-        this.notification.success('Account created successfully!');
-        this.router.navigate(['/', ROUTE_PATHS.dashboard]);
-      },
-      error: () => {
-        this.isSubmitting.set(false);
-      },
-    });
+    this.authService
+      .register({ firstName, lastName, email, phone, password, confirmPassword })
+      .subscribe({
+        next: () => {
+          this.notification.success('Account created successfully!');
+          this.router.navigate(['/', ROUTE_PATHS.dashboard]);
+        },
+        error: () => {
+          this.isSubmitting.set(false);
+        },
+      });
   }
 
   private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {

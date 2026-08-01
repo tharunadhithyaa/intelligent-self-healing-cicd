@@ -16,10 +16,38 @@ export interface ChartDataPoint {
         <div class="svg-container">
           <svg viewBox="0 0 500 200" preserveAspectRatio="none" class="chart-svg">
             <!-- Grid Lines -->
-            <line x1="0" y1="50" x2="500" y2="50" stroke="rgba(255,255,255,0.07)" stroke-width="1"></line>
-            <line x1="0" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.07)" stroke-width="1"></line>
-            <line x1="0" y1="150" x2="500" y2="150" stroke="rgba(255,255,255,0.07)" stroke-width="1"></line>
-            <line x1="0" y1="180" x2="500" y2="180" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"></line>
+            <line
+              x1="0"
+              y1="50"
+              x2="500"
+              y2="50"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="1"
+            ></line>
+            <line
+              x1="0"
+              y1="100"
+              x2="500"
+              y2="100"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="1"
+            ></line>
+            <line
+              x1="0"
+              y1="150"
+              x2="500"
+              y2="150"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="1"
+            ></line>
+            <line
+              x1="0"
+              y1="180"
+              x2="500"
+              y2="180"
+              stroke="rgba(255,255,255,0.15)"
+              stroke-width="1.5"
+            ></line>
 
             <!-- Bars -->
             @for (bar of bars(); track bar.label) {
@@ -69,13 +97,45 @@ export interface ChartDataPoint {
             </defs>
 
             <!-- Grid Lines -->
-            <line x1="0" y1="50" x2="500" y2="50" stroke="rgba(255,255,255,0.07)" stroke-width="1"></line>
-            <line x1="0" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.07)" stroke-width="1"></line>
-            <line x1="0" y1="150" x2="500" y2="150" stroke="rgba(255,255,255,0.07)" stroke-width="1"></line>
-            <line x1="0" y1="180" x2="500" y2="180" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"></line>
+            <line
+              x1="0"
+              y1="50"
+              x2="500"
+              y2="50"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="1"
+            ></line>
+            <line
+              x1="0"
+              y1="100"
+              x2="500"
+              y2="100"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="1"
+            ></line>
+            <line
+              x1="0"
+              y1="150"
+              x2="500"
+              y2="150"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="1"
+            ></line>
+            <line
+              x1="0"
+              y1="180"
+              x2="500"
+              y2="180"
+              stroke="rgba(255,255,255,0.15)"
+              stroke-width="1.5"
+            ></line>
 
             <!-- Area Shading -->
-            <path [attr.d]="areaPath()" [attr.fill]="'url(#' + gradientId + ')'" class="line-area"></path>
+            <path
+              [attr.d]="areaPath()"
+              [attr.fill]="'url(#' + gradientId + ')'"
+              class="line-area"
+            ></path>
 
             <!-- Line Path -->
             <path
@@ -127,7 +187,14 @@ export interface ChartDataPoint {
       @if (type === 'gauge') {
         <div class="gauge-container">
           <svg viewBox="0 0 100 100" class="gauge-svg">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
+            <circle
+              cx="50"
+              cy="50"
+              r="40"
+              fill="none"
+              stroke="rgba(255,255,255,0.06)"
+              stroke-width="8"
+            ></circle>
             <circle
               cx="50"
               cy="50"
@@ -150,117 +217,119 @@ export interface ChartDataPoint {
       }
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
 
-    .chart-wrapper {
-      position: relative;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 12px;
-      padding: 16px;
-      box-sizing: border-box;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      overflow: hidden;
-    }
-
-    .svg-container {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-
-    .chart-svg {
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-    }
-
-    .bar-rect {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      &:hover {
-        opacity: 0.85;
-        transform: translateY(-2px);
+      .chart-wrapper {
+        position: relative;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 12px;
+        padding: 16px;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        overflow: hidden;
       }
-    }
 
-    .line-stroke {
-      stroke-dasharray: 1000;
-      stroke-dashoffset: 1000;
-      animation: drawLine 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    }
-
-    .line-area {
-      opacity: 0;
-      animation: fadeIn 1s ease-in 1.2s forwards;
-    }
-
-    .line-circle {
-      cursor: pointer;
-      transition: r 0.2s ease;
-      &:hover {
-        r: 7.5;
+      .svg-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
       }
-    }
 
-    /* Gauge styling */
-    .gauge-container {
-      position: relative;
-      width: 130px;
-      height: 130px;
-    }
-
-    .gauge-svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    .gauge-fill {
-      transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .gauge-label-box {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .gauge-num {
-      font-size: 20px;
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: -0.5px;
-    }
-
-    .gauge-lbl {
-      font-size: 10px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-
-    @keyframes drawLine {
-      to {
-        stroke-dashoffset: 0;
+      .chart-svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
       }
-    }
 
-    @keyframes fadeIn {
-      to {
-        opacity: 1;
+      .bar-rect {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        &:hover {
+          opacity: 0.85;
+          transform: translateY(-2px);
+        }
       }
-    }
-  `]
+
+      .line-stroke {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: drawLine 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+
+      .line-area {
+        opacity: 0;
+        animation: fadeIn 1s ease-in 1.2s forwards;
+      }
+
+      .line-circle {
+        cursor: pointer;
+        transition: r 0.2s ease;
+        &:hover {
+          r: 7.5;
+        }
+      }
+
+      /* Gauge styling */
+      .gauge-container {
+        position: relative;
+        width: 130px;
+        height: 130px;
+      }
+
+      .gauge-svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .gauge-fill {
+        transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .gauge-label-box {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .gauge-num {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.5px;
+      }
+
+      .gauge-lbl {
+        font-size: 10px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+
+      @keyframes drawLine {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      @keyframes fadeIn {
+        to {
+          opacity: 1;
+        }
+      }
+    `,
+  ],
 })
 export class ChartComponent {
   @Input() type: 'bar' | 'line' | 'gauge' = 'bar';
@@ -279,7 +348,7 @@ export class ChartComponent {
     const list = this.dataSignal();
     if (list.length === 0) return [];
 
-    const maxVal = Math.max(...list.map(d => d.value)) || 10;
+    const maxVal = Math.max(...list.map((d) => d.value)) || 10;
     const count = list.length;
     const padding = 15;
     const availWidth = 500 - padding * 2;
@@ -301,7 +370,7 @@ export class ChartComponent {
         y,
         width: barWidth,
         height: scaleHeight,
-        textX
+        textX,
       };
     });
   });
@@ -310,7 +379,7 @@ export class ChartComponent {
     const list = this.dataSignal();
     if (list.length === 0) return [];
 
-    const maxVal = Math.max(...list.map(d => d.value)) || 10;
+    const maxVal = Math.max(...list.map((d) => d.value)) || 10;
     const count = list.length;
     const padding = 30;
     const availWidth = 500 - padding * 2;
@@ -327,7 +396,7 @@ export class ChartComponent {
         shortLabel,
         value: item.value,
         x,
-        y
+        y,
       };
     });
   });

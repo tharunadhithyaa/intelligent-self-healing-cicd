@@ -16,8 +16,7 @@ export const routes: Routes = [
     canActivate: [guestGuard],
     loadComponent: () =>
       import('./layouts/auth-layout/auth-layout.component').then((m) => m.AuthLayoutComponent),
-    loadChildren: () =>
-      import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
+    loadChildren: () => import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
   },
   {
     path: '',
@@ -34,37 +33,49 @@ export const routes: Routes = [
       {
         path: ROUTE_PATHS.report,
         loadComponent: () =>
-          import('./features/complaints/pages/complaint-submit/complaint-submit.component').then((m) => m.ComplaintSubmitComponent),
+          import('./features/complaints/pages/complaint-submit/complaint-submit.component').then(
+            (m) => m.ComplaintSubmitComponent,
+          ),
         title: 'Report Incident - CivicPulse',
       },
       {
         path: ROUTE_PATHS.complaints.root,
         loadComponent: () =>
-          import('./features/complaints/pages/complaint-list/complaint-list.component').then((m) => m.ComplaintListComponent),
+          import('./features/complaints/pages/complaint-list/complaint-list.component').then(
+            (m) => m.ComplaintListComponent,
+          ),
         title: 'My Complaints - CivicPulse',
       },
       {
         path: `${ROUTE_PATHS.complaints.root}/${ROUTE_PATHS.complaints.details}`,
         loadComponent: () =>
-          import('./features/complaints/pages/complaint-details/complaint-details.component').then((m) => m.ComplaintDetailsComponent),
+          import('./features/complaints/pages/complaint-details/complaint-details.component').then(
+            (m) => m.ComplaintDetailsComponent,
+          ),
         title: 'Incident Details - CivicPulse',
       },
       {
         path: ROUTE_PATHS.profile,
         loadComponent: () =>
-          import('./features/profile/pages/profile-edit/profile-edit.component').then((m) => m.ProfileEditComponent),
+          import('./features/profile/pages/profile-edit/profile-edit.component').then(
+            (m) => m.ProfileEditComponent,
+          ),
         title: 'My Profile - CivicPulse',
       },
       {
         path: ROUTE_PATHS.settings,
         loadComponent: () =>
-          import('./features/settings/pages/settings/settings.component').then((m) => m.SettingsComponent),
+          import('./features/settings/pages/settings/settings.component').then(
+            (m) => m.SettingsComponent,
+          ),
         title: 'Account Settings - CivicPulse',
       },
       {
         path: ROUTE_PATHS.notifications,
         loadComponent: () =>
-          import('./features/settings/pages/notifications/notifications.component').then((m) => m.NotificationsComponent),
+          import('./features/settings/pages/notifications/notifications.component').then(
+            (m) => m.NotificationsComponent,
+          ),
         title: 'Notifications - CivicPulse',
       },
       {
@@ -82,8 +93,7 @@ export const routes: Routes = [
       {
         path: 'admin',
         canActivate: [adminGuard],
-        loadChildren: () =>
-          import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+        loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
         title: 'Platform Control - CivicPulse',
       },
       {

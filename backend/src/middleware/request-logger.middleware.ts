@@ -1,5 +1,5 @@
-import morgan, { StreamOptions } from 'morgan';
-import { logger } from '../utils/logger.util';
+import morgan, { StreamOptions } from "morgan";
+import { logger } from "../utils/logger.util";
 
 const stream: StreamOptions = {
   write: (message: string) => {
@@ -8,6 +8,6 @@ const stream: StreamOptions = {
 };
 
 export const requestLogger = morgan(
-  ':method :url :status :res[content-length] - :response-time ms',
-  { stream }
+  ":method :url :status :res[content-length] - :response-time ms",
+  { stream },
 );

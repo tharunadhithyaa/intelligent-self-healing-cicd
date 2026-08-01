@@ -1,5 +1,5 @@
-import jwt, { SignOptions } from 'jsonwebtoken';
-import config from '../config';
+import jwt, { SignOptions } from "jsonwebtoken";
+import config from "../config";
 
 export interface TokenPayload {
   userId: string;
@@ -14,14 +14,14 @@ interface TokenPair {
 
 export const generateAccessToken = (payload: TokenPayload): string => {
   const options: SignOptions = {
-    expiresIn: config.jwt.accessExpiry as jwt.SignOptions['expiresIn'],
+    expiresIn: config.jwt.accessExpiry as jwt.SignOptions["expiresIn"],
   };
   return jwt.sign(payload, config.jwt.accessSecret, options);
 };
 
 export const generateRefreshToken = (payload: TokenPayload): string => {
   const options: SignOptions = {
-    expiresIn: config.jwt.refreshExpiry as jwt.SignOptions['expiresIn'],
+    expiresIn: config.jwt.refreshExpiry as jwt.SignOptions["expiresIn"],
   };
   return jwt.sign(payload, config.jwt.refreshSecret, options);
 };
@@ -59,5 +59,7 @@ export const getRefreshTokenExpiryDate = (): Date => {
     d: 24 * 60 * 60 * 1000,
   };
 
-  return new Date(Date.now() + value * (multipliers[unit] || 24 * 60 * 60 * 1000));
+  return new Date(
+    Date.now() + value * (multipliers[unit] || 24 * 60 * 60 * 1000),
+  );
 };

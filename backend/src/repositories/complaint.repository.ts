@@ -1,5 +1,5 @@
-import { BaseRepository } from './base.repository';
-import Complaint, { IComplaintDocument } from '../models/complaint.model';
+import { BaseRepository } from "./base.repository";
+import Complaint, { IComplaintDocument } from "../models/complaint.model";
 
 export class ComplaintRepository extends BaseRepository<IComplaintDocument> {
   constructor() {
@@ -11,16 +11,16 @@ export class ComplaintRepository extends BaseRepository<IComplaintDocument> {
     filter: Record<string, any>,
     sort: Record<string, any>,
     skip: number,
-    limit: number
+    limit: number,
   ): Promise<IComplaintDocument[]> {
     return this.model
       .find(filter)
       .sort(sort)
       .skip(skip)
       .limit(limit)
-      .select('-images.base64Data') // Exclude heavy base64 data for listing
-      .populate('citizen', 'firstName lastName email')
-      .populate('assignment.officer', 'firstName lastName email')
+      .select("-images.base64Data") // Exclude heavy base64 data for listing
+      .populate("citizen", "firstName lastName email")
+      .populate("assignment.officer", "firstName lastName email")
       .exec();
   }
 }

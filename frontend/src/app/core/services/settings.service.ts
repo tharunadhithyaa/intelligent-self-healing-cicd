@@ -12,14 +12,14 @@ export interface AppSettings {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SettingsService {
   private readonly http = inject(HttpClient);
   private readonly API_URL = `${environment.apiUrl}/citizen/settings`;
 
   readonly settings = signal<AppSettings>({});
-  
+
   constructor() {
     this.loadSettings();
 
@@ -32,54 +32,64 @@ export class SettingsService {
   }
 
   loadSettings() {
-    this.http.get<{ success: boolean; data: { settings: AppSettings } }>(this.API_URL)
-      .subscribe({
-        next: (res) => {
-          if (res.success && res.data?.settings) {
-            this.settings.set(res.data.settings);
-            this.applyThemeAndAccessibility();
-          }
-        },
-        error: (err) => console.error('Failed to load settings', err)
-      });
+    this.http.get<{ success: boolean; data: { settings: AppSettings } }>(this.API_URL).subscribe({
+      next: (res) => {
+        if (res.success && res.data?.settings) {
+          this.settings.set(res.data.settings);
+          this.applyThemeAndAccessibility();
+        }
+      },
+      error: (err) => console.error('Failed to load settings', err),
+    });
   }
 
   updateSettings(newSettings: AppSettings) {
-    return this.http.put<{ success: boolean; data: { user: any } }>(this.API_URL, newSettings)
-      .pipe(
-        tap(() => {
-          this.settings.set(newSettings);
-          this.applyThemeAndAccessibility();
-        })
-      );
+    return this.http.put<{ success: boolean; data: { user: any } }>(this.API_URL, newSettings).pipe(
+      tap(() => {
+        this.settings.set(newSettings);
+        this.applyThemeAndAccessibility();
+      }),
+    );
   }
 
   downloadAccountData() {
     return this.http.get(`${environment.apiUrl}/citizen/download-data`, {
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 
   private applyThemeAndAccessibility() {
     const s = this.settings();
     const html = document.documentElement;
-    
+
     // Reset all
-    html.classList.remove('theme-light', 'theme-dark', 'theme-system', 'theme-green', 'compact-mode', 'high-contrast', 'reduced-motion', 'large-text');
-    
+    html.classList.remove(
+      'theme-light',
+      'theme-dark',
+      'theme-system',
+      'theme-green',
+      'compact-mode',
+      'high-contrast',
+      'reduced-motion',
+      'large-text',
+    );
+
     const themeStr = s.appearance?.theme || 'system';
-    
+
     // Persist for index.html FOUT script
     localStorage.setItem('civicpulse-theme', themeStr);
 
-    if (themeStr === 'dark' || (themeStr === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (
+      themeStr === 'dark' ||
+      (themeStr === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ) {
       html.classList.add('theme-dark');
     } else if (themeStr === 'light' || themeStr === 'system') {
       html.classList.add('theme-light');
     } else {
       html.classList.add(`theme-${themeStr}`);
     }
-    
+
     if (s.appearance?.compactMode) {
       html.classList.add('compact-mode');
     }

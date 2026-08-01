@@ -1,5 +1,5 @@
-import { BaseRepository } from './base.repository';
-import Role, { IRoleDocument } from '../models/role.model';
+import { BaseRepository } from "./base.repository";
+import Role, { IRoleDocument } from "../models/role.model";
 
 export class RoleRepository extends BaseRepository<IRoleDocument> {
   constructor() {

@@ -11,7 +11,7 @@ import {
   HeatmapItem,
   Department,
   AuditLog,
-  AdminReportData
+  AdminReportData,
 } from '../models/admin.model';
 
 @Injectable({ providedIn: 'root' })
@@ -61,30 +61,27 @@ export class AdminService {
       }
     });
 
-    return this.http.get<ApiResponse<{ users: User[]; total: number }>>(
-      API_ENDPOINTS.admin.users,
-      { params: httpParams }
-    );
+    return this.http.get<ApiResponse<{ users: User[]; total: number }>>(API_ENDPOINTS.admin.users, {
+      params: httpParams,
+    });
   }
 
   toggleUserStatus(id: string, isActive: boolean): Observable<ApiResponse<{ user: User }>> {
-    return this.http.put<ApiResponse<{ user: User }>>(
-      API_ENDPOINTS.admin.userStatus(id),
-      { isActive }
-    );
+    return this.http.put<ApiResponse<{ user: User }>>(API_ENDPOINTS.admin.userStatus(id), {
+      isActive,
+    });
   }
 
   toggleUserLock(id: string, isLocked: boolean): Observable<ApiResponse<{ user: User }>> {
-    return this.http.put<ApiResponse<{ user: User }>>(
-      API_ENDPOINTS.admin.userLock(id),
-      { isLocked }
-    );
+    return this.http.put<ApiResponse<{ user: User }>>(API_ENDPOINTS.admin.userLock(id), {
+      isLocked,
+    });
   }
 
   resetUserPassword(id: string): Observable<ApiResponse<{ defaultPassword: string }>> {
     return this.http.put<ApiResponse<{ defaultPassword: string }>>(
       API_ENDPOINTS.admin.userResetPassword(id),
-      {}
+      {},
     );
   }
 
@@ -96,13 +93,13 @@ export class AdminService {
   }): Observable<ApiResponse<{ department: Department }>> {
     return this.http.post<ApiResponse<{ department: Department }>>(
       API_ENDPOINTS.admin.departments,
-      dept
+      dept,
     );
   }
 
   getDepartments(): Observable<ApiResponse<{ departments: Department[] }>> {
     return this.http.get<ApiResponse<{ departments: Department[] }>>(
-      API_ENDPOINTS.admin.departments
+      API_ENDPOINTS.admin.departments,
     );
   }
 
@@ -113,11 +110,11 @@ export class AdminService {
       description: string;
       contactInfo: string;
       status: 'active' | 'inactive';
-    }
+    },
   ): Observable<ApiResponse<{ department: Department }>> {
     return this.http.put<ApiResponse<{ department: Department }>>(
       API_ENDPOINTS.admin.departmentDetails(id),
-      dept
+      dept,
     );
   }
 
@@ -125,34 +122,41 @@ export class AdminService {
     return this.http.delete<ApiResponse<void>>(API_ENDPOINTS.admin.departmentDetails(id));
   }
 
-  assignOfficer(deptId: string, officerId: string): Observable<ApiResponse<{ department: Department }>> {
+  assignOfficer(
+    deptId: string,
+    officerId: string,
+  ): Observable<ApiResponse<{ department: Department }>> {
     return this.http.post<ApiResponse<{ department: Department }>>(
       API_ENDPOINTS.admin.departmentAssign(deptId),
-      { officerId }
+      { officerId },
     );
   }
 
-  removeOfficer(deptId: string, officerId: string): Observable<ApiResponse<{ department: Department }>> {
+  removeOfficer(
+    deptId: string,
+    officerId: string,
+  ): Observable<ApiResponse<{ department: Department }>> {
     return this.http.post<ApiResponse<{ department: Department }>>(
       API_ENDPOINTS.admin.departmentRemove(deptId),
-      { officerId }
+      { officerId },
     );
   }
 
   // ─── Reports & Export ───
-  generateReport(timeframe: 'daily' | 'weekly' | 'monthly' | 'yearly'): Observable<ApiResponse<{ report: AdminReportData }>> {
+  generateReport(
+    timeframe: 'daily' | 'weekly' | 'monthly' | 'yearly',
+  ): Observable<ApiResponse<{ report: AdminReportData }>> {
     let httpParams = new HttpParams().set('timeframe', timeframe);
-    return this.http.get<ApiResponse<{ report: AdminReportData }>>(
-      API_ENDPOINTS.admin.reports,
-      { params: httpParams }
-    );
+    return this.http.get<ApiResponse<{ report: AdminReportData }>>(API_ENDPOINTS.admin.reports, {
+      params: httpParams,
+    });
   }
 
   exportReportCSV(timeframe: 'daily' | 'weekly' | 'monthly' | 'yearly'): Observable<Blob> {
     let httpParams = new HttpParams().set('timeframe', timeframe);
     return this.http.get(API_ENDPOINTS.admin.export, {
       params: httpParams,
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 
@@ -178,7 +182,7 @@ export class AdminService {
 
     return this.http.get<ApiResponse<{ logs: AuditLog[]; total: number }>>(
       API_ENDPOINTS.admin.auditLogs,
-      { params: httpParams }
+      { params: httpParams },
     );
   }
 

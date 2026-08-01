@@ -1,8 +1,14 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface INotification {
   recipient: mongoose.Types.ObjectId;
-  type: 'status_update' | 'assignment' | 'escalation' | 'job_alert' | 'announcement' | 'system_alert';
+  type:
+    | "status_update"
+    | "assignment"
+    | "escalation"
+    | "job_alert"
+    | "announcement"
+    | "system_alert";
   title: string;
   message: string;
   isRead: boolean;
@@ -18,42 +24,50 @@ const notificationSchema = new Schema<INotificationDocument>(
   {
     recipient: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
-      index: true
+      index: true,
     },
     type: {
       type: String,
-      enum: ['status_update', 'assignment', 'escalation', 'job_alert', 'announcement', 'system_alert'],
-      required: true
+      enum: [
+        "status_update",
+        "assignment",
+        "escalation",
+        "job_alert",
+        "announcement",
+        "system_alert",
+      ],
+      required: true,
     },
     title: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     message: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     isRead: {
       type: Boolean,
       default: false,
       required: true,
-      index: true
+      index: true,
     },
     relatedEntityId: {
-      type: String
-    }
+      type: String,
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
 notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
 
-const Notification: Model<INotificationDocument> = mongoose.model<INotificationDocument>('Notification', notificationSchema);
+const Notification: Model<INotificationDocument> =
+  mongoose.model<INotificationDocument>("Notification", notificationSchema);
 
 export default Notification;

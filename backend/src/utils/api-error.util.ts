@@ -1,4 +1,4 @@
-import { HttpStatusCode } from '../constants/http-status.constants';
+import { HttpStatusCode } from "../constants/http-status.constants";
 
 export class ApiError extends Error {
   public readonly statusCode: HttpStatusCode;
@@ -9,7 +9,7 @@ export class ApiError extends Error {
     statusCode: HttpStatusCode,
     message: string,
     errors: string[] = [],
-    isOperational = true
+    isOperational = true,
   ) {
     super(message);
     this.statusCode = statusCode;

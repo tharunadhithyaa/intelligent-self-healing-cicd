@@ -14,10 +14,13 @@
     />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <script>
-      (function() {
+      (function () {
         try {
           var saved = localStorage.getItem('civicpulse-theme');
-          if (saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          if (
+            saved === 'dark' ||
+            (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          ) {
             document.documentElement.classList.add('theme-dark');
           }
         } catch (e) {}

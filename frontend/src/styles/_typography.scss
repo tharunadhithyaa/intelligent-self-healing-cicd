@@ -6,7 +6,12 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: $font-family;
   font-weight: $font-weight-bold;
   color: $text-primary;
@@ -77,24 +82,62 @@ label {
   color: $text-primary;
 }
 
-.text-xs    { font-size: $font-size-xs; }
-.text-sm    { font-size: $font-size-sm; }
-.text-base  { font-size: $font-size-base; }
-.text-lg    { font-size: $font-size-lg; }
-.text-xl    { font-size: $font-size-xl; }
-.text-2xl   { font-size: $font-size-2xl; }
-.text-3xl   { font-size: $font-size-3xl; }
-.text-4xl   { font-size: $font-size-4xl; }
+.text-xs {
+  font-size: $font-size-xs;
+}
+.text-sm {
+  font-size: $font-size-sm;
+}
+.text-base {
+  font-size: $font-size-base;
+}
+.text-lg {
+  font-size: $font-size-lg;
+}
+.text-xl {
+  font-size: $font-size-xl;
+}
+.text-2xl {
+  font-size: $font-size-2xl;
+}
+.text-3xl {
+  font-size: $font-size-3xl;
+}
+.text-4xl {
+  font-size: $font-size-4xl;
+}
 
-.font-regular  { font-weight: $font-weight-regular; }
-.font-medium   { font-weight: $font-weight-medium; }
-.font-semibold { font-weight: $font-weight-semibold; }
-.font-bold     { font-weight: $font-weight-bold; }
+.font-regular {
+  font-weight: $font-weight-regular;
+}
+.font-medium {
+  font-weight: $font-weight-medium;
+}
+.font-semibold {
+  font-weight: $font-weight-semibold;
+}
+.font-bold {
+  font-weight: $font-weight-bold;
+}
 
-.text-primary   { color: $text-primary; }
-.text-secondary { color: $text-secondary; }
-.text-muted     { color: $text-muted; }
-.text-success   { color: $success; }
-.text-warning   { color: $warning; }
-.text-danger    { color: $danger; }
-.text-accent    { color: $primary; }
+.text-primary {
+  color: $text-primary;
+}
+.text-secondary {
+  color: $text-secondary;
+}
+.text-muted {
+  color: $text-muted;
+}
+.text-success {
+  color: $success;
+}
+.text-warning {
+  color: $warning;
+}
+.text-danger {
+  color: $danger;
+}
+.text-accent {
+  color: $primary;
+}

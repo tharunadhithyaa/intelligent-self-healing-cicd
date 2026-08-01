@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IRole {
   name: string; // citizen, officer, admin, or custom roles
@@ -15,27 +15,30 @@ const roleSchema = new Schema<IRoleDocument>(
   {
     name: {
       type: String,
-      required: [true, 'Role name is required'],
+      required: [true, "Role name is required"],
       unique: true,
       trim: true,
-      lowercase: true
+      lowercase: true,
     },
-    permissions: [{
-      type: String,
-      required: true
-    }],
+    permissions: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
     description: {
       type: String,
-      required: [true, 'Role description is required']
-    }
+      required: [true, "Role description is required"],
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
-
-
-const Role: Model<IRoleDocument> = mongoose.model<IRoleDocument>('Role', roleSchema);
+const Role: Model<IRoleDocument> = mongoose.model<IRoleDocument>(
+  "Role",
+  roleSchema,
+);
 
 export default Role;

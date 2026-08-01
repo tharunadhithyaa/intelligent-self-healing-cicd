@@ -14,7 +14,7 @@ export interface UserNotification {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserNotificationsService {
   private readonly http = inject(HttpClient);
@@ -28,7 +28,8 @@ export class UserNotificationsService {
   }
 
   loadNotifications() {
-    this.http.get<{ success: boolean; data: { notifications: UserNotification[] } }>(this.API_URL)
+    this.http
+      .get<{ success: boolean; data: { notifications: UserNotification[] } }>(this.API_URL)
       .subscribe({
         next: (res) => {
           if (res.success && res.data?.notifications) {
@@ -36,41 +37,43 @@ export class UserNotificationsService {
             this.updateUnreadCount(res.data.notifications);
           }
         },
-        error: (err) => console.error('Failed to load notifications', err)
+        error: (err) => console.error('Failed to load notifications', err),
       });
   }
 
   markAsRead(id: string) {
     return this.http.put(`${this.API_URL}/${id}/read`, {}).pipe(
       tap(() => {
-        const current = this.notifications().map(n => n._id === id ? { ...n, isRead: true } : n);
+        const current = this.notifications().map((n) =>
+          n._id === id ? { ...n, isRead: true } : n,
+        );
         this.notifications.set(current);
         this.updateUnreadCount(current);
-      })
+      }),
     );
   }
 
   markAllAsRead() {
     return this.http.put(`${this.API_URL}/read-all`, {}).pipe(
       tap(() => {
-        const current = this.notifications().map(n => ({ ...n, isRead: true }));
+        const current = this.notifications().map((n) => ({ ...n, isRead: true }));
         this.notifications.set(current);
         this.updateUnreadCount(current);
-      })
+      }),
     );
   }
 
   deleteNotification(id: string) {
     return this.http.delete(`${this.API_URL}/${id}`).pipe(
       tap(() => {
-        const current = this.notifications().filter(n => n._id !== id);
+        const current = this.notifications().filter((n) => n._id !== id);
         this.notifications.set(current);
         this.updateUnreadCount(current);
-      })
+      }),
     );
   }
 
   private updateUnreadCount(notifications: UserNotification[]) {
-    this.unreadCount.set(notifications.filter(n => !n.isRead).length);
+    this.unreadCount.set(notifications.filter((n) => !n.isRead).length);
   }
 }

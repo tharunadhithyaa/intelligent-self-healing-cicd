@@ -14,40 +14,42 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       </div>
     </div>
   `,
-  styles: [`
-    @use 'styles/variables' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
 
-    .loading-overlay {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      .loading-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
-      &.fullscreen {
-        position: fixed;
-        inset: 0;
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(4px);
-        z-index: $z-modal;
+        &.fullscreen {
+          position: fixed;
+          inset: 0;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(4px);
+          z-index: $z-modal;
+        }
+
+        &.inline {
+          padding: $spacing-8;
+        }
       }
 
-      &.inline {
-        padding: $spacing-8;
+      .loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: $spacing-4;
       }
-    }
 
-    .loading-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: $spacing-4;
-    }
-
-    .loading-message {
-      font-size: $font-size-sm;
-      color: $text-secondary;
-      font-weight: $font-weight-medium;
-    }
-  `],
+      .loading-message {
+        font-size: $font-size-sm;
+        color: $text-secondary;
+        font-weight: $font-weight-medium;
+      }
+    `,
+  ],
 })
 export class LoadingSpinnerComponent {
   readonly diameter = input(48);

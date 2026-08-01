@@ -1,7 +1,7 @@
-import { userRepository } from '../../../repositories/user.repository';
-import { complaintRepository } from '../../../repositories/complaint.repository';
-import { departmentRepository } from '../../../repositories/department.repository';
-import Complaint from '../../../models/complaint.model';
+import { userRepository } from "../../../repositories/user.repository";
+import { complaintRepository } from "../../../repositories/complaint.repository";
+import { departmentRepository } from "../../../repositories/department.repository";
+import Complaint from "../../../models/complaint.model";
 
 export interface OverviewStats {
   totalUsers: number;
@@ -45,15 +45,15 @@ class AdminDashboardService {
       totalOfficers,
       totalFieldWorkers,
       pendingComplaints,
-      resolvedComplaints
+      resolvedComplaints,
     ] = await Promise.all([
       userRepository.count(),
       complaintRepository.count(),
       departmentRepository.count(),
-      userRepository.count({ role: 'officer' }),
-      userRepository.count({ role: 'field_worker' }),
-      complaintRepository.count({ status: 'submitted' }),
-      complaintRepository.count({ status: 'resolved' })
+      userRepository.count({ role: "officer" }),
+      userRepository.count({ role: "field_worker" }),
+      complaintRepository.count({ status: "submitted" }),
+      complaintRepository.count({ status: "resolved" }),
     ]);
 
     return {
@@ -63,7 +63,7 @@ class AdminDashboardService {
       totalOfficers,
       totalFieldWorkers,
       pendingComplaints,
-      resolvedComplaints
+      resolvedComplaints,
     };
   }
 
@@ -82,22 +82,22 @@ class AdminDashboardService {
       { $match: { createdAt: { $gte: sixMonthsAgo } } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
           count: { $sum: 1 },
           resolved: {
             $sum: {
-              $cond: [{ $in: ['$status', ['resolved', 'closed']] }, 1, 0]
-            }
-          }
-        }
+              $cond: [{ $in: ["$status", ["resolved", "closed"]] }, 1, 0],
+            },
+          },
+        },
       },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
     ]);
 
-    const trends: MonthlyTrend[] = monthlyData.map(item => ({
+    const trends: MonthlyTrend[] = monthlyData.map((item) => ({
       month: item._id,
       count: item.count,
-      resolved: item.resolved
+      resolved: item.resolved,
     }));
 
     // Fill in empty months if not present in aggregation results
@@ -105,13 +105,13 @@ class AdminDashboardService {
     for (let i = 0; i < 6; i++) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       monthsFiller.push({ month: key, count: 0, resolved: 0 });
     }
     monthsFiller.reverse();
 
-    const filledTrends = monthsFiller.map(filler => {
-      const match = trends.find(t => t.month === filler.month);
+    const filledTrends = monthsFiller.map((filler) => {
+      const match = trends.find((t) => t.month === filler.month);
       return match || filler;
     });
 
@@ -121,39 +121,40 @@ class AdminDashboardService {
       {
         $group: {
           _id: null,
-          avgConf: { $avg: '$aiAnalysis.confidenceScore' }
-        }
-      }
+          avgConf: { $avg: "$aiAnalysis.confidenceScore" },
+        },
+      },
     ]);
 
-    const realAvgConf = aiStats.length > 0 ? Math.round(aiStats[0].avgConf) : 89;
+    const realAvgConf =
+      aiStats.length > 0 ? Math.round(aiStats[0].avgConf) : 89;
 
     const aiMetrics: AIAccuracyMetrics = {
       categoryAccuracy: 92, // Target accuracy baseline
       priorityAccuracy: 87, // Target accuracy baseline
       duplicatePerformance: 95, // Target accuracy baseline
-      averageConfidence: realAvgConf
+      averageConfidence: realAvgConf,
     };
 
     // 3. Heatmap Items (Locations coordinates list)
-    const activeComplaints = await Complaint.find({ status: { $ne: 'closed' } })
-      .select('_id title category status location')
+    const activeComplaints = await Complaint.find({ status: { $ne: "closed" } })
+      .select("_id title category status location")
       .exec();
 
-    const heatmap: HeatmapItem[] = activeComplaints.map(c => ({
+    const heatmap: HeatmapItem[] = activeComplaints.map((c) => ({
       id: c._id.toString(),
       title: c.title,
       category: c.category,
       status: c.status,
       latitude: c.location.latitude,
       longitude: c.location.longitude,
-      address: c.location.address
+      address: c.location.address,
     }));
 
     return {
       trends: filledTrends,
       aiMetrics,
-      heatmap
+      heatmap,
     };
   }
 }

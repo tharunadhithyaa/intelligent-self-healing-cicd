@@ -1,18 +1,18 @@
-import crypto from 'crypto';
-import { userRepository } from '../../repositories/user.repository';
-import RefreshToken from '../../models/refresh-token.model';
-import { hashPassword, comparePassword } from '../../utils/password.util';
+import crypto from "crypto";
+import { userRepository } from "../../repositories/user.repository";
+import RefreshToken from "../../models/refresh-token.model";
+import { hashPassword, comparePassword } from "../../utils/password.util";
 import {
   generateTokenPair,
   verifyRefreshToken,
   getRefreshTokenExpiryDate,
   TokenPayload,
-} from '../../utils/jwt.util';
-import { ApiError } from '../../utils/api-error.util';
-import { ErrorMessages } from '../../constants/error-messages.constants';
-import { RegisterDto, LoginDto, ResetPasswordDto } from './dtos/auth.dto';
-import { IUserDocument } from '../../models/user.model';
-import { logger } from '../../utils/logger.util';
+} from "../../utils/jwt.util";
+import { ApiError } from "../../utils/api-error.util";
+import { ErrorMessages } from "../../constants/error-messages.constants";
+import { RegisterDto, LoginDto, ResetPasswordDto } from "./dtos/auth.dto";
+import { IUserDocument } from "../../models/user.model";
+import { logger } from "../../utils/logger.util";
 
 interface AuthTokens {
   accessToken: string;
@@ -39,7 +39,7 @@ class AuthService {
       email: data.email.toLowerCase(),
       password: hashedPassword,
       phone: data.phone,
-      role: (data.role as IUserDocument['role']) || 'citizen',
+      role: (data.role as IUserDocument["role"]) || "citizen",
     } as Partial<IUserDocument>);
 
     const tokenPayload: TokenPayload = {
@@ -103,7 +103,9 @@ class AuthService {
     try {
       payload = verifyRefreshToken(refreshTokenStr);
     } catch {
-      await RefreshToken.findByIdAndUpdate(storedToken._id, { isRevoked: true });
+      await RefreshToken.findByIdAndUpdate(storedToken._id, {
+        isRevoked: true,
+      });
       throw ApiError.unauthorized(ErrorMessages.REFRESH_TOKEN_INVALID);
     }
 
@@ -130,15 +132,15 @@ class AuthService {
   async logout(refreshTokenStr: string): Promise<void> {
     await RefreshToken.findOneAndUpdate(
       { token: refreshTokenStr },
-      { isRevoked: true }
+      { isRevoked: true },
     );
-    logger.info('User logged out, refresh token revoked');
+    logger.info("User logged out, refresh token revoked");
   }
 
   async logoutAll(userId: string): Promise<void> {
     await RefreshToken.updateMany(
       { userId, isRevoked: false },
-      { isRevoked: true }
+      { isRevoked: true },
     );
     logger.info(`All sessions revoked for user: ${userId}`);
   }
@@ -150,8 +152,11 @@ class AuthService {
       return;
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
 
     await userRepository.updateById(user._id.toString(), {
       passwordResetToken: hashedToken,
@@ -163,7 +168,10 @@ class AuthService {
   }
 
   async resetPassword(data: ResetPasswordDto): Promise<void> {
-    const hashedToken = crypto.createHash('sha256').update(data.token).digest('hex');
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(data.token)
+      .digest("hex");
 
     const user = await userRepository.findByResetToken(hashedToken);
     if (!user) {

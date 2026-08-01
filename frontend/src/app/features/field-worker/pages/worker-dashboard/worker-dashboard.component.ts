@@ -23,7 +23,7 @@ import { MatInputModule } from '@angular/material/input';
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    PageHeaderComponent
+    PageHeaderComponent,
   ],
   template: `
     <app-page-header
@@ -41,13 +41,20 @@ import { MatInputModule } from '@angular/material/input';
             <small>Coords: {{ mockLat }}, {{ mockLng }} (Accuracy: 10m)</small>
           </div>
         </div>
-        <button mat-stroked-button color="primary" [disabled]="refreshingGps()" (click)="refreshGPS()">
+        <button
+          mat-stroked-button
+          color="primary"
+          [disabled]="refreshingGps()"
+          (click)="refreshGPS()"
+        >
           @if (refreshingGps()) {
-            <mat-progress-spinner mode="indeterminate" diameter="15" style="display:inline-block"></mat-progress-spinner>
+            <mat-progress-spinner
+              mode="indeterminate"
+              diameter="15"
+              style="display:inline-block"
+            ></mat-progress-spinner>
           } @else {
-            <ng-container>
-              <mat-icon>refresh</mat-icon> Refresh GPS
-            </ng-container>
+            <ng-container> <mat-icon>refresh</mat-icon> Refresh GPS </ng-container>
           }
         </button>
       </mat-card-content>
@@ -67,23 +74,31 @@ import { MatInputModule } from '@angular/material/input';
     } @else {
       <div class="responder-container">
         <!-- List of active jobs -->
-        <div class="jobs-list" [ngClass]="{'hide-list': selectedJob()}">
+        <div class="jobs-list" [ngClass]="{ 'hide-list': selectedJob() }">
           <h3>Your Active Assignments ({{ jobs().length }})</h3>
           @for (job of jobs(); track job._id) {
-            <mat-card class="job-card" (click)="selectJob(job)" [class.active-card]="selectedJob()?._id === job._id">
+            <mat-card
+              class="job-card"
+              (click)="selectJob(job)"
+              [class.active-card]="selectedJob()?._id === job._id"
+            >
               <mat-card-content>
                 <div class="job-header">
                   <span class="priority-tag" [ngClass]="job.aiAnalysis?.priority || 'medium'">
                     {{ job.aiAnalysis?.priority?.toUpperCase() || 'MEDIUM' }}
                   </span>
-                  <span class="status-tag" [ngClass]="job.status">{{ job.status.toUpperCase() }}</span>
+                  <span class="status-tag" [ngClass]="job.status">{{
+                    job.status.toUpperCase()
+                  }}</span>
                 </div>
 
                 <h4 class="job-title">{{ job.title }}</h4>
-                <p class="job-address"><mat-icon>location_on</mat-icon> {{ job.location.address }}</p>
+                <p class="job-address">
+                  <mat-icon>location_on</mat-icon> {{ job.location.address }}
+                </p>
 
                 <div class="job-footer">
-                  <small>Assigned: {{ job.createdAt | date:'shortDate' }}</small>
+                  <small>Assigned: {{ job.createdAt | date: 'shortDate' }}</small>
                   <span class="action-link">Open Details</span>
                 </div>
               </mat-card-content>
@@ -102,7 +117,12 @@ import { MatInputModule } from '@angular/material/input';
             <mat-card class="detail-card">
               <mat-card-header>
                 <mat-card-title>{{ job.title }}</mat-card-title>
-                <mat-card-subtitle>Status: <span class="status-tag" [ngClass]="job.status">{{ job.status.toUpperCase() }}</span></mat-card-subtitle>
+                <mat-card-subtitle
+                  >Status:
+                  <span class="status-tag" [ngClass]="job.status">{{
+                    job.status.toUpperCase()
+                  }}</span></mat-card-subtitle
+                >
               </mat-card-header>
               <mat-card-content>
                 <p class="description">{{ job.description }}</p>
@@ -113,7 +133,10 @@ import { MatInputModule } from '@angular/material/input';
                     <mat-icon>place</mat-icon>
                     <div>
                       <span>{{ job.location.address }}</span>
-                      <small>Coordinates: {{ job.location.latitude }}, {{ job.location.longitude }}</small>
+                      <small
+                        >Coordinates: {{ job.location.latitude }},
+                        {{ job.location.longitude }}</small
+                      >
                     </div>
                   </div>
                   <a
@@ -154,11 +177,24 @@ import { MatInputModule } from '@angular/material/input';
                     <h4>Submit Resolution Notes</h4>
                     <mat-form-field appearance="outline" class="full-width">
                       <mat-label>Provide completion details...</mat-label>
-                      <textarea matInput [(ngModel)]="completionNotes" placeholder="Explain what repairs were done..."></textarea>
+                      <textarea
+                        matInput
+                        [(ngModel)]="completionNotes"
+                        placeholder="Explain what repairs were done..."
+                      ></textarea>
                     </mat-form-field>
                     <div class="form-actions">
-                      <button mat-stroked-button (click)="showResolutionForm.set(false)">Cancel</button>
-                      <button mat-flat-button color="accent" [disabled]="!completionNotes.trim()" (click)="submitResolution()">Submit Resolution</button>
+                      <button mat-stroked-button (click)="showResolutionForm.set(false)">
+                        Cancel
+                      </button>
+                      <button
+                        mat-flat-button
+                        color="accent"
+                        [disabled]="!completionNotes.trim()"
+                        (click)="submitResolution()"
+                      >
+                        Submit Resolution
+                      </button>
                     </div>
                   </div>
                 }
@@ -177,8 +213,15 @@ import { MatInputModule } from '@angular/material/input';
                         }
                       </div>
                       <label class="file-label">
-                        <input type="file" (change)="onPhotoSelected($event, 'before')" accept="image/*" class="file-input" />
-                        <span class="btn-upload"><mat-icon>photo_camera</mat-icon> Add Before Photo</span>
+                        <input
+                          type="file"
+                          (change)="onPhotoSelected($event, 'before')"
+                          accept="image/*"
+                          class="file-input"
+                        />
+                        <span class="btn-upload"
+                          ><mat-icon>photo_camera</mat-icon> Add Before Photo</span
+                        >
                       </label>
                     </div>
 
@@ -191,13 +234,19 @@ import { MatInputModule } from '@angular/material/input';
                         }
                       </div>
                       <label class="file-label">
-                        <input type="file" (change)="onPhotoSelected($event, 'after')" accept="image/*" class="file-input" />
-                        <span class="btn-upload"><mat-icon>photo_camera</mat-icon> Add After Photo</span>
+                        <input
+                          type="file"
+                          (change)="onPhotoSelected($event, 'after')"
+                          accept="image/*"
+                          class="file-input"
+                        />
+                        <span class="btn-upload"
+                          ><mat-icon>photo_camera</mat-icon> Add After Photo</span
+                        >
                       </label>
                     </div>
                   </div>
                 </div>
-
               </mat-card-content>
             </mat-card>
           </div>
@@ -205,215 +254,42 @@ import { MatInputModule } from '@angular/material/input';
       </div>
     }
   `,
-  styles: [`
-    @use 'styles/variables' as *;
-    @use 'styles/mixins' as *;
+  styles: [
+    `
+      @use 'styles/variables' as *;
+      @use 'styles/mixins' as *;
 
-    .gps-card {
-      margin-bottom: $spacing-4;
-      border: 1px solid $border-light;
-      background: $surface;
-    }
-
-    .gps-content {
-      @include flex-between;
-      flex-wrap: wrap;
-      gap: $spacing-3;
-    }
-
-    .gps-info {
-      @include flex-start;
-      gap: $spacing-3;
-
-      mat-icon {
-        color: $text-muted;
-        &.connected {
-          color: #00b8d4;
-          animation: pulse 2s infinite;
-        }
+      .gps-card {
+        margin-bottom: $spacing-4;
+        border: 1px solid $border-light;
+        background: $surface;
       }
 
-      .gps-text {
-        display: flex;
-        flex-direction: column;
-        span {
-          font-size: $font-size-sm;
-          font-weight: $font-weight-semibold;
-          color: $text-primary;
-        }
-        small {
-          font-size: 10px;
+      .gps-content {
+        @include flex-between;
+        flex-wrap: wrap;
+        gap: $spacing-3;
+      }
+
+      .gps-info {
+        @include flex-start;
+        gap: $spacing-3;
+
+        mat-icon {
           color: $text-muted;
-        }
-      }
-    }
-
-    .loader-box {
-      @include flex-center;
-      min-height: 250px;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: $spacing-8 $spacing-4;
-      background: $surface;
-      border-radius: $radius-lg;
-
-      .empty-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        color: $text-muted;
-        margin-bottom: $spacing-3;
-      }
-    }
-
-    /* Container Layout */
-    .responder-container {
-      display: grid;
-      grid-template-columns: 1fr 1.5fr;
-      gap: $spacing-6;
-
-      @include tablet-only {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .jobs-list {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-3;
-
-      h3 {
-        font-size: $font-size-sm;
-        font-weight: $font-weight-semibold;
-        color: $text-secondary;
-        margin-bottom: $spacing-2;
-      }
-
-      @include tablet-only {
-        &.hide-list {
-          display: none;
-        }
-      }
-    }
-
-    .job-card {
-      border: 1px solid $border-light;
-      cursor: pointer;
-      background: $surface;
-      transition: all $transition-fast;
-
-      &:hover {
-        border-color: var(--primary-color, #6200ea);
-      }
-
-      &.active-card {
-        border-color: var(--primary-color, #6200ea);
-        background: rgba(98, 0, 234, 0.02);
-      }
-
-      .job-header {
-        @include flex-between;
-        margin-bottom: $spacing-2;
-      }
-
-      .job-title {
-        font-size: $font-size-sm;
-        font-weight: $font-weight-bold;
-        color: $text-primary;
-        margin: 0 0 6px 0;
-      }
-
-      .job-address {
-        @include flex-start;
-        gap: 4px;
-        font-size: $font-size-xs;
-        color: $text-secondary;
-        margin: 0 0 $spacing-3 0;
-
-        mat-icon {
-          font-size: 14px;
-          width: 14px;
-          height: 14px;
-        }
-      }
-
-      .job-footer {
-        @include flex-between;
-        font-size: 10px;
-        color: $text-muted;
-
-        .action-link {
-          color: var(--primary-color, #6200ea);
-          font-weight: $font-weight-semibold;
-        }
-      }
-    }
-
-    /* Details Panel */
-    .job-detail {
-      display: flex;
-      flex-direction: column;
-      gap: $spacing-3;
-    }
-
-    .mobile-back-btn {
-      align-self: flex-start;
-      margin-bottom: $spacing-2;
-      display: none;
-
-      @include tablet-only {
-        display: flex;
-      }
-    }
-
-    .detail-card {
-      border: 1px solid $border-light;
-      background: $surface;
-
-      mat-card-header {
-        margin-bottom: $spacing-4;
-      }
-
-      .description {
-        font-size: $font-size-sm;
-        color: $text-primary;
-        line-height: 1.6;
-        margin-bottom: $spacing-4;
-      }
-    }
-
-    /* Navigation link */
-    .nav-launcher {
-      @include flex-between;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid $border-light;
-      border-radius: $radius-md;
-      padding: $spacing-3;
-      margin-bottom: $spacing-4;
-
-      @include mobile-only {
-        flex-direction: column;
-        align-items: stretch;
-        gap: $spacing-3;
-      }
-
-      .nav-text {
-        @include flex-start;
-        gap: $spacing-3;
-        color: $text-secondary;
-
-        mat-icon {
-          color: #00b8d4;
+          &.connected {
+            color: #00b8d4;
+            animation: pulse 2s infinite;
+          }
         }
 
-        div {
+        .gps-text {
           display: flex;
           flex-direction: column;
           span {
-            font-size: $font-size-xs;
-            font-weight: $font-weight-medium;
+            font-size: $font-size-sm;
+            font-weight: $font-weight-semibold;
+            color: $text-primary;
           }
           small {
             font-size: 10px;
@@ -421,163 +297,383 @@ import { MatInputModule } from '@angular/material/input';
           }
         }
       }
-    }
 
-    /* Action touch buttons */
-    .action-buttons {
-      display: flex;
-      gap: $spacing-3;
-      margin-bottom: $spacing-6;
-
-      @include mobile-only {
-        flex-direction: column;
+      .loader-box {
+        @include flex-center;
+        min-height: 250px;
       }
 
-      button {
-        flex: 1;
-        font-weight: $font-weight-semibold;
-      }
+      .empty-state {
+        text-align: center;
+        padding: $spacing-8 $spacing-4;
+        background: $surface;
+        border-radius: $radius-lg;
 
-      .btn-start { background: var(--success); color: var(--text-inverse); }
-      .btn-wait { background: var(--warning); color: var(--text-primary); }
-      .btn-resolve { background: var(--info); color: var(--text-inverse); }
-    }
-
-    .resolution-form {
-      background: color-mix(in srgb, var(--surface) 2%, transparent);
-      border: 1px solid $border-light;
-      border-radius: $radius-md;
-      padding: $spacing-4;
-      margin-bottom: $spacing-6;
-
-      h4 {
-        margin: 0 0 $spacing-3 0;
-        font-size: $font-size-sm;
-        font-weight: $font-weight-semibold;
-      }
-
-      .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: $spacing-3;
-      }
-    }
-
-    /* Photos */
-    .photo-uploads {
-      border-top: 1px solid $border-light;
-      padding-top: $spacing-4;
-
-      h3 {
-        font-size: $font-size-sm;
-        font-weight: $font-weight-semibold;
-        margin-bottom: $spacing-4;
-      }
-    }
-
-    .uploader-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: $spacing-4;
-
-      @include mobile-only {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .uploader-box {
-      border: 1px dashed $border;
-      border-radius: $radius-md;
-      padding: $spacing-4;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: $spacing-3;
-
-      h5 {
-        margin: 0;
-        font-size: $font-size-xs;
-        color: $text-secondary;
-      }
-
-      .preview-row {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        justify-content: center;
-
-        .thumbnail {
-          width: 50px;
-          height: 50px;
-          object-fit: cover;
-          border-radius: 4px;
-          border: 1px solid $border-light;
+        .empty-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          color: $text-muted;
+          margin-bottom: $spacing-3;
         }
       }
-    }
 
-    .file-label {
-      cursor: pointer;
-      .file-input {
-        display: none;
+      /* Container Layout */
+      .responder-container {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: $spacing-6;
+
+        @include tablet-only {
+          grid-template-columns: 1fr;
+        }
       }
-      .btn-upload {
-        @include flex-center;
-        gap: 6px;
-        font-size: 11px;
-        font-weight: $font-weight-semibold;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid $border;
-        padding: 6px 12px;
-        border-radius: $radius-md;
-        transition: background $transition-fast;
+
+      .jobs-list {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-3;
+
+        h3 {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-semibold;
+          color: $text-secondary;
+          margin-bottom: $spacing-2;
+        }
+
+        @include tablet-only {
+          &.hide-list {
+            display: none;
+          }
+        }
+      }
+
+      .job-card {
+        border: 1px solid $border-light;
+        cursor: pointer;
+        background: $surface;
+        transition: all $transition-fast;
 
         &:hover {
-          background: rgba(255,255,255,0.1);
+          border-color: var(--primary-color, #6200ea);
         }
 
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
+        &.active-card {
+          border-color: var(--primary-color, #6200ea);
+          background: rgba(98, 0, 234, 0.02);
+        }
+
+        .job-header {
+          @include flex-between;
+          margin-bottom: $spacing-2;
+        }
+
+        .job-title {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-bold;
+          color: $text-primary;
+          margin: 0 0 6px 0;
+        }
+
+        .job-address {
+          @include flex-start;
+          gap: 4px;
+          font-size: $font-size-xs;
+          color: $text-secondary;
+          margin: 0 0 $spacing-3 0;
+
+          mat-icon {
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
+          }
+        }
+
+        .job-footer {
+          @include flex-between;
+          font-size: 10px;
+          color: $text-muted;
+
+          .action-link {
+            color: var(--primary-color, #6200ea);
+            font-weight: $font-weight-semibold;
+          }
         }
       }
-    }
 
-    /* Tags styling */
-    .priority-tag {
-      font-size: 10px;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 4px;
+      /* Details Panel */
+      .job-detail {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-3;
+      }
 
-      &.low { background: rgba(0, 230, 118, 0.1); color: #00e676; }
-      &.medium { background: rgba(0, 184, 212, 0.1); color: #00b8d4; }
-      &.high { background: rgba(255, 171, 0, 0.1); color: #ffab00; }
-      &.critical { background: rgba(255, 61, 0, 0.1); color: #ff3d00; }
-    }
+      .mobile-back-btn {
+        align-self: flex-start;
+        margin-bottom: $spacing-2;
+        display: none;
 
-    .status-tag {
-      font-size: 10px;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 10px;
+        @include tablet-only {
+          display: flex;
+        }
+      }
 
-      &.submitted { background: rgba(255, 255, 255, 0.05); color: #b3b3b3; }
-      &.verified { background: rgba(0, 184, 212, 0.1); color: #00b8d4; }
-      &.assigned { background: rgba(98, 0, 234, 0.1); color: #6200ea; }
-      &.in_progress { background: rgba(255, 171, 0, 0.1); color: #ffab00; }
-      &.waiting { background: rgba(255, 61, 0, 0.1); color: #ff3d00; }
-      &.resolved { background: rgba(0, 230, 118, 0.1); color: #00e676; }
-      &.rejected { background: rgba(255, 61, 0, 0.15); color: #ff3d00; }
-      &.closed { background: rgba(255, 255, 255, 0.1); color: #808080; }
-    }
+      .detail-card {
+        border: 1px solid $border-light;
+        background: $surface;
 
-    .full-width {
-      width: 100%;
-    }
-  `]
+        mat-card-header {
+          margin-bottom: $spacing-4;
+        }
+
+        .description {
+          font-size: $font-size-sm;
+          color: $text-primary;
+          line-height: 1.6;
+          margin-bottom: $spacing-4;
+        }
+      }
+
+      /* Navigation link */
+      .nav-launcher {
+        @include flex-between;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid $border-light;
+        border-radius: $radius-md;
+        padding: $spacing-3;
+        margin-bottom: $spacing-4;
+
+        @include mobile-only {
+          flex-direction: column;
+          align-items: stretch;
+          gap: $spacing-3;
+        }
+
+        .nav-text {
+          @include flex-start;
+          gap: $spacing-3;
+          color: $text-secondary;
+
+          mat-icon {
+            color: #00b8d4;
+          }
+
+          div {
+            display: flex;
+            flex-direction: column;
+            span {
+              font-size: $font-size-xs;
+              font-weight: $font-weight-medium;
+            }
+            small {
+              font-size: 10px;
+              color: $text-muted;
+            }
+          }
+        }
+      }
+
+      /* Action touch buttons */
+      .action-buttons {
+        display: flex;
+        gap: $spacing-3;
+        margin-bottom: $spacing-6;
+
+        @include mobile-only {
+          flex-direction: column;
+        }
+
+        button {
+          flex: 1;
+          font-weight: $font-weight-semibold;
+        }
+
+        .btn-start {
+          background: var(--success);
+          color: var(--text-inverse);
+        }
+        .btn-wait {
+          background: var(--warning);
+          color: var(--text-primary);
+        }
+        .btn-resolve {
+          background: var(--info);
+          color: var(--text-inverse);
+        }
+      }
+
+      .resolution-form {
+        background: color-mix(in srgb, var(--surface) 2%, transparent);
+        border: 1px solid $border-light;
+        border-radius: $radius-md;
+        padding: $spacing-4;
+        margin-bottom: $spacing-6;
+
+        h4 {
+          margin: 0 0 $spacing-3 0;
+          font-size: $font-size-sm;
+          font-weight: $font-weight-semibold;
+        }
+
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: $spacing-3;
+        }
+      }
+
+      /* Photos */
+      .photo-uploads {
+        border-top: 1px solid $border-light;
+        padding-top: $spacing-4;
+
+        h3 {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-semibold;
+          margin-bottom: $spacing-4;
+        }
+      }
+
+      .uploader-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: $spacing-4;
+
+        @include mobile-only {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .uploader-box {
+        border: 1px dashed $border;
+        border-radius: $radius-md;
+        padding: $spacing-4;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: $spacing-3;
+
+        h5 {
+          margin: 0;
+          font-size: $font-size-xs;
+          color: $text-secondary;
+        }
+
+        .preview-row {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          justify-content: center;
+
+          .thumbnail {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid $border-light;
+          }
+        }
+      }
+
+      .file-label {
+        cursor: pointer;
+        .file-input {
+          display: none;
+        }
+        .btn-upload {
+          @include flex-center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: $font-weight-semibold;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid $border;
+          padding: 6px 12px;
+          border-radius: $radius-md;
+          transition: background $transition-fast;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+          }
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+        }
+      }
+
+      /* Tags styling */
+      .priority-tag {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 4px;
+
+        &.low {
+          background: rgba(0, 230, 118, 0.1);
+          color: #00e676;
+        }
+        &.medium {
+          background: rgba(0, 184, 212, 0.1);
+          color: #00b8d4;
+        }
+        &.high {
+          background: rgba(255, 171, 0, 0.1);
+          color: #ffab00;
+        }
+        &.critical {
+          background: rgba(255, 61, 0, 0.1);
+          color: #ff3d00;
+        }
+      }
+
+      .status-tag {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 10px;
+
+        &.submitted {
+          background: rgba(255, 255, 255, 0.05);
+          color: #b3b3b3;
+        }
+        &.verified {
+          background: rgba(0, 184, 212, 0.1);
+          color: #00b8d4;
+        }
+        &.assigned {
+          background: rgba(98, 0, 234, 0.1);
+          color: #6200ea;
+        }
+        &.in_progress {
+          background: rgba(255, 171, 0, 0.1);
+          color: #ffab00;
+        }
+        &.waiting {
+          background: rgba(255, 61, 0, 0.1);
+          color: #ff3d00;
+        }
+        &.resolved {
+          background: rgba(0, 230, 118, 0.1);
+          color: #00e676;
+        }
+        &.rejected {
+          background: rgba(255, 61, 0, 0.15);
+          color: #ff3d00;
+        }
+        &.closed {
+          background: rgba(255, 255, 255, 0.1);
+          color: #808080;
+        }
+      }
+
+      .full-width {
+        width: 100%;
+      }
+    `,
+  ],
 })
 export class WorkerDashboardComponent implements OnInit {
   private readonly fieldWorkerService = inject(FieldWorkerService);
@@ -615,7 +711,7 @@ export class WorkerDashboardComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-      }
+      },
     });
   }
 
@@ -646,14 +742,16 @@ export class WorkerDashboardComponent implements OnInit {
     const job = this.selectedJob();
     if (!job) return;
 
-    this.fieldWorkerService.updateJobStatus(job._id, status, `Field Responder initialized status: ${status}`).subscribe({
-      next: (res) => {
-        if (res.success && res.data) {
-          this.selectedJob.set(res.data.job);
-          this.loadJobs();
-        }
-      }
-    });
+    this.fieldWorkerService
+      .updateJobStatus(job._id, status, `Field Responder initialized status: ${status}`)
+      .subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            this.selectedJob.set(res.data.job);
+            this.loadJobs();
+          }
+        },
+      });
   }
 
   resolveJobPrompt(): void {
@@ -665,15 +763,17 @@ export class WorkerDashboardComponent implements OnInit {
     const job = this.selectedJob();
     if (!job || !this.completionNotes.trim()) return;
 
-    this.fieldWorkerService.updateJobStatus(job._id, 'resolved', this.completionNotes.trim()).subscribe({
-      next: (res) => {
-        if (res.success && res.data) {
-          this.selectedJob.set(null);
-          this.showResolutionForm.set(false);
-          this.loadJobs();
-        }
-      }
-    });
+    this.fieldWorkerService
+      .updateJobStatus(job._id, 'resolved', this.completionNotes.trim())
+      .subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            this.selectedJob.set(null);
+            this.showResolutionForm.set(false);
+            this.loadJobs();
+          }
+        },
+      });
   }
 
   onPhotoSelected(event: any, type: 'before' | 'after'): void {
@@ -686,7 +786,7 @@ export class WorkerDashboardComponent implements OnInit {
       const payload = {
         base64Data,
         contentType: file.type,
-        fileName: file.name
+        fileName: file.name,
       };
 
       const job = this.selectedJob();
@@ -698,7 +798,7 @@ export class WorkerDashboardComponent implements OnInit {
             this.selectedJob.set(res.data.job);
             this.loadJobs();
           }
-        }
+        },
       });
     };
     reader.readAsDataURL(file);

@@ -11,14 +11,16 @@
 // ─── Angular Material M3 Theme (Green Government) ───
 html {
   height: 100%;
-  @include mat.theme((
-    color: (
-      primary: mat.$green-palette,
-      tertiary: mat.$chartreuse-palette,
-    ),
-    typography: Inter,
-    density: 0,
-  ));
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$green-palette,
+        tertiary: mat.$chartreuse-palette,
+      ),
+      typography: Inter,
+      density: 0,
+    )
+  );
 }
 
 body {
@@ -28,43 +30,51 @@ body {
   font: var(--mat-sys-body-medium);
   margin: 0;
   height: 100%;
-  transition: background-color 200ms ease, color 200ms ease;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 // ─── Theming & Accessibility Overrides ───
 html.theme-dark {
-  @include mat.theme((
-    color: (
-      theme-type: dark,
-      primary: mat.$green-palette,
-      tertiary: mat.$chartreuse-palette,
-    ),
-    typography: Inter,
-    density: 0,
-  ));
+  @include mat.theme(
+    (
+      color: (
+        theme-type: dark,
+        primary: mat.$green-palette,
+        tertiary: mat.$chartreuse-palette,
+      ),
+      typography: Inter,
+      density: 0,
+    )
+  );
   color-scheme: dark;
 }
 
 html.theme-green {
-  @include mat.theme((
-    color: (
-      primary: mat.$green-palette,
-      tertiary: mat.$green-palette,
-    ),
-    typography: Inter,
-    density: 0,
-  ));
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$green-palette,
+        tertiary: mat.$green-palette,
+      ),
+      typography: Inter,
+      density: 0,
+    )
+  );
 }
 
 html.compact-mode {
-  @include mat.theme((
-    color: (
-      primary: mat.$green-palette,
-      tertiary: mat.$chartreuse-palette,
-    ),
-    typography: Inter,
-    density: -3,
-  ));
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$green-palette,
+        tertiary: mat.$chartreuse-palette,
+      ),
+      typography: Inter,
+      density: -3,
+    )
+  );
 }
 
 html.high-contrast {
@@ -72,7 +82,9 @@ html.high-contrast {
 }
 
 html.reduced-motion {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
