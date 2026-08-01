@@ -15,9 +15,8 @@ if [ -f "${SCRIPT_DIR}/../config/pipeline.env" ]; then
     set -u
 fi
 
-# Export project name and tag for Docker Compose env substitution
+# Export project name for Docker Compose
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-civicpulse}"
-export IMAGE_TAG="${IMAGE_TAG:-v1}"
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'

@@ -56,15 +56,6 @@ pipeline {
         // Docker image prefix
         DOCKER_IMAGE_PREFIX = 'civicpulse'
 
-        // Docker images
-        MONGODB_IMAGE       = 'civicpulse/mongodb'
-        BACKEND_IMAGE       = 'civicpulse/backend'
-        FRONTEND_IMAGE      = 'civicpulse/frontend'
-        NGINX_IMAGE         = 'civicpulse/nginx'
-
-        // Deployment image tag (production-grade build numbering strategy)
-        IMAGE_TAG           = "build-${env.BUILD_NUMBER}"
-
         // Application URLs (single-server deployment)
         APP_URL             = 'http://localhost'
         BACKEND_URL         = 'http://localhost:8000'
@@ -416,24 +407,21 @@ ENVEOF
                         '''
                     }
 
-                    // Build Docker images with dynamic IMAGE_TAG
+                    // Build Docker images (statically tagged as v1 in docker-compose.yml)
                     def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--pull'
                     sh """
-                        echo "🐳 Building Docker images with tag ${IMAGE_TAG} (flags: ${buildFlags})..."
+                        echo "🐳 Building Docker images statically tagged as v1 (flags: ${buildFlags})..."
                         docker compose build ${buildFlags} 2>&1
                         echo ""
                         echo "✅ Docker images built successfully"
                     """
 
-                    // Also tag the built images as 'latest' for local/caching convenience
-                    def services = ['mongodb', 'backend', 'frontend', 'nginx']
-                    for (svc in services) {
-                        def buildImage = "${DOCKER_IMAGE_PREFIX}/${svc}:${IMAGE_TAG}"
-                        def latestImage = "${DOCKER_IMAGE_PREFIX}/${svc}:latest"
-                        sh """
-                            docker tag ${buildImage} ${latestImage} || echo "⚠️  Could not tag ${buildImage} → ${latestImage}"
-                        """
-                    }
+                    // Prune old overwritten build images immediately to free disk space
+                    sh '''
+                        echo "🧹 Cleaning up old overwritten/dangling images..."
+                        docker image prune -f 2>/dev/null || true
+                        echo "  ✅ Cleanup complete"
+                    '''
 
                     // Display built images
                     sh '''

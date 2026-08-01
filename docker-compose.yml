@@ -3,7 +3,7 @@ services:
     build:
       context: ./database
       dockerfile: Dockerfile.mongodb
-    image: ${MONGODB_IMAGE:-civicpulse/mongodb}:${IMAGE_TAG:-v1}
+    image: civicpulse/mongodb:v1
     container_name: civicpulse-mongodb
     restart: unless-stopped
     ports:
@@ -25,7 +25,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.backend
-    image: ${BACKEND_IMAGE:-civicpulse/backend}:${IMAGE_TAG:-v1}
+    image: civicpulse/backend:v1
     container_name: civicpulse-backend
     restart: unless-stopped
     ports:
@@ -50,7 +50,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend
-    image: ${FRONTEND_IMAGE:-civicpulse/frontend}:${IMAGE_TAG:-v1}
+    image: civicpulse/frontend:v1
     container_name: civicpulse-frontend
     restart: unless-stopped
     ports:
@@ -73,7 +73,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile.nginx
-    image: ${NGINX_IMAGE:-civicpulse/nginx}:${IMAGE_TAG:-v1}
+    image: civicpulse/nginx:v1
     container_name: civicpulse-nginx
     restart: unless-stopped
     ports:

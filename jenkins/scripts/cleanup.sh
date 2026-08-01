@@ -61,23 +61,12 @@ rm -rf /tmp/civicpulse-* 2>/dev/null || true
 rm -rf /tmp/npm-* 2>/dev/null || true
 log_ok "Temporary files cleaned"
 
-# ── Step 5: Remove Old Build-Tagged Images ────────────────────────────────────
-log_info "Checking for old build-tagged images..."
-# Keep only the 5 most recent build-tagged images per service to allow rollback
-SERVICES=("mongodb" "backend" "frontend" "nginx")
-IMAGE_PREFIX="${DOCKER_IMAGE_PREFIX:-civicpulse}"
-for svc in "${SERVICES[@]}"; do
-    # Get all tags matching 'build-*', sort them descending by build number, skip the first 5, and delete the rest
-    OLD_TAGS=$(docker images "${IMAGE_PREFIX}/${svc}" --format "{{.Tag}}" 2>/dev/null | \
-                grep "^build-" | sort -t'-' -k2 -rn | tail -n +6 || true)
-    if [ -n "$OLD_TAGS" ]; then
-        for tag in $OLD_TAGS; do
-            log_info "Removing old build tag: ${IMAGE_PREFIX}/${svc}:${tag}"
-            docker rmi "${IMAGE_PREFIX}/${svc}:${tag}" 2>/dev/null || true
-        done
-        log_ok "Cleaned old build images for $svc"
-    fi
-done
+# ── Step 5: Prune Untagged/Dangling Images ────────────────────────────────────
+log_info "Pruning untagged and dangling Docker images..."
+# When static v1 images are rebuilt and overwritten, the previous builds
+# become dangling (<none>:<none>) images. Pruning them recovers the disk space.
+docker image prune -f 2>/dev/null || true
+log_ok "Pruned untagged images"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
