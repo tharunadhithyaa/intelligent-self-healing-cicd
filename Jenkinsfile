@@ -398,7 +398,7 @@ ENVEOF
         }
             
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 6 — SonarQube Analysis (Added SonarScanner tool resolution)
+        // STAGE 6 — SonarQube Analysis (Using manually installed system sonar-scanner)
         // ══════════════════════════════════════════════════════════════════════
         stage('SonarQube Analysis') {
             when {
@@ -410,18 +410,17 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    // Resolve SonarQube Scanner installation configured under Jenkins Global Tool Configuration ('SonarScanner')
-                    def scannerHome = tool 'sonar-scanner'
-                    echo "🔍 Resolved sonar-scanner tool path: ${scannerHome}"
+                    echo "🔍 Executing SonarQube analysis using system-installed sonar-scanner CLI..."
 
-                    // Execute SonarQube analysis against configured server ('SonarQube')
+                    // Execute SonarQube analysis against configured server ('SonarQube') using system PATH
+                    // Removed: def scannerHome = tool 'sonar-scanner'
                     withSonarQubeEnv('SonarQube') {
                         if (isUnix()) {
                             // Execution on Linux / Unix agents
-                            sh "${scannerHome}/bin/sonar-scanner"
+                            sh 'sonar-scanner'
                         } else {
                             // Execution on Windows agents
-                            bat "${scannerHome}\\bin\\sonar-scanner.bat"
+                            bat 'sonar-scanner'
                         }
                     }
                 }
