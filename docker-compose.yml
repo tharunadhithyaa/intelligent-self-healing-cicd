@@ -94,10 +94,34 @@ services:
       retries: 3
       start_period: 5s
 
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - civicpulse-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/api/system/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
 volumes:
   mongodb-data:
   backend-logs:
   nginx-cache:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
 
 networks:
   civicpulse-network:

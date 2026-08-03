@@ -1,8 +1,8 @@
 // ============================================================================
 // CivicPulseAI — Declarative Jenkins CI/CD Pipeline
 // ============================================================================
-// Automates: Checkout → Validate → Install → Lint → Build → Docker → Deploy
-//            → Health Check → Report
+// Automates: Checkout → Validate → Install → Lint → Build → SonarQube Scan
+//            → Quality Gate →Trivy FS Scan →Docker Build →Trivy Image Scan → Deploy → Health Check → Report
 // ============================================================================
 
 pipeline {
@@ -33,7 +33,7 @@ pipeline {
         booleanParam(
             name: 'SKIP_TESTS',
             defaultValue: false,
-            description: 'Skip static code validation stage'
+            description: 'Skip static code validation & SonarQube analysis stage'
         )
         booleanParam(
             name: 'DOCKER_PRUNE',
@@ -66,6 +66,15 @@ pipeline {
         HEALTH_RETRIES      = '10'
         HEALTH_INTERVAL     = '15'
         STARTUP_WAIT        = '30'
+
+        // SonarQube integration settings
+        SONAR_SERVER        = 'SonarQube'
+        SONAR_PROJECT_KEY   = 'intelligent-self-healing-cicd'
+        SONAR_PROJECT_NAME  = 'intelligent-self-healing-cicd'
+
+        // Trivy vulnerability scanner settings
+        TRIVY_SEVERITY      = 'HIGH,CRITICAL'
+        TRIVY_REPORTS_DIR   = 'jenkins/reports/trivy'
     }
 
     stages {
@@ -389,12 +398,118 @@ ENVEOF
         }
             
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 6 — Docker Build
+        // STAGE 6 — SonarQube Analysis
+        // ══════════════════════════════════════════════════════════════════════
+        stage('SonarQube Analysis') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
+            steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 6 — SonarQube Analysis\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
+                script {
+                    // Automatically detect source directories (frontend/src, backend/src, or microservices)
+                    def detectedSources = ''
+                    // Source paths for application code and DevOps automation scripts
+                    def sourcesArg = "-Dsonar.sources=backend/src,frontend/src,jenkins,nginx"
+                    echo "🔍 Executing SonarQube analysis for application code and DevOps automation..."
+
+                    // Bind SonarQube environment credentials and execute cross-platform sonar-scanner
+                    withSonarQubeEnv(env.SONAR_SERVER ?: 'SonarQube') {
+                        if (isUnix()) {
+                            sh "sonar-scanner || sonar-scanner ${sourcesArg} || npx --no-install sonar-scanner ${sourcesArg}"
+                        } else {
+                            bat "sonar-scanner || sonar-scanner ${sourcesArg} || npx --no-install sonar-scanner ${sourcesArg}"
+                        }
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STAGE 7 — SonarQube Quality Gate
+        // ══════════════════════════════════════════════════════════════════════
+        stage('SonarQube Quality Gate') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
+            steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 7 — SonarQube Quality Gate\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
+                script {
+                    // Pause execution and wait for SonarQube server webhook to evaluate Quality Gate status
+                    // Timeout set to 5 minutes to prevent build agent hanging indefinitely
+                    timeout(time: 5, unit: 'MINUTES') {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "❌ SonarQube Quality Gate FAILED with status '${qg.status}'. Pipeline execution aborted before Docker Build."
+                        } else {
+                            echo "✅ SonarQube Quality Gate PASSED with status '${qg.status}'."
+                        }
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STAGE 8 — Trivy Filesystem Scan
+        // ══════════════════════════════════════════════════════════════════════
+        stage('Trivy Filesystem Scan') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
+            steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 8 — Trivy Filesystem Scan\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
+                script {
+                    // Create Trivy reports directory (OS agnostic)
+                    new File("${env.WORKSPACE}/jenkins/reports/trivy").mkdirs()
+
+                    echo '🔎 Running Trivy filesystem vulnerability scan...'
+
+                    if (isUnix()) {
+                        // Generate JSON, SARIF, and HTML reports for filesystem scan
+                        sh '''
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format json --output jenkins/reports/trivy/trivy-fs-report.json . || true
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || true
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || true
+                        '''
+                        // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
+                        sh "trivy fs --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --exit-code 1 ."
+                    } else {
+                        // Windows agent execution
+                        bat '''
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format json --output jenkins/reports/trivy/trivy-fs-report.json . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
+                        '''
+                        // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
+                        bat "trivy fs --severity %TRIVY_SEVERITY% --ignore-unfixed --exit-code 1 ."
+                    }
+                }
+            }
+            post {
+                always {
+                    // Archive filesystem vulnerability scan reports as Jenkins build artifacts
+                    archiveArtifacts artifacts: 'jenkins/reports/trivy/trivy-fs-report.*', fingerprint: true, allowEmptyArchive: true
+                    echo '📦 Trivy Filesystem vulnerability reports archived'
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STAGE 9 — Docker Build
         // ══════════════════════════════════════════════════════════════════════
         stage('Docker Build') {
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 6 — Docker Build\033[0m'
+                echo '\033[1;36m  STAGE 9 — Docker Build\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
@@ -434,12 +549,66 @@ ENVEOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 7 — Deployment
+        // STAGE 10 — Trivy Image Scan
+        // ══════════════════════════════════════════════════════════════════════
+        stage('Trivy Image Scan') {
+            steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 10 — Trivy Image Scan\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
+                script {
+                    new File("${env.WORKSPACE}/jenkins/reports/trivy").mkdirs()
+
+                    // Container images generated by Docker Compose build
+                    def imagesToScan = [
+                        'civicpulse/backend:v1',
+                        'civicpulse/frontend:v1',
+                        'civicpulse/nginx:v1',
+                        'civicpulse/mongodb:v1'
+                    ]
+
+                    imagesToScan.each { img ->
+                        def cleanName = img.replace('/', '-').replace(':', '-')
+                        echo "🛡️ Scanning image: ${img}..."
+
+                        if (isUnix()) {
+                            // Generate JSON, SARIF, and HTML reports for each container image
+                            sh """
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || true
+                            """
+                            // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
+                            sh "trivy image --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --exit-code 1 ${img}"
+                        } else {
+                            // Windows agent execution
+                            bat """
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
+                            """
+                            bat "trivy image --severity %TRIVY_SEVERITY% --ignore-unfixed --exit-code 1 ${img}"
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    // Archive all container image vulnerability reports as Jenkins artifacts
+                    archiveArtifacts artifacts: 'jenkins/reports/trivy/**/*', fingerprint: true, allowEmptyArchive: true
+                    echo '📦 All Trivy Container Image vulnerability reports archived'
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STAGE 11 — Deployment
         // ══════════════════════════════════════════════════════════════════════
         stage('Deployment') {
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 7 — Deployment\033[0m'
+                echo '\033[1;36m  STAGE 11 — Deployment\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
@@ -456,12 +625,12 @@ ENVEOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 8 — Health Verification
+        // STAGE 12 — Health Verification
         // ══════════════════════════════════════════════════════════════════════
         stage('Health Verification') {
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 8 — Health Verification\033[0m'
+                echo '\033[1;36m  STAGE 12 — Health Verification\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 // Wait for containers to initialize
@@ -481,12 +650,12 @@ ENVEOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 9 — Deployment Report
+        // STAGE 13 — Deployment Report
         // ══════════════════════════════════════════════════════════════════════
         stage('Deployment Report') {
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 9 — Deployment Report\033[0m'
+                echo '\033[1;36m  STAGE 13 — Deployment Report\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 sh 'chmod +x jenkins/scripts/generate-report.sh'

@@ -171,16 +171,15 @@ Pipeline-specific variables are defined in the `Jenkinsfile` `environment` block
 
 ---
 
-## GitHub Webhook Setup
+## Poll SCM Trigger Setup
 
-See [WEBHOOK_SETUP.md](./WEBHOOK_SETUP.md) for detailed instructions.
+See [POLL_SCM_SETUP.md](./POLL_SCM_SETUP.md) for detailed instructions.
 
 ### Quick Setup
-1. Go to your GitHub repository → **Settings → Webhooks → Add webhook**
-2. **Payload URL**: `http://YOUR_JENKINS_URL:8080/github-webhook/`
-3. **Content type**: `application/json`
-4. **Events**: Select **Just the push event**
-5. Click **Add webhook**
+1. Go to your Jenkins Job → **Configure → Build Triggers**
+2. Check ☑ **Poll SCM**
+3. **Schedule**: `H/5 * * * *` (polls every 5 minutes)
+4. Click **Save**
 
 ---
 
@@ -206,6 +205,39 @@ Checkout → Environment Validation → Install Dependencies → Static Code Val
 ```
 
 Average first build duration: **10–15 minutes** (subsequent builds: 5–8 minutes with caching).
+
+---
+
+## Persistent SonarQube Service Setup (Docker Compose)
+
+SonarQube runs as a persistent container service managed via Docker Compose (`docker-compose.yml`). The SonarQube image is pulled once, and all project data, plugins, and scan metrics are preserved permanently in named Docker volumes.
+
+### Management Commands:
+
+1. **First-Time Service Initialization**:
+   ```bash
+   docker compose up -d sonarqube
+   ```
+2. **Check Running Status**:
+   ```bash
+   docker ps | grep sonarqube
+   ```
+3. **Stop SonarQube Service**:
+   ```bash
+   docker stop sonarqube
+   ```
+4. **Start SonarQube Service**:
+   ```bash
+   docker start sonarqube
+   ```
+5. **Access Web UI**:
+   Navigate to [http://localhost:9000](http://localhost:9000)
+
+### Volume Persistence & Data Retention:
+The setup defines named Docker volumes so data is preserved across container restarts, pipeline deployments, or host reboots:
+- `sonarqube_data`: Stores database metrics, user profiles, and analyzed project histories.
+- `sonarqube_extensions`: Stores installed SonarQube plugins and third-party rules.
+- `sonarqube_logs`: Stores application log files.
 
 ---
 

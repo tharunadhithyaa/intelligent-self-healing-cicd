@@ -31,11 +31,12 @@ log_warn()  { echo -e "${YELLOW}[DEPLOY]${NC} ⚠️  $*"; }
 log_error() { echo -e "${RED}[DEPLOY]${NC} ❌ $*"; }
 
 # ── Step 1: Graceful Shutdown ─────────────────────────────────────────────────
-log_info "Step 1/5 — Stopping previous deployment for project '${COMPOSE_PROJECT_NAME}'..."
-docker compose down --remove-orphans --timeout 30 2>/dev/null || {
-    log_warn "No previous deployment found or already stopped"
+log_info "Step 1/5 — Stopping previous application deployment for project '${COMPOSE_PROJECT_NAME}'..."
+docker compose stop mongodb backend frontend nginx 2>/dev/null || {
+    log_warn "No previous application deployment found or already stopped"
 }
-log_ok "Previous containers stopped"
+docker compose rm -f mongodb backend frontend nginx 2>/dev/null || true
+log_ok "Previous application containers stopped"
 
 # ── Step 1.5: Resolve Potential Container Name Conflicts ──────────────────────
 log_info "Checking for potential container name conflicts..."
@@ -72,8 +73,8 @@ docker network prune -f 2>/dev/null || true
 log_ok "Network cleanup complete"
 
 # ── Step 4: Deploy Fresh ─────────────────────────────────────────────────────
-log_info "Step 4/5 — Starting fresh deployment..."
-if ! docker compose up -d --build --force-recreate 2>&1; then
+log_info "Step 4/5 — Starting fresh application deployment..."
+if ! docker compose up -d --build --force-recreate mongodb backend frontend nginx 2>&1; then
     log_error "docker compose up failed!"
     docker compose logs --tail 30 2>/dev/null || true
     exit 1

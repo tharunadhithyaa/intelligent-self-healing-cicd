@@ -11,7 +11,7 @@ As a reference workload, the platform deploys and monitors **CivicPulse AI**—a
 The repository is structured into two main scopes: the **CI/CD Orchestration Layer** (Jenkins automation and deployment lifecycle management) and the **Target Web Application Layer** (distributed services ready for containerized deployment).
 
 ```
-CivicPulseAI/
+intelligent-self-healing-cicd/
 ├── jenkins/                      # CI/CD config and scripts
 │   ├── config/
 │   │   └── pipeline.env          # Centralized pipeline variables
@@ -24,7 +24,7 @@ CivicPulseAI/
 ├── docs/                         # Detailed DevOps manuals
 │   ├── JENKINS_SETUP.md          # Jenkins installation & plugins guide
 │   ├── PIPELINE_ARCHITECTURE.md  # Detailed pipeline execution stages
-│   └── WEBHOOK_SETUP.md          # GitHub webhook webhook integration guide
+│   └── POLL_SCM_SETUP.md         # Automated SCM polling trigger guide
 ├── backend/                      # Node.js/Express TypeScript backend
 │   ├── src/                      # API modules, services, and models
 │   └── Dockerfile.backend        # Multi-stage Node production container
@@ -40,44 +40,48 @@ CivicPulseAI/
 ```
 
 ### Key Orchestration Files:
-*   [Jenkinsfile](file:///d:/Project/CivicPluseAI/Jenkinsfile): The core declarative CI/CD pipeline specifying 9 sequential execution stages.
-*   [docker-compose.yml](file:///d:/Project/CivicPluseAI/docker-compose.yml): Coordinates microservice boundaries, ports mapping, environment bindings, and healthy dependency structures.
-*   [deploy.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/deploy.sh): Automatically handles container teardowns, network prunes, and recreations.
-*   [health-check.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/health-check.sh): Performs robust layered verification.
-*   [pipeline.env](file:///d:/Project/CivicPluseAI/jenkins/config/pipeline.env): Global configuration values for ports, URLs, retry counts, and intervals.
+*   [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile): The core declarative CI/CD pipeline specifying 9 sequential execution stages.
+*   [docker-compose.yml](file:///d:/Project/intelligent-self-healing-cicd/docker-compose.yml): Coordinates microservice boundaries, ports mapping, environment bindings, and healthy dependency structures.
+*   [deploy.sh](file:///d:/Project/intelligent-self-healing-cicd/jenkins/scripts/deploy.sh): Automatically handles container teardowns, network prunes, and recreations.
+*   [health-check.sh](file:///d:/Project/intelligent-self-healing-cicd/jenkins/scripts/health-check.sh): Performs robust layered verification.
+*   [pipeline.env](file:///d:/Project/intelligent-self-healing-cicd/jenkins/config/pipeline.env): Global configuration values for ports, URLs, retry counts, and intervals.
 
 ---
 
 ## ⚡ Key Capabilities & Features
 
 ### 🔄 1. Multi-Stage CI/CD Pipeline
-Automated end-to-end delivery split into 9 distinct execution stages:
+Automated end-to-end delivery split into 13 distinct execution stages:
 1.  **Checkout Source Code**: Clones source repo and captures git metadata (`GIT_COMMIT_SHORT`, `GIT_AUTHOR`).
 2.  **Environment Validation**: Check pre-requisites (Docker, Node, Git) and auto-generates default `.env` files.
 3.  **Install Dependencies**: Installs node modules in parallel (`npm ci`) for backend and frontend.
 4.  **Static Code Validation**: Evaluates code quality (ESLint, Prettier formatting check, and security vulnerability audits).
 5.  **Build Application**: Compiles Angular client and TypeScript backend in parallel.
-6.  **Docker Build**: Generates production-ready, size-optimized container images.
-7.  **Deployment**: Performs container restarts, cleans up exited instances, and runs network setups.
-8.  **Health Verification**: Initiates layered service validations.
-9.  **Deployment Report**: Compiles diagnostics statistics and publishes execution reports.
+6.  **SonarQube Analysis**: Runs SonarScanner with dynamic monorepo source detection (`backend/src`, `frontend/src`).
+7.  **SonarQube Quality Gate**: Blocks downstream execution if Quality Gate status is not `OK`.
+8.  **Trivy Filesystem Scan**: Scans repository source files for HIGH/CRITICAL vulnerabilities before Docker build.
+9.  **Docker Build**: Generates production-ready, size-optimized container images.
+10. **Trivy Image Scan**: Scans all 4 built application container images and archives HTML, JSON, and SARIF reports.
+11. **Deployment**: Performs container restarts, cleans up exited instances, and runs network setups.
+12. **Health Verification**: Initiates layered service validations.
+13. **Deployment Report**: Compiles diagnostics statistics and publishes execution reports.
 
 ### 🛡️ 2. Intelligent Self-Healing Deployments
 The deployment engine executes automated self-recovery procedures to eliminate downtime:
-*   **Deployment Retry Policy**: The [Jenkinsfile](file:///d:/Project/CivicPluseAI/Jenkinsfile) automatically catches startup/deployment failures, waits for system cooling, and triggers an automated retry of [deploy.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/deploy.sh).
+*   **Deployment Retry Policy**: The [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile) automatically catches startup/deployment failures, waits for system cooling, and triggers an automated retry of [deploy.sh](file:///d:/Project/intelligent-self-healing-cicd/jenkins/scripts/deploy.sh).
 *   **Dependency-Chained Healthchecks**: Docker Compose enforces start ordering (`depends_on` conditions). The backend server waits for MongoDB to be `healthy` before booting, and Nginx/Frontend wait for backend health check approval.
 *   **Container Restart Policies**: Set to `unless-stopped` to auto-recover components from internal crashes or memory faults.
 
 ### 📊 3. Predictive Health Monitoring
-Our [health-check.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/health-check.sh) script goes beyond basic port checkups:
+Our [health-check.sh](file:///d:/Project/intelligent-self-healing-cicd/jenkins/scripts/health-check.sh) script goes beyond basic port checkups:
 1.  **HTTP Layer Verification**: Resolves and queries specific application endpoints (e.g. `GET /api/health`, `GET /health` and `GET /`) expecting HTTP `200 OK`.
 2.  **Container Status Inspection**: Uses `docker inspect` to verify container status is `running` and health status is `healthy`.
 3.  **Port Response Profiling**: Directly verifies Nginx (port `80`) and Express API (port `8000`) bindings.
 4.  **Database Connection Auditing**: Checks deep backend-to-database bridge connectivity through downstream health metrics.
-5.  **Diagnostic Auto-Dumping**: If checks fail after maximum retries (configurable in [pipeline.env](file:///d:/Project/CivicPluseAI/jenkins/config/pipeline.env)), the script dumps service statuses, process details, and last 20 lines of container logs for rapid mitigation.
+5.  **Diagnostic Auto-Dumping**: If checks fail after maximum retries (configurable in [pipeline.env](file:///d:/Project/intelligent-self-healing-cicd/jenkins/config/pipeline.env)), the script dumps service statuses, process details, and last 20 lines of container logs for rapid mitigation.
 
 ### 🧹 4. Automated Resource Optimization
-Continuous resource conservation routines integrated inside [cleanup.sh](file:///d:/Project/CivicPluseAI/jenkins/scripts/cleanup.sh) and pipeline `post-always` tasks:
+Continuous resource conservation routines integrated inside [cleanup.sh](file:///d:/Project/intelligent-self-healing-cicd/jenkins/scripts/cleanup.sh) and pipeline `post-always` tasks:
 *   Removes dangling and untagged Docker images.
 *   Discards exited and orphan container leftovers.
 *   Prunes unreferenced bridge networks.
@@ -123,10 +127,10 @@ npm test
 
 ## 📚 Technical Setup & References Guides
 
-Detailed architecture manuals and instructions are available in the [docs/](file:///d:/Project/CivicPluseAI/docs) directory:
-*   **CI/CD Setup Manual**: [docs/JENKINS_SETUP.md](file:///d:/Project/CivicPluseAI/docs/JENKINS_SETUP.md) — Step-by-step setup for Jenkins, plugins, and execution permissions.
-*   **Pipeline Architecture**: [docs/PIPELINE_ARCHITECTURE.md](file:///d:/Project/CivicPluseAI/docs/PIPELINE_ARCHITECTURE.md) — Stage-by-stage parameters, environment flags, and build flow design.
-*   **Git Webhooks**: [docs/WEBHOOK_SETUP.md](file:///d:/Project/CivicPluseAI/docs/WEBHOOK_SETUP.md) — Linking Github pushes to automatically trigger pipeline execution.
-*   **System Design**: [ARCHITECTURE.md](file:///d:/Project/CivicPluseAI/ARCHITECTURE.md) — Detailed overview of database schemas, role permissions, and API structure.
-*   **API Directory**: [API_DOCUMENTATION.md](file:///d:/Project/CivicPluseAI/API_DOCUMENTATION.md) — REST API endpoints payload structures,roles requirements, and authentication.
+Detailed architecture manuals and instructions are available in the [docs/](file:///d:/Project/intelligent-self-healing-cicd/docs) directory:
+*   **CI/CD Setup Manual**: [docs/JENKINS_SETUP.md](file:///d:/Project/intelligent-self-healing-cicd/docs/JENKINS_SETUP.md) — Step-by-step setup for Jenkins, plugins, and execution permissions.
+*   **Pipeline Architecture**: [docs/PIPELINE_ARCHITECTURE.md](file:///d:/Project/intelligent-self-healing-cicd/docs/PIPELINE_ARCHITECTURE.md) — Stage-by-stage parameters, environment flags, and build flow design.
+*   **Poll SCM Trigger**: [docs/POLL_SCM_SETUP.md](file:///d:/Project/intelligent-self-healing-cicd/docs/POLL_SCM_SETUP.md) — Configuring Poll SCM schedule for automated build triggers.
+*   **System Design**: [ARCHITECTURE.md](file:///d:/Project/intelligent-self-healing-cicd/docs/ARCHITECTURE.md) — Detailed overview of database schemas, role permissions, and API structure.
+*   **API Directory**: [API_DOCUMENTATION.md](file:///d:/Project/intelligent-self-healing-cicd/docs/API_DOCUMENTATION.md) — REST API endpoints payload structures, roles requirements, and authentication.
 

@@ -21,15 +21,22 @@ flowchart TD
     E2 --> F
     F --> F1["Backend: tsc → dist/"]
     F --> F2["Frontend: ng build --prod"]
-    F1 --> G["Stage 6: Docker Build"]
-    F2 --> G
-    G --> H["Stage 7: Deployment"]
-    H --> I["Stage 8: Health Verification"]
-    I --> J["Stage 9: Deployment Report"]
-    J --> K{"Pipeline Result"}
-    K -->|Success| L["✅ Post: Success Actions"]
-    K -->|Failure| M["❌ Post: Failure Actions"]
-    L --> N["🧹 Post: Always - Cleanup"]
+    F1 --> G1["Stage 6: SonarQube Analysis"]
+    F2 --> G1
+    G1 --> G2["Stage 7: SonarQube Quality Gate"]
+    G2 -->|OK| T1["Stage 8: Trivy Filesystem Scan"]
+    G2 -->|FAILED| M["❌ Pipeline Aborted"]
+    T1 -->|OK| H["Stage 9: Docker Build"]
+    T1 -->|FAILED| M
+    H --> T2["Stage 10: Trivy Image Scan"]
+    T2 -->|OK| I["Stage 11: Deployment"]
+    T2 -->|FAILED| M
+    I --> J["Stage 12: Health Verification"]
+    J --> K["Stage 13: Deployment Report"]
+    K --> L{"Pipeline Result"}
+    L -->|Success| M1["✅ Post: Success Actions"]
+    L -->|Failure| M
+    M1 --> N["🧹 Post: Always - Cleanup"]
     M --> N
 
     style A fill:#4A90D9,color:#fff
@@ -85,14 +92,47 @@ flowchart TD
 
 Build artifacts are archived in Jenkins for historical access.
 
-### Stage 6 — Docker Build
+### Stage 6 — SonarQube Analysis
+| Parameter / Tool       | Configuration / Detail                                   |
+|------------------------|----------------------------------------------------------|
+| Scanner Execution      | `withSonarQubeEnv('SonarQube')`                          |
+| Auto-Detection         | Dynamic `src` folder discovery (`backend/src`, `frontend/src`) |
+| Platform Compatibility | Linux Docker (`sh`), Windows (`bat`)                     |
+| Exclusions             | `node_modules`, `dist`, `coverage`, `logs`, Docker files |
+
+### Stage 7 — SonarQube Quality Gate
+| Parameter / Step       | Detail                                                   |
+|------------------------|----------------------------------------------------------|
+| Step Function          | `waitForQualityGate()`                                   |
+| Timeout                | `5 MINUTES`                                              |
+| Failure Handling       | Throws error & aborts pipeline if status != `OK`          |
+| Pass Requirement       | Continues to Stage 8 only on `OK` status                 |
+
+### Stage 8 — Trivy Filesystem Scan
+| Action                 | Detail                                                   |
+|------------------------|----------------------------------------------------------|
+| Target                 | Repository filesystem (`.`)                              |
+| Severity Levels        | `HIGH,CRITICAL` (`--ignore-unfixed`)                     |
+| Reports Generated      | HTML, JSON, SARIF (`jenkins/reports/trivy/trivy-fs-*`)   |
+| Quality Gate           | `--exit-code 1` (Aborts pipeline before Docker build)   |
+
+### Stage 9 — Docker Build
 | Action                 | Command / Detail                              |
 |------------------------|-----------------------------------------------|
 | Prune dangling images  | `docker image prune -f`                       |
 | Build images           | `docker compose build [--no-cache] --pull`    |
 | Tag with build number  | `civicpulse/<service>:build-${BUILD_NUMBER}`  |
 
-### Stage 7 — Deployment
+### Stage 10 — Trivy Image Scan
+| Action                 | Detail                                                   |
+|------------------------|----------------------------------------------------------|
+| Targets Scanned        | `civicpulse/backend:v1`, `frontend:v1`, `nginx:v1`, `mongodb:v1` |
+| Severity Levels        | `HIGH,CRITICAL` (`--ignore-unfixed`)                     |
+| Reports Generated      | HTML, JSON, SARIF (`jenkins/reports/trivy/trivy-*-*`)   |
+| Quality Gate           | `--exit-code 1` (Aborts deployment if images contain HIGH/CRITICAL) |
+| Artifact Archiving     | Archived via `archiveArtifacts`                          |
+
+### Stage 11 — Deployment
 | Step | Action                                    |
 |------|-------------------------------------------|
 | 1    | `docker compose down --remove-orphans`    |
@@ -103,7 +143,7 @@ Build artifacts are archived in Jenkins for historical access.
 
 > Includes automatic retry on first failure.
 
-### Stage 8 — Health Verification
+### Stage 12 — Health Verification
 | Check                  | Endpoint / Method              | Retries |
 |------------------------|--------------------------------|---------|
 | Backend API            | `GET /api/health` → HTTP 200   | 10      |
@@ -114,7 +154,7 @@ Build artifacts are archived in Jenkins for historical access.
 | Port 8000              | HTTP connection test           | 10      |
 | Database               | Backend health → `database.status` | 10  |
 
-### Stage 9 — Deployment Report
+### Stage 13 — Deployment Report
 Generates and archives a comprehensive deployment report including:
 - Build metadata (number, commit, branch, timestamp)
 - Docker image inventory (tags, sizes)
@@ -205,5 +245,5 @@ CivicPulseAI/
 └── docs/
     ├── JENKINS_SETUP.md                # This setup guide
     ├── PIPELINE_ARCHITECTURE.md        # Architecture docs
-    └── WEBHOOK_SETUP.md               # Webhook guide
+    └── POLL_SCM_SETUP.md               # Poll SCM trigger guide
 ```
