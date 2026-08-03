@@ -398,7 +398,7 @@ ENVEOF
         }
             
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 6 — SonarQube Analysis
+        // STAGE 6 — SonarQube Analysis (Added SonarScanner tool resolution)
         // ══════════════════════════════════════════════════════════════════════
         stage('SonarQube Analysis') {
             when {
@@ -410,18 +410,18 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    // Automatically detect source directories (frontend/src, backend/src, or microservices)
-                    def detectedSources = ''
-                    // Source paths for application code and DevOps automation scripts
-                    def sourcesArg = "-Dsonar.sources=backend/src,frontend/src,jenkins,nginx"
-                    echo "🔍 Executing SonarQube analysis for application code and DevOps automation..."
+                    // Resolve SonarQube Scanner installation configured under Jenkins Global Tool Configuration ('SonarScanner')
+                    def scannerHome = tool 'SonarScanner'
+                    echo "🔍 Resolved SonarScanner tool path: ${scannerHome}"
 
-                    // Bind SonarQube environment credentials and execute cross-platform sonar-scanner
-                    withSonarQubeEnv(env.SONAR_SERVER ?: 'SonarQube') {
+                    // Execute SonarQube analysis against configured server ('SonarQube')
+                    withSonarQubeEnv('SonarQube') {
                         if (isUnix()) {
-                            sh "sonar-scanner || sonar-scanner ${sourcesArg} || npx --no-install sonar-scanner ${sourcesArg}"
+                            // Execution on Linux / Unix agents
+                            sh "${scannerHome}/bin/sonar-scanner"
                         } else {
-                            bat "sonar-scanner || sonar-scanner ${sourcesArg} || npx --no-install sonar-scanner ${sourcesArg}"
+                            // Execution on Windows agents
+                            bat "${scannerHome}\\bin\\sonar-scanner.bat"
                         }
                     }
                 }
