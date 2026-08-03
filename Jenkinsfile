@@ -411,8 +411,8 @@ ENVEOF
 
                 script {
                     // Resolve SonarQube Scanner installation configured under Jenkins Global Tool Configuration ('SonarScanner')
-                    def scannerHome = tool 'SonarScanner'
-                    echo "🔍 Resolved SonarScanner tool path: ${scannerHome}"
+                    def scannerHome = tool 'sonar-scanner'
+                    echo "🔍 Resolved sonar-scanner tool path: ${scannerHome}"
 
                     // Execute SonarQube analysis against configured server ('SonarQube')
                     withSonarQubeEnv('SonarQube') {
