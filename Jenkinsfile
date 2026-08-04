@@ -490,7 +490,7 @@ ENVEOF
                         bat '''
                             trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format json --output jenkins/reports/trivy/trivy-fs-report.json . || exit 0
                             trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || exit 0
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
                         '''
                         // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
                         bat "trivy fs --severity %TRIVY_SEVERITY% --ignore-unfixed --exit-code 1 ."
