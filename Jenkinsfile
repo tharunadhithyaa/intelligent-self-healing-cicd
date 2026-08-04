@@ -481,7 +481,7 @@ ENVEOF
                         sh '''
                             trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format json --output jenkins/reports/trivy/trivy-fs-report.json . || true
                             trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || true
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || true
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || true
                         '''
                         // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
                         sh "trivy fs --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --exit-code 1 ."
@@ -585,7 +585,7 @@ ENVEOF
                             sh """
                                 trivy image --severity HIGH,CRITICAL --ignore-unfixed --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || true
                                 trivy image --severity HIGH,CRITICAL --ignore-unfixed --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || true
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || true
                             """
                             // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
                             sh "trivy image --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --exit-code 1 ${img}"
