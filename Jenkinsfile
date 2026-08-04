@@ -415,12 +415,16 @@ ENVEOF
                     // Execute SonarQube analysis against configured server ('SonarQube') using system PATH
                     // Removed: def scannerHome = tool 'sonar-scanner'
                     withSonarQubeEnv('SonarQube') {
+                        // Bridge SONAR_TOKEN from SONAR_TOKEN or SONAR_AUTH_TOKEN for SonarQube 10.x / SonarScanner CLI 8.x
+                        def token = env.SONAR_TOKEN ?: env.SONAR_AUTH_TOKEN ?: ''
+                        def tokenArg = token ? "-Dsonar.token=${token}" : ''
+
                         if (isUnix()) {
                             // Execution on Linux / Unix agents
-                            sh '/opt/sonar-scanner/bin/sonar-scanner'
+                            sh "/opt/sonar-scanner/bin/sonar-scanner ${tokenArg}"
                         } else {
                             // Execution on Windows agents
-                            bat 'sonar-scanner'
+                            bat "sonar-scanner ${tokenArg}"
                         }
                     }
                 }
