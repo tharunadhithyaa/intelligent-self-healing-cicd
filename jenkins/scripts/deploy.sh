@@ -32,10 +32,10 @@ log_error() { echo -e "${RED}[DEPLOY]${NC} ❌ $*"; }
 
 # ── Step 1: Graceful Shutdown ─────────────────────────────────────────────────
 log_info "Step 1/5 — Stopping previous application deployment for project '${COMPOSE_PROJECT_NAME}'..."
-docker compose stop mongodb backend frontend nginx 2>/dev/null || {
-    log_warn "No previous application deployment found or already stopped"
+docker compose down --remove-orphans 2>/dev/null || {
+    docker compose stop mongodb backend frontend nginx 2>/dev/null || true
+    docker compose rm -f mongodb backend frontend nginx 2>/dev/null || true
 }
-docker compose rm -f mongodb backend frontend nginx 2>/dev/null || true
 log_ok "Previous application containers stopped"
 
 # ── Step 1.5: Resolve Potential Container Name Conflicts ──────────────────────
@@ -75,9 +75,18 @@ log_ok "Network cleanup complete"
 # ── Step 4: Deploy Fresh ─────────────────────────────────────────────────────
 log_info "Step 4/5 — Starting fresh application deployment..."
 if ! docker compose up -d --build --force-recreate mongodb backend frontend nginx 2>&1; then
-    log_error "docker compose up failed!"
-    docker compose logs --tail 30 2>/dev/null || true
-    exit 1
+    log_warn "First docker compose up attempt encountered an issue. Checking for storage volume incompatibilities..."
+    # Check if MongoDB exited due to incompatible storage format (e.g. exitCode 62 / FCV mismatch)
+    if docker logs civicpulse-mongodb 2>&1 | grep -E -q "exitCode.*62|featureCompatibilityVersion"; then
+        log_warn "Detected incompatible MongoDB data directory (exitCode 62). Pruning stale volume and retrying..."
+        docker compose down -v 2>/dev/null || true
+        docker volume rm "${COMPOSE_PROJECT_NAME}_mongodb-data" 2>/dev/null || true
+        docker compose up -d --build --force-recreate mongodb backend frontend nginx
+    else
+        log_error "docker compose up failed!"
+        docker compose logs --tail 30 2>/dev/null || true
+        exit 1
+    fi
 fi
 log_ok "Docker Compose deployment initiated"
 
@@ -103,18 +112,28 @@ log_info "Container overview:"
 docker compose ps 2>/dev/null || true
 
 if [ $FAILED -gt 0 ]; then
-    log_error "$FAILED container(s) failed to start"
-    log_info "Dumping logs for failed containers..."
-    for container in "${EXPECTED_CONTAINERS[@]}"; do
-        STATUS=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null || echo "not_found")
-        if [ "$STATUS" != "running" ]; then
-            echo ""
-            echo "── Logs: $container ──"
-            docker logs --tail 30 "$container" 2>&1 || echo "(no logs available)"
-        fi
-    done
-    exit 1
+    # Check if MongoDB failed due to storage volume incompatibility
+    if docker logs civicpulse-mongodb 2>&1 | grep -E -q "exitCode.*62|featureCompatibilityVersion"; then
+        log_warn "MongoDB failed due to stale incompatible volume format (exitCode 62). Performing self-healing volume recovery..."
+        docker compose down -v 2>/dev/null || true
+        docker volume rm "${COMPOSE_PROJECT_NAME}_mongodb-data" 2>/dev/null || true
+        log_info "Retrying fresh deployment after volume recovery..."
+        docker compose up -d --build --force-recreate mongodb backend frontend nginx
+    else
+        log_error "$FAILED container(s) failed to start"
+        log_info "Dumping logs for failed containers..."
+        for container in "${EXPECTED_CONTAINERS[@]}"; do
+            STATUS=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null || echo "not_found")
+            if [ "$STATUS" != "running" ]; then
+                echo ""
+                echo "── Logs: $container ──"
+                docker logs --tail 30 "$container" 2>&1 || echo "(no logs available)"
+            fi
+        done
+        exit 1
+    fi
 fi
+
 
 echo ""
 log_ok "═══════════════════════════════════════════════════"
