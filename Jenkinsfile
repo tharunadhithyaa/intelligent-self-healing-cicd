@@ -42,7 +42,7 @@ pipeline {
         )
         booleanParam(
             name: 'FORCE_REBUILD',
-            defaultValue: false,
+            defaultValue: true,
             description: 'Force Docker image rebuild (--no-cache)'
         )
     }
@@ -526,7 +526,7 @@ ENVEOF
                     }
 
                     // Build Docker images (statically tagged as v1 in docker-compose.yml)
-                    def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--pull'
+                    def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--no-cache --pull'
                     sh """
                         echo "🐳 Building Docker images statically tagged as v1 (flags: ${buildFlags})..."
                         docker compose build ${buildFlags} 2>&1
