@@ -4,6 +4,7 @@ An enterprise-grade, automated CI/CD and DevOps orchestration framework. This pl
 
 As a reference workload, the platform deploys and monitors **CivicPulse AI**—a full-stack web application containing an Angular 17 frontend, Node.js/Express API gateway, MongoDB database, and Nginx reverse proxy.
 
+
 ---
 
 ## 📁 System Architecture & Core Layout
