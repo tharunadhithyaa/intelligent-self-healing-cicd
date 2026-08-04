@@ -76,6 +76,28 @@ pipeline {
         TRIVY_SEVERITY      = 'HIGH,CRITICAL'
         TRIVY_REPORTS_DIR   = 'jenkins/reports/trivy'
     }
+    
+
+    stage('Debug SonarScanner') {
+    steps {
+        sh '''
+            echo "===== USER ====="
+            whoami
+
+            echo "===== PATH ====="
+            echo $PATH
+
+            echo "===== SONAR ====="
+            which sonar-scanner || true
+
+            echo "===== DIRECTORY ====="
+            ls -l /opt/sonar-scanner/bin || true
+
+            echo "===== VERSION ====="
+            /opt/sonar-scanner/bin/sonar-scanner --version || true
+        '''
+    }
+}
 
     stages {
         // ══════════════════════════════════════════════════════════════════════
