@@ -1,4 +1,7 @@
-FROM mongo:6.0
+FROM mongo:8.0
+
+# Upgrade OS packages to pull latest security patches
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # Add initialization scripts
 COPY mongo-init.js /docker-entrypoint-initdb.d/
@@ -6,3 +9,4 @@ COPY mongo-init.js /docker-entrypoint-initdb.d/
 # Add basic health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet || exit 1
+
