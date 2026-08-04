@@ -442,7 +442,7 @@ ENVEOF
                 script {
                     // Pause execution and wait for SonarQube server webhook to evaluate Quality Gate status
                     // Timeout set to 5 minutes to prevent build agent hanging indefinitely
-                    timeout(time: 5, unit: 'MINUTES') {
+                    timeout(time: 10, unit: 'MINUTES') {
                         def qg = waitForQualityGate()
                         if (qg.status != 'OK') {
                             error "❌ SonarQube Quality Gate FAILED with status '${qg.status}'. Pipeline execution aborted before Docker Build."
