@@ -4,17 +4,32 @@ import { hashPassword } from "../../../utils/password.util";
 import { auditService } from "./audit.service";
 import { TokenPayload } from "../../../utils/jwt.util";
 
+export interface GetUsersOptions {
+  search?: string;
+  role?: string;
+  isActive?: boolean;
+  isLocked?: boolean;
+  page?: number;
+  limit?: number;
+  sortField?: string;
+  sortOrder?: string;
+}
+
 class UserManagementService {
   async getUsers(
-    search?: string,
-    role?: string,
-    isActive?: boolean,
-    isLocked?: boolean,
-    page = 1,
-    limit = 10,
-    sortField = "createdAt",
-    sortOrder = "desc",
+    options: GetUsersOptions = {},
   ): Promise<{ users: IUserDocument[]; total: number }> {
+    const {
+      search,
+      role,
+      isActive,
+      isLocked,
+      page = 1,
+      limit = 10,
+      sortField = "createdAt",
+      sortOrder = "desc",
+    } = options;
+
     const filter: Record<string, any> = {};
 
     if (role) {
@@ -132,8 +147,8 @@ class UserManagementService {
       throw ApiError.notFound("User not found");
     }
 
-    // Default password generated
-    const defaultPassword = "CivicPulse@2026";
+    const defaultPassword =
+      process.env["DEFAULT_PASSWORD"] || "CivicPulse@2026";
     user.password = await hashPassword(defaultPassword);
     await user.save();
 
@@ -154,3 +169,4 @@ class UserManagementService {
 }
 
 export const userManagementService = new UserManagementService();
+

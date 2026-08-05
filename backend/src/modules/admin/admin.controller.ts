@@ -64,7 +64,7 @@ class AdminController {
       const sortField = (req.query["sortField"] as string) || "createdAt";
       const sortOrder = (req.query["sortOrder"] as string) || "desc";
 
-      const data = await userManagementService.getUsers(
+      const data = await userManagementService.getUsers({
         search,
         role,
         isActive,
@@ -73,7 +73,7 @@ class AdminController {
         limit,
         sortField,
         sortOrder,
-      );
+      });
       ApiResponse.success(res, "Users fetched successfully", data);
     } catch (error) {
       next(error);
