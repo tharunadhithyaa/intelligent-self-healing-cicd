@@ -339,7 +339,7 @@ export class ChartComponent {
   @Input() color = 'var(--primary-color)';
   @Input() height = 220;
 
-  gradientId = `grad_${Math.random().toString(36).substring(2, 9)}`;
+  gradientId = `grad_${crypto.randomUUID()}`;
 
   // Signal wrapper
   dataSignal = computed(() => this.data || []);
