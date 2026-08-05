@@ -736,8 +736,10 @@ export class WorkerDashboardComponent implements OnInit {
     this.refreshingGps.set(true);
     setTimeout(() => {
       // Simulate GPS coordinate jitter/updates
-      this.mockLat = 12.971598 + (Math.random() - 0.5) * 0.002;
-      this.mockLng = 77.594562 + (Math.random() - 0.5) * 0.002;
+      const randomValues = new Uint32Array(2);
+      crypto.getRandomValues(randomValues);
+      this.mockLat = 12.971598 + (randomValues[0] / 4294967296 - 0.5) * 0.002;
+      this.mockLng = 77.594562 + (randomValues[1] / 4294967296 - 0.5) * 0.002;
       this.refreshingGps.set(false);
     }, 1200);
   }
