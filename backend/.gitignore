@@ -5,9 +5,13 @@ node_modules/
 dist/
 build/
 
-# Code coverage reports
+# Code coverage reports & SonarQube
 coverage/
 *.lcov
+.scannerwork/
+.sonar/
+.c8_output/
+.vitest_cache/
 
 # Environment variables
 .env

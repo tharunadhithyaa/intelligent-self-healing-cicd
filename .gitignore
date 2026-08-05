@@ -107,6 +107,11 @@ exports/
 # 9. Reports & Testing Output
 # ------------------------------------------------------------------------------
 coverage/
+*.lcov
+.scannerwork/
+.sonar/
+.vitest_cache/
+.c8_output/
 test-reports/
 playwright-report/
 test-results/

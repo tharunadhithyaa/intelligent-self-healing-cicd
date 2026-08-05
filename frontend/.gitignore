@@ -19,6 +19,9 @@ yarn-error.log
 # Testing & Code Coverage
 /coverage
 *.lcov
+.scannerwork/
+.sonar/
+.vitest_cache/
 
 # IDEs and editors
 .idea/
