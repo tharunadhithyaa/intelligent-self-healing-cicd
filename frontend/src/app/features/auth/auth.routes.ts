@@ -14,7 +14,7 @@ export const AUTH_ROUTES: Routes = [
     title: 'Create Account - CivicPulse',
   },
   {
-    path: ROUTE_PATHS.auth.forgotPassword,
+    path: ROUTE_PATHS.auth.forgotPass,
     loadComponent: () =>
       import('./pages/forgot-password/forgot-password.component').then(
         (m) => m.ForgotPasswordComponent,
@@ -22,7 +22,7 @@ export const AUTH_ROUTES: Routes = [
     title: 'Forgot Password - CivicPulse',
   },
   {
-    path: ROUTE_PATHS.auth.resetPassword,
+    path: ROUTE_PATHS.auth.resetPass,
     loadComponent: () =>
       import('./pages/reset-password/reset-password.component').then(
         (m) => m.ResetPasswordComponent,

@@ -99,7 +99,7 @@ import { AutoFocusDirective } from '../../../../shared/directives/auto-focus.dir
             <mat-checkbox formControlName="rememberMe" color="primary"> Remember me </mat-checkbox>
             <a
               class="login__forgot-link"
-              [routerLink]="['/', routePaths.auth.root, routePaths.auth.forgotPassword]"
+              [routerLink]="['/', routePaths.auth.root, routePaths.auth.forgotPass]"
             >
               Forgot password?
             </a>
