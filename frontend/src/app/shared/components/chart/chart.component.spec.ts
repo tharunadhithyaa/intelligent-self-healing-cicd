@@ -17,7 +17,7 @@ describe('ChartComponent', () => {
       { label: 'Feb', value: 20 },
     ];
     const bars = chart.bars();
-    expect(bars.length).toBe(2);
+    expect(bars).toHaveLength(2);
     expect(bars[0].label).toBe('Jan');
     expect(bars[0].value).toBe(10);
   });
