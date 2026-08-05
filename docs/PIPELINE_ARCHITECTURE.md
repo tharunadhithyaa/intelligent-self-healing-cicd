@@ -104,7 +104,7 @@ Build artifacts are archived in Jenkins for historical access.
 | Parameter / Step       | Detail                                                   |
 |------------------------|----------------------------------------------------------|
 | Step Function          | `waitForQualityGate()`                                   |
-| Timeout                | `5 MINUTES`                                              |
+| Timeout                | `45 MINUTES`                                             |
 | Failure Handling       | Throws error & aborts pipeline if status != `OK`          |
 | Pass Requirement       | Continues to Stage 8 only on `OK` status                 |
 
@@ -121,12 +121,12 @@ Build artifacts are archived in Jenkins for historical access.
 |------------------------|-----------------------------------------------|
 | Prune dangling images  | `docker image prune -f`                       |
 | Build images           | `docker compose build [--no-cache] --pull`    |
-| Tag with build number  | `civicpulse/<service>:build-${BUILD_NUMBER}`  |
+| Image static tags      | `civicpulse/backend:v1`, `frontend:v1`, etc.  |
 
 ### Stage 10 — Trivy Image Scan
 | Action                 | Detail                                                   |
 |------------------------|----------------------------------------------------------|
-| Targets Scanned        | `civicpulse/backend:v1`, `frontend:v1`, `nginx:v1`, `mongodb:v1` |
+| Targets Scanned        | `civicpulse/backend:v1`, `civicpulse/frontend:v1`, `civicpulse/nginx:v1`, `civicpulse/mongodb:v1` |
 | Severity Levels        | `HIGH,CRITICAL` (`--ignore-unfixed`)                     |
 | Reports Generated      | HTML, JSON, SARIF (`jenkins/reports/trivy/trivy-*-*`)   |
 | Quality Gate           | `--exit-code 1` (Aborts deployment if images contain HIGH/CRITICAL) |
@@ -173,7 +173,7 @@ Generates and archives a comprehensive deployment report including:
 | `DEPLOY_ENV`     | Choice   | `development` | Target environment                 |
 | `SKIP_TESTS`     | Boolean  | `false`       | Skip static code validation        |
 | `DOCKER_PRUNE`   | Boolean  | `true`        | Prune dangling Docker resources    |
-| `FORCE_REBUILD`  | Boolean  | `false`       | Force `--no-cache` Docker build    |
+| `FORCE_REBUILD`  | Boolean  | `true`        | Force `--no-cache` Docker build    |
 
 ---
 
@@ -186,7 +186,7 @@ Generates and archives a comprehensive deployment report including:
 | `PROJECT_NAME`        | CivicPulseAI         | Project identifier           |
 | `COMPOSE_PROJECT_NAME`| civicpulse           | Docker Compose project name  |
 | `DOCKER_IMAGE_PREFIX` | civicpulse           | Image naming prefix          |
-| `APP_URL`             | http://localhost     | Application URL              |
+| `APP_URL`             | http://localhost:4200| Application URL              |
 | `BACKEND_URL`         | http://localhost:8000| Backend API URL              |
 | `HEALTH_ENDPOINT`     | /api/health          | Backend health path          |
 | `HEALTH_RETRIES`      | 10                   | Max health check retries     |
@@ -231,19 +231,23 @@ Every failure produces:
 ## File Structure
 
 ```
-CivicPulseAI/
-├── Jenkinsfile                          # Main pipeline definition
+intelligent-self-healing-cicd/
+├── Jenkinsfile                          # Main declarative pipeline definition (13 stages)
 ├── jenkins/
 │   ├── scripts/
 │   │   ├── deploy.sh                   # Deployment orchestration
 │   │   ├── health-check.sh             # Health verification
 │   │   ├── cleanup.sh                  # Post-build cleanup
+│   │   ├── generate-env.sh             # Environment generator
 │   │   └── generate-report.sh          # Report generator
 │   ├── config/
 │   │   └── pipeline.env                # Environment config
 │   └── reports/                        # Generated reports (gitignored)
 └── docs/
-    ├── JENKINS_SETUP.md                # This setup guide
-    ├── PIPELINE_ARCHITECTURE.md        # Architecture docs
+    ├── API_DOCUMENTATION.md            # REST API specification
+    ├── ARCHITECTURE.md                 # System architecture manual
+    ├── JENKINS_SETUP.md                # Jenkins setup guide
+    ├── PIPELINE_ARCHITECTURE.md        # Pipeline architecture docs
     └── POLL_SCM_SETUP.md               # Poll SCM trigger guide
 ```
+

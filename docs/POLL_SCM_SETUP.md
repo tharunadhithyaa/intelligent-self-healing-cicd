@@ -97,4 +97,5 @@ To monitor multiple branches or filter branch builds dynamically:
 
 ### 3. Pipeline Triggering Repeatedly Without Code Changes
 - **Cause**: Workspace clean or submodules resetting files during build.
-- **Fix**: Ensure `disableConcurrentBuilds()` is enabled in `Jenkinsfile` options block.
+- **Fix**: Ensure `disableConcurrentBuilds()` is enabled in the [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile) options block.
+

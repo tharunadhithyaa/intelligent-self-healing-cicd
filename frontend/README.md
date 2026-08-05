@@ -1,59 +1,78 @@
-# Frontend
+# CivicPulse AI — Frontend Web Application
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.7.
+This project is the web client interface for CivicPulse AI, built using **Angular 22** standalone components, Angular Material, RxJS, and custom responsive styling.
 
-## Development server
+---
 
-To start a local development server, run:
+## ⚡ Quick Start & Development Server
 
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+To install dependencies and start a local development server, run:
 
 ```bash
-ng generate component component-name
+npm install
+npm start
+# or: ng serve
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Once running, navigate to [http://localhost:4200/](http://localhost:4200/). The application will automatically reload whenever you modify any source files.
 
+---
+
+## 🛠️ Code Scaffolding
+
+Generate Angular standalone components, services, or directives using Angular CLI:
+
+```bash
+ng generate component features/feature-name
+```
+
+For a complete list of schematics:
 ```bash
 ng generate --help
 ```
 
-## Building
+---
 
-To build the project run:
+## 📦 Production Building
 
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+To compile the application for production deployment:
 
 ```bash
-ng test
+npm run build
+# or: ng build --configuration production
 ```
 
-## Running end-to-end tests
+Build artifacts are output to the `dist/` directory (`dist/frontend/browser`), optimized for caching and delivery via Nginx.
 
-For end-to-end (e2e) testing, run:
+---
 
+## 🔎 Code Quality & Testing
+
+### Prettier Formatting Check
+Verify HTML, SCSS, and TypeScript formatting:
 ```bash
-ng e2e
+npx prettier --check "src/**/*.{ts,html,scss}"
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+### Running Unit Tests
+Execute unit test suite:
+```bash
+npm test
+# or: ng test
+```
 
-## Additional Resources
+---
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## 🐳 Docker Deployment
+
+The frontend includes a multi-stage production Dockerfile ([Dockerfile.frontend](file:///d:/Project/intelligent-self-healing-cicd/frontend/Dockerfile.frontend)):
+1. **Builder stage**: Node 22 Alpine installs dependencies and compiles the Angular app with `--configuration production`.
+2. **Production stage**: Nginx Alpine serves static assets from `/usr/share/nginx/html` with fallback routing configured in `nginx.conf`.
+
+---
+
+## 📚 Additional Resources
+
+* [Angular CLI Overview & Command Reference](https://angular.dev/tools/cli)
+* [Angular Documentation](https://angular.dev/)
+

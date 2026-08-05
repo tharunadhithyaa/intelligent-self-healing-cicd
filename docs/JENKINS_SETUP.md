@@ -27,9 +27,9 @@ Ensure the following are installed on the Jenkins server:
 | Docker            | 20.10+          | `docker --version`           |
 | Docker Compose    | 2.0+ (v2 plugin)| `docker compose version`    |
 | Git               | 2.30+           | `git --version`              |
-| Node.js           | 18+             | `node --version`             |
-| npm               | 9+              | `npm --version`              |
-| Java (JDK)        | 11 or 17        | `java -version`              |
+| Node.js           | 22+             | `node --version`             |
+| npm               | 10+             | `npm --version`              |
+| Java (JDK)        | 17 or 21        | `java -version`              |
 
 ---
 
@@ -103,11 +103,12 @@ Navigate to **Manage Jenkins → Manage Plugins → Available** and install:
 | **GitHub Integration**| GitHub webhook receiver                    |
 | **Pipeline Stage View**| Visual pipeline stage view                |
 | **Build Timeout**     | Build timeout support                      |
+| **SonarQube Scanner** | SonarQube quality analysis integration     |
 
 Install via Jenkins CLI:
 ```bash
 jenkins-cli install-plugin pipeline-stage-view git docker-workflow \
-  ansicolor timestamper ws-cleanup github pipeline-build-step
+  ansicolor timestamper ws-cleanup github pipeline-build-step sonar
 ```
 
 ---
@@ -121,7 +122,7 @@ jenkins-cli install-plugin pipeline-stage-view git docker-workflow \
 
 ### General
 - ☑ **Do not allow concurrent builds**
-- ☑ **GitHub project** → URL: `https://github.com/YOUR_USERNAME/CivicPluseAI/`
+- ☑ **GitHub project** → URL: `https://github.com/YOUR_USERNAME/intelligent-self-healing-cicd/`
 
 ### Build Triggers
 - ☑ **GitHub hook trigger for GITScm polling**
@@ -130,7 +131,7 @@ jenkins-cli install-plugin pipeline-stage-view git docker-workflow \
 ### Pipeline
 - **Definition**: Pipeline script from SCM
 - **SCM**: Git
-- **Repository URL**: `https://github.com/YOUR_USERNAME/CivicPluseAI.git`
+- **Repository URL**: `https://github.com/YOUR_USERNAME/intelligent-self-healing-cicd.git`
 - **Credentials**: (select your GitHub credentials)
 - **Branch Specifier**: `*/main`
 - **Script Path**: `Jenkinsfile`
@@ -149,12 +150,6 @@ jenkins-cli install-plugin pipeline-stage-view git docker-workflow \
    - **Password**: Your GitHub Personal Access Token (PAT)
    - **ID**: `github-credentials`
    - **Description**: GitHub access for CivicPulseAI
-
-### Docker Hub (Optional — for pushing images)
-1. **Kind**: Username with password
-   - **Username**: Docker Hub username
-   - **Password**: Docker Hub access token
-   - **ID**: `dockerhub-credentials`
 
 ---
 
@@ -190,21 +185,32 @@ See [POLL_SCM_SETUP.md](./POLL_SCM_SETUP.md) for detailed instructions.
 3. Configure parameters:
    - **BRANCH_NAME**: `main`
    - **DEPLOY_ENV**: `development`
-   - **SKIP_TESTS**: unchecked
-   - **DOCKER_PRUNE**: checked
-   - **FORCE_REBUILD**: checked (recommended for first run)
+   - **SKIP_TESTS**: unchecked (`false`)
+   - **DOCKER_PRUNE**: checked (`true`)
+   - **FORCE_REBUILD**: checked (`true`)
 4. Click **Build**
 5. Monitor progress in **Console Output** or **Pipeline Stage View**
 
-### Expected Pipeline Flow
+### Expected Pipeline Flow (13 Stages)
 
 ```
-Checkout → Environment Validation → Install Dependencies → Static Code Validation
-    → Build Application → Docker Build → Deployment → Health Verification
-    → Deployment Report
+Stage 1: Checkout Source Code
+  → Stage 2: Environment Validation
+  → Stage 3: Install Dependencies
+  → Stage 4: Static Code Validation
+  → Stage 5: Build Application
+  → Stage 6: SonarQube Analysis
+  → Stage 7: SonarQube Quality Gate
+  → Stage 8: Trivy Filesystem Scan
+  → Stage 9: Docker Build
+  → Stage 10: Trivy Image Scan
+  → Stage 11: Deployment
+  → Stage 12: Health Verification
+  → Stage 13: Deployment Report
 ```
 
-Average first build duration: **10–15 minutes** (subsequent builds: 5–8 minutes with caching).
+Average build duration: **5–10 minutes**.
+
 
 ---
 
