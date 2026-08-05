@@ -147,8 +147,12 @@ class UserManagementService {
       throw ApiError.notFound("User not found");
     }
 
-    const defaultPassword =
-      process.env["DEFAULT_PASSWORD"] || "CivicPulse@2026";
+    const defaultPassword = process.env["DEFAULT_PASSWORD"];
+    if (!defaultPassword) {
+      throw ApiError.internal(
+        "DEFAULT_PASSWORD environment variable is not configured",
+      );
+    }
     user.password = await hashPassword(defaultPassword);
     await user.save();
 
