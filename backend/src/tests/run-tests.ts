@@ -16,9 +16,8 @@ const mongoUri =
 const logTest = (name: string, passed: boolean, details?: string) => {
   const symbol = passed ? "✅" : "❌";
   const status = passed ? "PASSED" : "FAILED";
-  console.log(
-    `${symbol} [${status}] - ${name}${details ? ` (${details})` : ""}`,
-  );
+  const detailsSuffix = details ? ` (${details})` : "";
+  console.log(`${symbol} [${status}] - ${name}${detailsSuffix}`);
 };
 
 const runTests = async () => {
@@ -38,7 +37,8 @@ const runTests = async () => {
 
     // ───── Test 1: Password Hashing ─────
     try {
-      const password = "TestSecretPassword@123";
+      const password =
+        process.env["TEST_PASSWORD"] || `TestSecretPassword_${Date.now()}`;
       const hash = await hashPassword(password);
       const isMatch = await comparePassword(password, hash);
       const isMatchWrong = await comparePassword("wrong_password", hash);
@@ -113,7 +113,9 @@ const runTests = async () => {
         firstName: "Test",
         lastName: "User",
         email: "citizen@test.com",
-        password: "hashed_password",
+        password: await hashPassword(
+          process.env["TEST_PASSWORD"] || `test_${Date.now()}`,
+        ),
         role: "citizen",
         isActive: true,
       });
