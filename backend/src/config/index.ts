@@ -23,7 +23,7 @@ interface Config {
 
 const config: Config = {
   nodeEnv: process.env["NODE_ENV"] || "development",
-  port: parseInt(process.env["PORT"] || "3000", 10),
+  port: Number.parseInt(process.env["PORT"] || "3000", 10),
   mongodbUri:
     process.env["MONGODB_URI"] || "mongodb://localhost:27017/civicpulse",
   jwt: {
