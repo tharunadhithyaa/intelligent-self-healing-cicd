@@ -15,7 +15,7 @@ class OfficerService {
     officerId: string,
   ): Promise<string | null> {
     const dept = await Department.findOne({
-      officers: new Types.ObjectId(officerId),
+      officers: Types.ObjectId.createFromHexString(officerId),
       status: "active",
     });
     return dept ? dept.name : null;
@@ -23,7 +23,7 @@ class OfficerService {
 
   async getDashboardStats(user: TokenPayload): Promise<any> {
     const deptName = await this.getOfficerDepartment(user.userId);
-    const officerId = new Types.ObjectId(user.userId);
+    const officerId = Types.ObjectId.createFromHexString(user.userId);
 
     // 1. Assigned Complaints count
     const assignedCount = await Complaint.countDocuments({
@@ -124,7 +124,7 @@ class OfficerService {
     if (deptName) {
       filter["department"] = deptName;
     } else {
-      filter["assignment.officer"] = new Types.ObjectId(user.userId);
+      filter["assignment.officer"] = Types.ObjectId.createFromHexString(user.userId);
     }
 
     // Filters
@@ -135,7 +135,7 @@ class OfficerService {
       filter["aiAnalysis.priority"] = params["priority"];
     }
     if (params["assignedWorker"]) {
-      filter["assignment.fieldWorker"] = new Types.ObjectId(
+      filter["assignment.fieldWorker"] = Types.ObjectId.createFromHexString(
         params["assignedWorker"],
       );
     }
@@ -147,7 +147,7 @@ class OfficerService {
       // Check if search is a valid ObjectId hex
       if (mongoose.Types.ObjectId.isValid(params["search"])) {
         filter["$or"].push({
-          _id: new Types.ObjectId(params["search"]),
+          _id: Types.ObjectId.createFromHexString(params["search"]),
         });
       }
     }
@@ -237,7 +237,7 @@ class OfficerService {
       title: title || `Status advanced to ${nextStatus}`,
       description: description || `Status updated by officer ${user.email}`,
       timestamp: new Date(),
-      performedBy: new Types.ObjectId(user.userId),
+      performedBy: Types.ObjectId.createFromHexString(user.userId),
     });
 
     const saved = await complaint.save();
@@ -266,7 +266,7 @@ class OfficerService {
     userAgent?: string,
   ): Promise<IComplaintDocument> {
     const complaint = await this.getComplaintDetails(user, id);
-    const wid = new Types.ObjectId(workerId);
+    const wid = Types.ObjectId.createFromHexString(workerId);
 
     // Verify worker exists and is a field_worker
     const workerObj = await User.findOne({
@@ -292,7 +292,7 @@ class OfficerService {
 
     complaint.status = nextStatus;
     complaint.assignment = {
-      officer: new Types.ObjectId(user.userId),
+      officer: Types.ObjectId.createFromHexString(user.userId),
       fieldWorker: wid,
       assignedAt: new Date(),
       officerNotes: notes || complaint.assignment?.officerNotes,
@@ -304,7 +304,7 @@ class OfficerService {
       title: "Field Worker Assigned",
       description: `Assigned to ${workerObj.firstName} ${workerObj.lastName} by officer ${user.email}`,
       timestamp: new Date(),
-      performedBy: new Types.ObjectId(user.userId),
+      performedBy: Types.ObjectId.createFromHexString(user.userId),
     });
 
     const saved = await complaint.save();
@@ -333,7 +333,7 @@ class OfficerService {
 
     complaint.internalNotes.push({
       text,
-      authorId: new Types.ObjectId(user.userId),
+      authorId: Types.ObjectId.createFromHexString(user.userId),
       authorName: `${user.email}`,
       timestamp: new Date(),
     });
@@ -367,7 +367,7 @@ class OfficerService {
       title: "Resolution Recorded",
       description: `Incident marked as resolved. Summary: ${description}`,
       timestamp: new Date(),
-      performedBy: new Types.ObjectId(user.userId),
+      performedBy: Types.ObjectId.createFromHexString(user.userId),
     });
 
     const saved = await complaint.save();
