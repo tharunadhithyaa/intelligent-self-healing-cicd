@@ -56,10 +56,10 @@ class AdminController {
         ? req.query["isLocked"] === "true"
         : undefined;
       const page = req.query["page"]
-        ? parseInt(req.query["page"] as string, 10)
+        ? Number.parseInt(req.query["page"] as string, 10)
         : 1;
       const limit = req.query["limit"]
-        ? parseInt(req.query["limit"] as string, 10)
+        ? Number.parseInt(req.query["limit"] as string, 10)
         : 10;
       const sortField = (req.query["sortField"] as string) || "createdAt";
       const sortOrder = (req.query["sortOrder"] as string) || "desc";
@@ -336,10 +336,10 @@ class AdminController {
       const sortField = (req.query["sortField"] as string) || "timestamp";
       const sortOrder = (req.query["sortOrder"] as string) || "desc";
       const page = req.query["page"]
-        ? parseInt(req.query["page"] as string, 10)
+        ? Number.parseInt(req.query["page"] as string, 10)
         : 1;
       const limit = req.query["limit"]
-        ? parseInt(req.query["limit"] as string, 10)
+        ? Number.parseInt(req.query["limit"] as string, 10)
         : 10;
 
       const data = await auditService.getAuditLogs(
