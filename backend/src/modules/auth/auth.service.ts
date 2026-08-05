@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { userRepository } from "../../repositories/user.repository";
 import RefreshToken from "../../models/refresh-token.model";
 import { hashPassword, comparePassword } from "../../utils/password.util";

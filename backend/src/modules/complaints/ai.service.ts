@@ -1,4 +1,4 @@
-import { randomInt } from "crypto";
+import { randomInt } from "node:crypto";
 import Complaint, { ComplaintCategory } from "../../models/complaint.model";
 
 export interface AIAnalysisResult {

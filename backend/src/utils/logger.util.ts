@@ -1,6 +1,6 @@
 import winston from "winston";
 import config from "../config";
-import path from "path";
+import path from "node:path";
 
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
