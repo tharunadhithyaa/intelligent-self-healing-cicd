@@ -396,6 +396,86 @@ ENVEOF
                 }
             }
         }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STAGE 5.5 — Unit Tests & Code Coverage
+        // ══════════════════════════════════════════════════════════════════════
+        stage('Unit Tests & Code Coverage') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
+            parallel {
+                stage('Backend Unit Tests') {
+                    steps {
+                        echo '🧪 Running backend unit tests & generating LCOV coverage...'
+                        dir('backend') {
+                            script {
+                                if (isUnix()) {
+                                    sh '''
+                                        npm test
+                                        echo "  ✅ Backend tests completed"
+                                        if [ -f "coverage/lcov.info" ]; then
+                                            echo "  ✅ backend/coverage/lcov.info successfully generated"
+                                        else
+                                            echo "  ❌ FATAL: backend/coverage/lcov.info missing!"
+                                            exit 1
+                                        fi
+                                    '''
+                                } else {
+                                    bat '''
+                                        npm test
+                                        if exist coverage\\lcov.info (
+                                            echo ✅ backend\\coverage\\lcov.info successfully generated
+                                        ) else (
+                                            echo ❌ FATAL: backend\\coverage\\lcov.info missing!
+                                            exit 1
+                                        )
+                                    '''
+                                }
+                            }
+                        }
+                    }
+                }
+                stage('Frontend Unit Tests') {
+                    steps {
+                        echo '🧪 Running frontend unit tests & generating LCOV coverage...'
+                        dir('frontend') {
+                            script {
+                                if (isUnix()) {
+                                    sh '''
+                                        npm test
+                                        echo "  ✅ Frontend tests completed"
+                                        if [ -f "coverage/lcov.info" ]; then
+                                            echo "  ✅ frontend/coverage/lcov.info successfully generated"
+                                        else
+                                            echo "  ❌ FATAL: frontend/coverage/lcov.info missing!"
+                                            exit 1
+                                        fi
+                                    '''
+                                } else {
+                                    bat '''
+                                        npm test
+                                        if exist coverage\\lcov.info (
+                                            echo ✅ frontend\\coverage\\lcov.info successfully generated
+                                        ) else (
+                                            echo ❌ FATAL: frontend\\coverage\\lcov.info missing!
+                                            exit 1
+                                        )
+                                    '''
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'backend/coverage/**/*', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'frontend/coverage/**/*', fingerprint: true, allowEmptyArchive: true
+                    echo '📦 Unit test coverage reports archived'
+                }
+            }
+        }
             
         // ══════════════════════════════════════════════════════════════════════
         // STAGE 6 — SonarQube Analysis (Using manually installed system sonar-scanner)
@@ -410,10 +490,38 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
+                    echo "🔍 Executing pre-scan coverage diagnostics..."
+                    if (isUnix()) {
+                        sh '''
+                            echo "📍 Current working directory:"
+                            pwd
+                            echo "📂 Workspace contents:"
+                            ls -la
+                            echo "🔎 Searching for lcov.info files in workspace:"
+                            find . -name "lcov.info" || true
+                            echo "📁 backend/coverage contents:"
+                            ls -R backend/coverage 2>/dev/null || echo "  (backend/coverage directory missing)"
+                            echo "📁 frontend/coverage contents:"
+                            ls -R frontend/coverage 2>/dev/null || echo "  (frontend/coverage directory missing)"
+                        '''
+                    } else {
+                        bat '''
+                            echo Current working directory:
+                            cd
+                            echo Workspace contents:
+                            dir
+                            echo Searching for lcov.info files in workspace:
+                            dir /s /b lcov.info
+                            echo backend/coverage contents:
+                            dir /s backend\\coverage
+                            echo frontend/coverage contents:
+                            dir /s frontend\\coverage
+                        '''
+                    }
+
                     echo "🔍 Executing SonarQube analysis using system-installed sonar-scanner CLI..."
 
                     // Execute SonarQube analysis against configured server ('SonarQube') using system PATH
-                    // Removed: def scannerHome = tool 'sonar-scanner'
                     withSonarQubeEnv('SonarQube') {
                         // Export SONAR_TOKEN for SonarScanner CLI and SonarQube 10.x environment inheritance
                         env.SONAR_TOKEN = env.SONAR_TOKEN ?: env.SONAR_AUTH_TOKEN
