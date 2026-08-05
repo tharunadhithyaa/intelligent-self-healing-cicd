@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import Complaint, { ComplaintCategory } from "../../models/complaint.model";
 
 export interface AIAnalysisResult {
@@ -144,7 +145,7 @@ class AIService {
     );
 
     // 5. Calculate overall confidence score (mocking dynamic variance)
-    const confidenceScore = Math.floor(Math.random() * 15) + 80; // between 80% and 95%
+    const confidenceScore = randomInt(80, 95); // between 80% and 95%
 
     // 6. Duplicate Complaint Detection
     const duplicate = await this.detectDuplicate(
