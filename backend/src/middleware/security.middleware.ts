@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 
 // Recursively sanitize objects to prevent MongoDB Operator Injection
 const sanitizeObject = (obj: any): any => {
-  if (obj instanceof Array) {
+  if (Array.isArray(obj)) {
     for (let i = 0; i < obj.length; i++) {
       if (typeof obj[i] === "object" && obj[i] !== null) {
         obj[i] = sanitizeObject(obj[i]);
@@ -23,18 +23,18 @@ const sanitizeObject = (obj: any): any => {
 // Prevent basic Cross-Site Scripting (XSS) by encoding unsafe HTML tags
 const sanitizeXSSString = (val: string): string => {
   return val
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
-    .replace(/\//g, "&#x2F;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#x27;")
+    .replaceAll("/", "&#x2F;");
 };
 
 const sanitizeXSS = (obj: any): any => {
   if (typeof obj === "string") {
     return sanitizeXSSString(obj);
-  } else if (obj instanceof Array) {
+  } else if (Array.isArray(obj)) {
     for (let i = 0; i < obj.length; i++) {
       obj[i] = sanitizeXSS(obj[i]);
     }
