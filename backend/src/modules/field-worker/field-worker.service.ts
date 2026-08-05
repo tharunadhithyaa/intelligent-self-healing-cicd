@@ -28,8 +28,8 @@ class FieldWorkerService {
       filter["$or"] = [{ title: searchRegex }, { description: searchRegex }];
     }
 
-    const page = Math.max(1, parseInt(params["page"]) || 1);
-    const limit = Math.max(1, parseInt(params["limit"]) || 10);
+    const page = Math.max(1, Number.parseInt(params["page"]) || 1);
+    const limit = Math.max(1, Number.parseInt(params["limit"]) || 10);
     const skip = (page - 1) * limit;
 
     const [jobs, total] = await Promise.all([

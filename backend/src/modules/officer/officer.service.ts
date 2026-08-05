@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Complaint, {
   IComplaintDocument,
   ComplaintStatus,
@@ -15,7 +15,7 @@ class OfficerService {
     officerId: string,
   ): Promise<string | null> {
     const dept = await Department.findOne({
-      officers: new mongoose.Types.ObjectId(officerId),
+      officers: new Types.ObjectId(officerId),
       status: "active",
     });
     return dept ? dept.name : null;
@@ -23,7 +23,7 @@ class OfficerService {
 
   async getDashboardStats(user: TokenPayload): Promise<any> {
     const deptName = await this.getOfficerDepartment(user.userId);
-    const officerId = new mongoose.Types.ObjectId(user.userId);
+    const officerId = new Types.ObjectId(user.userId);
 
     // 1. Assigned Complaints count
     const assignedCount = await Complaint.countDocuments({
@@ -124,7 +124,7 @@ class OfficerService {
     if (deptName) {
       filter["department"] = deptName;
     } else {
-      filter["assignment.officer"] = new mongoose.Types.ObjectId(user.userId);
+      filter["assignment.officer"] = new Types.ObjectId(user.userId);
     }
 
     // Filters
@@ -135,7 +135,7 @@ class OfficerService {
       filter["aiAnalysis.priority"] = params["priority"];
     }
     if (params["assignedWorker"]) {
-      filter["assignment.fieldWorker"] = new mongoose.Types.ObjectId(
+      filter["assignment.fieldWorker"] = new Types.ObjectId(
         params["assignedWorker"],
       );
     }
@@ -147,7 +147,7 @@ class OfficerService {
       // Check if search is a valid ObjectId hex
       if (mongoose.Types.ObjectId.isValid(params["search"])) {
         filter["$or"].push({
-          _id: new mongoose.Types.ObjectId(params["search"]),
+          _id: new Types.ObjectId(params["search"]),
         });
       }
     }
@@ -163,8 +163,8 @@ class OfficerService {
     }
 
     // Pagination
-    const page = Math.max(1, parseInt(params["page"]) || 1);
-    const limit = Math.max(1, parseInt(params["limit"]) || 10);
+    const page = Math.max(1, Number.parseInt(params["page"]) || 1);
+    const limit = Math.max(1, Number.parseInt(params["limit"]) || 10);
     const skip = (page - 1) * limit;
 
     const [complaints, total] = await Promise.all([
@@ -207,12 +207,10 @@ class OfficerService {
           "You are not authorized to view complaints outside your department",
         );
       }
-    } else {
-      if (complaint.assignment?.officer?.toString() !== user.userId) {
-        throw ApiError.forbidden(
-          "You are not authorized to view complaints not assigned to you",
-        );
-      }
+    } else if (complaint.assignment?.officer?.toString() !== user.userId) {
+      throw ApiError.forbidden(
+        "You are not authorized to view complaints not assigned to you",
+      );
     }
 
     return complaint;
@@ -239,7 +237,7 @@ class OfficerService {
       title: title || `Status advanced to ${nextStatus}`,
       description: description || `Status updated by officer ${user.email}`,
       timestamp: new Date(),
-      performedBy: new mongoose.Types.ObjectId(user.userId),
+      performedBy: new Types.ObjectId(user.userId),
     });
 
     const saved = await complaint.save();
@@ -268,7 +266,7 @@ class OfficerService {
     userAgent?: string,
   ): Promise<IComplaintDocument> {
     const complaint = await this.getComplaintDetails(user, id);
-    const wid = new mongoose.Types.ObjectId(workerId);
+    const wid = new Types.ObjectId(workerId);
 
     // Verify worker exists and is a field_worker
     const workerObj = await User.findOne({
@@ -294,7 +292,7 @@ class OfficerService {
 
     complaint.status = nextStatus;
     complaint.assignment = {
-      officer: new mongoose.Types.ObjectId(user.userId),
+      officer: new Types.ObjectId(user.userId),
       fieldWorker: wid,
       assignedAt: new Date(),
       officerNotes: notes || complaint.assignment?.officerNotes,
@@ -306,7 +304,7 @@ class OfficerService {
       title: "Field Worker Assigned",
       description: `Assigned to ${workerObj.firstName} ${workerObj.lastName} by officer ${user.email}`,
       timestamp: new Date(),
-      performedBy: new mongoose.Types.ObjectId(user.userId),
+      performedBy: new Types.ObjectId(user.userId),
     });
 
     const saved = await complaint.save();
@@ -335,7 +333,7 @@ class OfficerService {
 
     complaint.internalNotes.push({
       text,
-      authorId: new mongoose.Types.ObjectId(user.userId),
+      authorId: new Types.ObjectId(user.userId),
       authorName: `${user.email}`,
       timestamp: new Date(),
     });
@@ -369,7 +367,7 @@ class OfficerService {
       title: "Resolution Recorded",
       description: `Incident marked as resolved. Summary: ${description}`,
       timestamp: new Date(),
-      performedBy: new mongoose.Types.ObjectId(user.userId),
+      performedBy: new Types.ObjectId(user.userId),
     });
 
     const saved = await complaint.save();
