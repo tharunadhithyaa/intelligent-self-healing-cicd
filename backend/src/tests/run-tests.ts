@@ -7,6 +7,11 @@ import { hashPassword, comparePassword } from "../utils/password.util";
 import { generateTokenPair, verifyAccessToken } from "../utils/jwt.util";
 import { aiService } from "../modules/complaints/ai.service";
 import { apiCache } from "../utils/cache.util";
+import { securitySanitizer } from "../middleware/security.middleware";
+import { adminController } from "../modules/admin/admin.controller";
+import { userManagementService } from "../modules/admin/services/user-management.service";
+import { officerService } from "../modules/officer/officer.service";
+import { fieldWorkerService } from "../modules/field-worker/field-worker.service";
 
 dotenv.config();
 
@@ -118,9 +123,94 @@ const runTests = async () => {
       );
     }
 
-    // ───── Test 5: Database Operations ─────
+    // ───── Test 5: Security Middleware & Sanitization ─────
+    try {
+      const req: any = {
+        body: {
+          username: "admin",
+          "$where": "this.password == 123",
+          nested: { "key.with.dot": "val", xss: "<script>alert(1)</script>" },
+          tags: ["<b>test</b>", { "$ne": null }],
+        },
+        query: { filter: "safe", "$gt": 0 },
+        params: { id: "123" },
+      };
+      const res: any = {};
+      let nextCalled = false;
+      securitySanitizer(req, res, () => {
+        nextCalled = true;
+      });
+
+      const passed =
+        nextCalled &&
+        req.body["$where"] === undefined &&
+        req.body.nested["key.with.dot"] === undefined &&
+        req.body.nested.xss.includes("&lt;script&gt;") &&
+        req.body.tags[0].includes("&lt;b&gt;") &&
+        req.query["$gt"] === undefined;
+      logTest("Security Middleware Operator & XSS Sanitization", passed);
+    } catch (e: any) {
+      logTest("Security Middleware Operator & XSS Sanitization", false, e.message);
+    }
+
+    // ───── Test 6: AI Service Extended Keyword Classification ─────
+    try {
+      const textGarbage = "overflowing garbage trash bin in street";
+      const catGarbage = (aiService as any).predictCategory(textGarbage);
+
+      const textWater = "broken water pipe leak contamination";
+      const catWater = (aiService as any).predictCategory(textWater);
+
+      const textLight = "broken streetlight flickering lamp dark pole";
+      const catLight = (aiService as any).predictCategory(textLight);
+
+      const passed =
+        catGarbage === "Garbage Management" &&
+        catWater === "Water Supply" &&
+        catLight === "Streetlight Issue";
+      logTest("AI Extended Keyword Classification (Garbage/Water/Streetlight)", passed);
+    } catch (e: any) {
+      logTest("AI Extended Keyword Classification", false, e.message);
+    }
+
+    // ───── Test 7: Admin Controller Pagination Parsing ─────
+    try {
+      let pageParsed = 0;
+      let limitParsed = 0;
+      const req: any = {
+        query: {
+          page: "2",
+          limit: "25",
+          search: "john",
+          role: "officer",
+          isActive: "true",
+          isLocked: "false",
+        },
+      };
+      const res: any = {
+        status: () => res,
+        json: (data: any) => data,
+      };
+
+      const origGetUsers = userManagementService.getUsers;
+      userManagementService.getUsers = async (options: any) => {
+        pageParsed = options.page;
+        limitParsed = options.limit;
+        return { users: [], total: 0 };
+      };
+
+      await adminController.getUsers(req, res, () => {});
+      userManagementService.getUsers = origGetUsers;
+
+      const passed = pageParsed === 2 && limitParsed === 25;
+      logTest("Admin Controller Number.parseInt Pagination Parsing", passed);
+    } catch (e: any) {
+      logTest("Admin Controller Number.parseInt Pagination Parsing", false, e.message);
+    }
+
+    // ───── Test 8: Database & Service Layer Operations ─────
     if (!isDbConnected) {
-      logTest("Mongoose Document CRUD Cycle", true, "Skipped (no DB connection)");
+      logTest("Mongoose Document CRUD & Service Layer Cycle", true, "Skipped (no DB connection)");
     } else {
       try {
         // 1. Create a User
@@ -166,14 +256,48 @@ const runTests = async () => {
           title: "[TEST] Broken water main leak",
         }));
 
+        // 3. Test Officer, UserManagement, and FieldWorker Service queries
+        const officerUser = {
+          userId: testUser._id.toString(),
+          email: testUser.email,
+          role: "officer",
+        };
+
+        const officerStats = await officerService.getDashboardStats(officerUser);
+        const officerComplaints = await officerService.getComplaints(officerUser, {
+          page: "1",
+          limit: "5",
+          status: "submitted",
+          priority: "high",
+          search: testUser._id.toString(),
+        });
+
+        const usersList = await userManagementService.getUsers({
+          search: "test",
+          role: "citizen",
+          page: 1,
+          limit: 10,
+        });
+
+        const workerJobs = await fieldWorkerService.getAssignedJobs(
+          { userId: testUser._id.toString(), email: testUser.email, role: "field_worker" },
+          { page: "1", limit: "5", status: "assigned", search: "water" },
+        );
+
         // Cleanup
         await User.findByIdAndDelete(testUser._id);
         await Complaint.findByIdAndDelete(testComplaint._id);
 
-        const passed = userExists && complaintExists;
-        logTest("Mongoose Document CRUD Cycle", passed);
+        const passed =
+          userExists &&
+          complaintExists &&
+          officerStats !== undefined &&
+          officerComplaints.total >= 0 &&
+          usersList.total >= 0 &&
+          workerJobs.total >= 0;
+        logTest("Mongoose Document CRUD & Service Layer Cycle", passed);
       } catch (e: any) {
-        logTest("Mongoose Document CRUD Cycle", false, e.message);
+        logTest("Mongoose Document CRUD & Service Layer Cycle", false, e.message);
       }
     }
 
