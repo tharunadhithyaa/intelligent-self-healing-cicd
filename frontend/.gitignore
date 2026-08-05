@@ -6,10 +6,19 @@
 /out-tsc
 /bazel-out
 
-# Node
+# Dependencies
 /node_modules
 npm-debug.log
 yarn-error.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Testing & Code Coverage
+/coverage
+*.lcov
 
 # IDEs and editors
 .idea/
@@ -33,11 +42,10 @@ yarn-error.log
 /.angular/cache
 .sass-cache/
 /connect.lock
-/coverage
 /libpeerconnection.log
 testem.log
 /typings
-__screenshots__/
+__screenshots__
 
 # System files
 .DS_Store
