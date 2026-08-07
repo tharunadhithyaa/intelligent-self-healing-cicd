@@ -9,6 +9,7 @@
 .env
 .env.*
 !.env.example
+!.trivyignore
 *.pem
 *.cert
 *.crt
@@ -119,6 +120,9 @@ cypress/videos/
 cypress/screenshots/
 docs-generated/
 .nyc_output/
+.trivy/
+.trivy-cache/
+trivy-cache/
 
 # ------------------------------------------------------------------------------
 # 10. Archives

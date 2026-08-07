@@ -37,4 +37,10 @@ CVE-2026-46597
 CVE-2026-56852
 
 # Upstream js-yaml in Official MongoDB Entrypoint (/opt/js-yaml)
+# - Inherited from official mongo:8.0 Docker base image
+# - Vulnerable package: /opt/js-yaml/package.json (js-yaml 3.13.1)
+# - Not installed by application or custom MongoDB Dockerfile
+# - Ignored only until official MongoDB image is updated upstream
 CVE-2026-59869
+GHSA-5p4m-2wfm-xmqj
+
