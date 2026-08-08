@@ -111,6 +111,7 @@ coverage/
 *.lcov
 .scannerwork/
 .sonar/
+.sonarqube/
 .vitest_cache/
 .c8_output/
 test-reports/
