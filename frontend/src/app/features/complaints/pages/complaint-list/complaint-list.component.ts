@@ -208,7 +208,7 @@ import { ROUTE_PATHS } from '../../../../core/constants/route.constants';
 
       .complaint-card {
         @include card-base;
-        @include card-hover;
+        @include card-hover('.complaint-card');
         cursor: pointer;
         display: flex;
         flex-direction: column;

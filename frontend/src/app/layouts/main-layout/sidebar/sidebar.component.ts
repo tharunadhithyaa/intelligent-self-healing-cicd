@@ -102,7 +102,7 @@ interface NavItem {
         flex-direction: column;
         z-index: $z-fixed;
         transition: all $transition-normal;
-        @include custom-scrollbar;
+        @include custom-scrollbar(6px, '.sidebar');
 
         @include mobile-only {
           transform: translateX(-100%);

@@ -121,17 +121,33 @@
     transform $transition-normal;
 }
 
-@mixin card-hover {
-  @if & {
-    &:hover {
+@mixin card-hover($selector: null) {
+  @if $selector {
+    #{$selector}:hover {
       box-shadow: $shadow-card-hover;
       transform: translateY(-2px);
     }
+  } @else {
+    box-shadow: $shadow-card-hover;
+    transform: translateY(-2px);
   }
 }
 
 // ─── Button ───
-@mixin button-base {
+@mixin button-disabled($selector: null) {
+  @if $selector {
+    #{$selector}:disabled,
+    #{$selector}[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  } @else {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-base($selector: null) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -144,47 +160,47 @@
   text-decoration: none;
   outline: none;
 
-  @if & {
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+  @if $selector {
+    @include button-disabled($selector);
   }
 }
 
 // ─── Scrollbar ───
-@mixin custom-scrollbar($width: 6px) {
-  @if & {
-    &::-webkit-scrollbar {
+@mixin custom-scrollbar($width: 6px, $selector: null) {
+  scrollbar-width: thin;
+  scrollbar-color: $text-muted transparent;
+
+  @if $selector {
+    #{$selector}::-webkit-scrollbar {
       width: $width;
       height: $width;
     }
 
-    &::-webkit-scrollbar-track {
+    #{$selector}::-webkit-scrollbar-track {
       background: transparent;
     }
 
-    &::-webkit-scrollbar-thumb {
+    #{$selector}::-webkit-scrollbar-thumb {
       background: $text-muted;
       border-radius: $radius-full;
+    }
 
-      &:hover {
-        background: $text-secondary;
-      }
+    #{$selector}::-webkit-scrollbar-thumb:hover {
+      background: $text-secondary;
     }
   }
-
-  scrollbar-width: thin;
-  scrollbar-color: $text-muted transparent;
 }
 
 // ─── Focus Ring ───
-@mixin focus-ring {
-  @if & {
-    &:focus-visible {
+@mixin focus-ring($selector: null) {
+  @if $selector {
+    #{$selector}:focus-visible {
       outline: 2px solid $primary;
       outline-offset: 2px;
     }
+  } @else {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
   }
 }
 

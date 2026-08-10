@@ -88,7 +88,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
         &__content {
           flex: 1;
           overflow-y: auto;
-          @include custom-scrollbar;
+          @include custom-scrollbar(6px, '.layout__content');
         }
 
         &__content-inner {
