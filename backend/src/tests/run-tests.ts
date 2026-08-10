@@ -13,6 +13,8 @@ import { userManagementService } from "../modules/admin/services/user-management
 import { officerService } from "../modules/officer/officer.service";
 import { fieldWorkerService } from "../modules/field-worker/field-worker.service";
 import { reportService } from "../modules/admin/services/report.service";
+import { aiChatService } from "../modules/ai-chat/ai-chat.service";
+import Department from "../models/department.model";
 
 dotenv.config();
 
@@ -310,6 +312,211 @@ const runReportServiceTests = (isDbConnected: boolean) =>
     return validStructure;
   });
 
+const runAiChatServiceTests = (isDbConnected: boolean) =>
+  executeTest("AIChatService full branch & role coverage", async () => {
+    if (!isDbConnected) {
+      return { passed: true, details: "Skipped (no DB connection)" };
+    }
+
+    const testUser = await User.create({
+      firstName: "Chat",
+      lastName: "Tester",
+      email: `chattest_${Date.now()}@test.com`,
+      password: "password123",
+      role: "citizen",
+      isActive: true,
+    });
+
+    const citizenPayload = {
+      userId: testUser._id.toString(),
+      email: testUser.email,
+      role: "citizen" as const,
+    };
+
+    const officerPayload = {
+      userId: testUser._id.toString(),
+      email: testUser.email,
+      role: "officer" as const,
+    };
+
+    const adminPayload = {
+      userId: testUser._id.toString(),
+      email: testUser.email,
+      role: "admin" as const,
+    };
+
+    const unknownPayload = {
+      userId: testUser._id.toString(),
+      email: testUser.email,
+      role: "field_worker" as const,
+    };
+
+    // 1. Citizen submit guidance
+    const resSubmit = await aiChatService.sendMessage(
+      citizenPayload,
+      undefined,
+      "How do I submit a report?",
+    );
+
+    // 2. Citizen status with no complaints
+    const resStatusEmpty = await aiChatService.sendMessage(
+      citizenPayload,
+      resSubmit.conversation._id.toString(),
+      "What is my complaint status?",
+    );
+
+    // Create a complaint for status lookup
+    const testComplaint = await Complaint.create({
+      title: "Broken streetlight on main ave",
+      description: "Light bulb broken and street dark",
+      category: "Streetlight Issue",
+      location: { latitude: 12.97, longitude: 77.59, address: "Main Ave" },
+      status: "submitted",
+      citizen: testUser._id,
+      aiAnalysis: {
+        category: "Streetlight Issue",
+        priority: "medium",
+        department: "Electricity Board",
+        duplicateDetected: false,
+        summary: "Broken light",
+        confidenceScore: 90,
+      },
+      timeline: [
+        {
+          status: "submitted",
+          title: "Submitted",
+          description: "Ticket registered",
+          timestamp: new Date(),
+        },
+      ],
+    });
+
+    // 3. Citizen status with complaints
+    const resStatus = await aiChatService.sendMessage(
+      citizenPayload,
+      resSubmit.conversation._id.toString(),
+      "my tickets",
+    );
+
+    // 4. Citizen ticket details lookup by ID
+    const resTicketDetails = await aiChatService.sendMessage(
+      citizenPayload,
+      resSubmit.conversation._id.toString(),
+      testComplaint._id.toString(),
+    );
+
+    // 5. Citizen ticket not found
+    const resTicketNotFound = await aiChatService.sendMessage(
+      citizenPayload,
+      resSubmit.conversation._id.toString(),
+      "000000000000000000000000",
+    );
+
+    // 6. Citizen department profiles
+    await Department.deleteMany({ name: "Electricity Board" });
+    await Department.create({
+      name: "Electricity Board",
+      description: "Handles power and streetlights",
+      contactInfo: "555-POWER",
+      status: "active",
+    });
+    const resDept = await aiChatService.sendMessage(
+      citizenPayload,
+      resSubmit.conversation._id.toString(),
+      "who handles streetlights department",
+    );
+
+    // 7. Citizen default response
+    const resCitizenDefault = await aiChatService.sendMessage(
+      citizenPayload,
+      resSubmit.conversation._id.toString(),
+      "hello there",
+    );
+
+    // 8. Staff / Officer ticket lookup
+    const resStaffTicket = await aiChatService.sendMessage(
+      officerPayload,
+      undefined,
+      testComplaint._id.toString(),
+    );
+
+    // 9. Staff ticket not found
+    const resStaffNotFound = await aiChatService.sendMessage(
+      officerPayload,
+      resStaffTicket.conversation._id.toString(),
+      "111111111111111111111111",
+    );
+
+    // 10. Admin analytics guide
+    const resAdminAnalytics = await aiChatService.sendMessage(
+      adminPayload,
+      undefined,
+      "show me system info analytics stats",
+    );
+
+    // 11. Staff default response
+    const resOfficerDefault = await aiChatService.sendMessage(
+      officerPayload,
+      resStaffTicket.conversation._id.toString(),
+      "hi officer bot",
+    );
+
+    // 12. Default unknown role response
+    const resUnknownDefault = await aiChatService.sendMessage(
+      unknownPayload,
+      undefined,
+      "hello guest",
+    );
+
+    // 13. getConversations & getConversationById & deleteAllConversations
+    const convList = await aiChatService.getConversations(
+      testUser._id.toString(),
+    );
+    const convById = await aiChatService.getConversationById(
+      testUser._id.toString(),
+      resSubmit.conversation._id.toString(),
+    );
+
+    let notFoundErrorThrown = false;
+    try {
+      await aiChatService.getConversationById(
+        testUser._id.toString(),
+        "222222222222222222222222",
+      );
+    } catch (e) {
+      notFoundErrorThrown = true;
+    }
+
+    await aiChatService.deleteAllConversations(testUser._id.toString());
+    const emptyConvList = await aiChatService.getConversations(
+      testUser._id.toString(),
+    );
+
+    // Cleanup
+    await User.findByIdAndDelete(testUser._id);
+    await Complaint.findByIdAndDelete(testComplaint._id);
+    await Department.deleteMany({ name: "Electricity Board" });
+
+    return (
+      resSubmit.reply.includes("wizard") &&
+      resStatusEmpty.reply.includes("haven't submitted") &&
+      resStatus.reply.includes("Broken streetlight") &&
+      resTicketDetails.reply.includes("Broken streetlight") &&
+      resTicketNotFound.reply.includes("couldn't find") &&
+      resDept.reply.includes("Electricity Board") &&
+      resCitizenDefault.reply.includes("CivicPulse AI assistant") &&
+      resStaffTicket.reply.includes("INTERNAL RETAIL SHEET") &&
+      resStaffNotFound.reply.includes("check the hex identifier") &&
+      resAdminAnalytics.reply.includes("Diagnostics Guide") &&
+      resOfficerDefault.reply.includes("Welcome, Officer") &&
+      resUnknownDefault.reply.toLowerCase().includes("how can i assist") &&
+      convList.length > 0 &&
+      convById._id.toString() === resSubmit.conversation._id.toString() &&
+      notFoundErrorThrown &&
+      emptyConvList.length === 0
+    );
+  });
+
 const runTests = async () => {
   const isDbConnected = await connectTestDatabase();
 
@@ -323,6 +530,7 @@ const runTests = async () => {
     await runAdminControllerTests();
     await runDatabaseServiceTests(isDbConnected);
     await runReportServiceTests(isDbConnected);
+    await runAiChatServiceTests(isDbConnected);
 
     console.log("\n🌟 Integration Test Suite finished.");
   } finally {
