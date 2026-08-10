@@ -122,9 +122,11 @@
 }
 
 @mixin card-hover {
-  &:hover {
-    box-shadow: $shadow-card-hover;
-    transform: translateY(-2px);
+  @if & {
+    &:hover {
+      box-shadow: $shadow-card-hover;
+      transform: translateY(-2px);
+    }
   }
 }
 
@@ -142,29 +144,33 @@
   text-decoration: none;
   outline: none;
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  @if & {
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
 
 // ─── Scrollbar ───
 @mixin custom-scrollbar($width: 6px) {
-  &::-webkit-scrollbar {
-    width: $width;
-    height: $width;
-  }
+  @if & {
+    &::-webkit-scrollbar {
+      width: $width;
+      height: $width;
+    }
 
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-  &::-webkit-scrollbar-thumb {
-    background: $text-muted;
-    border-radius: $radius-full;
+    &::-webkit-scrollbar-thumb {
+      background: $text-muted;
+      border-radius: $radius-full;
 
-    &:hover {
-      background: $text-secondary;
+      &:hover {
+        background: $text-secondary;
+      }
     }
   }
 
@@ -174,9 +180,11 @@
 
 // ─── Focus Ring ───
 @mixin focus-ring {
-  &:focus-visible {
-    outline: 2px solid $primary;
-    outline-offset: 2px;
+  @if & {
+    &:focus-visible {
+      outline: 2px solid $primary;
+      outline-offset: 2px;
+    }
   }
 }
 
