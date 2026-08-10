@@ -26,23 +26,16 @@ describe('SidebarComponent', () => {
     return component;
   };
 
-  it('should compute navItems correctly for admin role', () => {
-    const sidebar = createComponent('admin');
+  it.each([
+    ['admin', '/admin/dashboard'],
+    ['officer', '/officer/dashboard'],
+    ['field_worker', '/field-worker/dashboard'],
+  ])('should compute navItems correctly for %s role', (role, expectedRoute) => {
+    const sidebar = createComponent(role);
     const items = sidebar.navItems();
+
     expect(items).toBeDefined();
-    expect(items.some((i) => i.route === '/admin/dashboard')).toBe(true);
-  });
-
-  it('should compute navItems correctly for officer role', () => {
-    const sidebar = createComponent('officer');
-    const items = sidebar.navItems();
-    expect(items.some((i) => i.route === '/officer/dashboard')).toBe(true);
-  });
-
-  it('should compute navItems correctly for field_worker role', () => {
-    const sidebar = createComponent('field_worker');
-    const items = sidebar.navItems();
-    expect(items.some((i) => i.route === '/field-worker/dashboard')).toBe(true);
+    expect(items.some((item) => item.route === expectedRoute)).toBe(true);
   });
 
   it('should compute default navItems for citizen or unknown role', () => {
