@@ -8,6 +8,10 @@
 # Never commit sensitive configurations or secrets!
 .env
 .env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 !.env.example
 !.trivyignore
 *.pem
@@ -48,6 +52,16 @@ lerna-debug.log*
 /frontend/.ngcc_lock_file
 /frontend/build/
 /frontend/compiled/
+dist/
+out-tsc/
+bazel-out/
+.angular/
+.sass-cache/
+/connect.lock
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__
 *.js.map
 
 # ------------------------------------------------------------------------------
@@ -81,10 +95,9 @@ mongod.lock
 docker-compose.override.yml
 .docker/
 docker-volumes/
-# Do not ignore essential Dockerfiles or base compose files!
 
 # ------------------------------------------------------------------------------
-# 7. Logs
+# 7. Logs & Temporary Files
 # ------------------------------------------------------------------------------
 logs/
 *.log
@@ -93,6 +106,7 @@ app.log
 debug.log
 error.log
 access.log
+sonar-runner.log
 
 # ------------------------------------------------------------------------------
 # 8. Uploads, Media, & Exports
@@ -105,13 +119,15 @@ generated-media/
 exports/
 
 # ------------------------------------------------------------------------------
-# 9. Reports & Testing Output
+# 9. Reports, Testing & SonarQube Output
 # ------------------------------------------------------------------------------
 coverage/
 *.lcov
 .scannerwork/
 .sonar/
 .sonarqube/
+sonar-runner.log
+*.sonar/
 .vitest_cache/
 .c8_output/
 test-reports/
@@ -126,7 +142,17 @@ docs-generated/
 trivy-cache/
 
 # ------------------------------------------------------------------------------
-# 10. Archives
+# 10. AI Assistants & Agents
+# ------------------------------------------------------------------------------
+.agents/
+.antigravity/
+.gemini/
+.claude/
+.cursor/
+.copilot/
+
+# ------------------------------------------------------------------------------
+# 11. Archives
 # ------------------------------------------------------------------------------
 *.zip
 *.rar
@@ -137,7 +163,7 @@ trivy-cache/
 *.7z
 
 # ------------------------------------------------------------------------------
-# 11. Caches & Runtime Files
+# 12. Caches & Runtime Files
 # ------------------------------------------------------------------------------
 .cache/
 .eslintcache
@@ -152,10 +178,14 @@ trivy-cache/
 !bun.lockb
 
 # ------------------------------------------------------------------------------
-# 12. IDEs & Editors
+# 13. IDEs & Editors
 # ------------------------------------------------------------------------------
 .idea/
 .vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 *.swp
 *.swo
 *~
@@ -168,10 +198,13 @@ trivy-cache/
 .project
 .settings/
 .classpath
+.c9/
+*.launch
+*.sublime-workspace
 *.code-workspace
 
 # ------------------------------------------------------------------------------
-# 13. Operating System Files
+# 14. Operating System Files
 # ------------------------------------------------------------------------------
 .DS_Store
 .DS_Store?
@@ -184,7 +217,7 @@ Desktop.ini
 $RECYCLE.BIN/
 
 # ------------------------------------------------------------------------------
-# 14. Jenkins CI/CD
+# 15. Jenkins CI/CD
 # ------------------------------------------------------------------------------
 jenkins/workspace/
 jenkins/builds/
@@ -192,7 +225,7 @@ jenkins/reports/
 *.jenkins.log
 
 # ------------------------------------------------------------------------------
-# 15. Python & Virtual Environments
+# 16. Python & Virtual Environments
 # ------------------------------------------------------------------------------
 __pycache__/
 *.pyc

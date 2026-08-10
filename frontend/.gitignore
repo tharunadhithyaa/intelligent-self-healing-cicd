@@ -1,10 +1,10 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
+# Frontend .gitignore - Extends root .gitignore
 # Compiled output
 /dist
 /tmp
 /out-tsc
 /bazel-out
+/.angular
 
 # Dependencies
 /node_modules
@@ -14,6 +14,7 @@ yarn-error.log
 # Environment variables
 .env
 .env.*
+.env.local
 !.env.example
 
 # Testing & Code Coverage
@@ -31,18 +32,14 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
-
-# Visual Studio Code
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-!.vscode/mcp.json
 .history/*
 
 # Miscellaneous
-/.angular/cache
 .sass-cache/
 /connect.lock
 /libpeerconnection.log
