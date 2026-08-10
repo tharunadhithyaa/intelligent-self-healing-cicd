@@ -273,7 +273,7 @@ interface NavItem {
 export class SidebarComponent {
   readonly isOpen = input(false);
   readonly isCollapsed = input(false);
-  readonly toggle = output<void>();
+  readonly toggleSidebar = output<void>();
   readonly collapse = output<void>();
 
   readonly navItems = computed<NavItem[]>(() => {
@@ -312,7 +312,7 @@ export class SidebarComponent {
 
   onNavClick(): void {
     if (window.innerWidth < 992) {
-      this.toggle.emit();
+      this.toggleSidebar.emit();
     }
   }
 }

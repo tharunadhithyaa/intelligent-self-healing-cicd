@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -406,7 +406,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
     `,
   ],
 })
-export class RoleBroadcastComponent implements OnInit {
+export class RoleBroadcastComponent {
   private readonly adminService = inject(AdminService);
   private readonly notificationService = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
@@ -501,8 +501,6 @@ export class RoleBroadcastComponent implements OnInit {
   constructor() {
     this.initForm();
   }
-
-  ngOnInit(): void {}
 
   initForm(): void {
     this.broadcastForm = this.fb.group({

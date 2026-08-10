@@ -24,7 +24,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
       <app-sidebar
         [isOpen]="sidebarOpen()"
         [isCollapsed]="sidebarCollapsed()"
-        (toggle)="toggleSidebar()"
+        (toggleSidebar)="toggleSidebar()"
         (collapse)="toggleCollapse()"
       />
 
