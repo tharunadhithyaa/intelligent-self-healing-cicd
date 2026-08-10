@@ -1,5 +1,5 @@
-import Complaint from "../../../models/complaint.model";
-import Department from "../../../models/department.model";
+import Complaint, { IComplaintDocument } from "../../../models/complaint.model";
+import Department, { IDepartmentDocument } from "../../../models/department.model";
 
 export interface ReportData {
   timeframe: string;
@@ -30,25 +30,69 @@ class ReportService {
   async generateReport(
     range: "daily" | "weekly" | "monthly" | "yearly",
   ): Promise<ReportData> {
-    const endDate = new Date();
-    const startDate = new Date();
-
-    if (range === "daily") {
-      startDate.setDate(endDate.getDate() - 1);
-    } else if (range === "weekly") {
-      startDate.setDate(endDate.getDate() - 7);
-    } else if (range === "monthly") {
-      startDate.setMonth(endDate.getMonth() - 1);
-    } else {
-      startDate.setFullYear(endDate.getFullYear() - 1);
-    }
+    const { startDate, endDate } = this.getDateRange(range);
 
     // 1. Fetch complaints in range
     const complaints = await Complaint.find({
       createdAt: { $gte: startDate, $lte: endDate },
     }).exec();
 
-    // 2. Compute status counts
+    // 2. Compute status & AI statistics
+    const stats = this.calculateComplaintStatistics(complaints);
+
+    // 3. Compute department allocations
+    const depts = await Department.find().exec();
+    const departmentStats = this.calculateDepartmentStatistics(
+      depts,
+      complaints,
+    );
+
+    return {
+      timeframe: range,
+      startDate,
+      endDate,
+      summary: {
+        totalComplaints: complaints.length,
+        pendingCount: stats.pendingCount,
+        inProgressCount: stats.inProgressCount,
+        resolvedCount: stats.resolvedCount,
+        closedCount: stats.closedCount,
+        avgResolutionHours: stats.avgResolutionHours,
+      },
+      departments: departmentStats,
+      aiStats: {
+        avgConfidence: stats.avgConfidence,
+        duplicateCount: stats.duplicateCount,
+      },
+    };
+  }
+
+  private getDateRange(range: "daily" | "weekly" | "monthly" | "yearly"): {
+    startDate: Date;
+    endDate: Date;
+  } {
+    const endDate = new Date();
+    const startDate = new Date();
+
+    switch (range) {
+      case "daily":
+        startDate.setDate(endDate.getDate() - 1);
+        break;
+      case "weekly":
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case "monthly":
+        startDate.setMonth(endDate.getMonth() - 1);
+        break;
+      case "yearly":
+        startDate.setFullYear(endDate.getFullYear() - 1);
+        break;
+    }
+
+    return { startDate, endDate };
+  }
+
+  private calculateComplaintStatistics(complaints: IComplaintDocument[]) {
     let pendingCount = 0;
     let inProgressCount = 0;
     let resolvedCount = 0;
@@ -61,11 +105,17 @@ class ReportService {
     let duplicateCount = 0;
 
     for (const c of complaints) {
-      if (c.status === "submitted") pendingCount++;
-      else if (["ai_reviewed", "assigned", "in_progress"].includes(c.status))
+      if (c.status === "submitted") {
+        pendingCount++;
+      } else if (
+        ["ai_reviewed", "assigned", "in_progress"].includes(c.status)
+      ) {
         inProgressCount++;
-      else if (c.status === "resolved") resolvedCount++;
-      else if (c.status === "closed") closedCount++;
+      } else if (c.status === "resolved") {
+        resolvedCount++;
+      } else if (c.status === "closed") {
+        closedCount++;
+      }
 
       // Resolution speed check: duration between createdAt and resolution date (last timeline step)
       if (["resolved", "closed"].includes(c.status)) {
@@ -99,9 +149,22 @@ class ReportService {
         ? Math.round(aiConfidenceSum / aiConfidenceCount)
         : 0;
 
-    // 3. Compute department allocations
-    const depts = await Department.find().exec();
-    const departmentStats = depts.map((d) => {
+    return {
+      pendingCount,
+      inProgressCount,
+      resolvedCount,
+      closedCount,
+      avgResolutionHours,
+      avgConfidence,
+      duplicateCount,
+    };
+  }
+
+  private calculateDepartmentStatistics(
+    depts: IDepartmentDocument[],
+    complaints: IComplaintDocument[],
+  ) {
+    return depts.map((d) => {
       const deptComplaints = complaints.filter((c) => c.department === d.name);
       const total = deptComplaints.length;
       const resolved = deptComplaints.filter((c) =>
@@ -119,64 +182,33 @@ class ReportService {
         resolutionRate,
       };
     });
-
-    return {
-      timeframe: range,
-      startDate,
-      endDate,
-      summary: {
-        totalComplaints: complaints.length,
-        pendingCount,
-        inProgressCount,
-        resolvedCount,
-        closedCount,
-        avgResolutionHours,
-      },
-      departments: departmentStats,
-      aiStats: {
-        avgConfidence,
-        duplicateCount,
-      },
-    };
   }
 
   convertToCSV(report: ReportData): string {
     const lines: string[] = [];
 
-    // Header
     lines.push(
       `CivicPulse Administrative Summary Report (${report.timeframe.toUpperCase()})`,
-    );
-    lines.push(
       `Date Range: ${report.startDate.toLocaleDateString()} to ${report.endDate.toLocaleDateString()}`,
-    );
-    lines.push("");
-
-    // Summary Section
-    lines.push("--- SUMMARY STATISTICS ---");
-    lines.push("Metric,Value");
-    lines.push(`Total Incident Tickets,${report.summary.totalComplaints}`);
-    lines.push(`Pending Review,${report.summary.pendingCount}`);
-    lines.push(`Work In Progress,${report.summary.inProgressCount}`);
-    lines.push(`Resolved Tickets,${report.summary.resolvedCount}`);
-    lines.push(`Closed Tickets,${report.summary.closedCount}`);
-    lines.push(
+      "",
+      "--- SUMMARY STATISTICS ---",
+      "Metric,Value",
+      `Total Incident Tickets,${report.summary.totalComplaints}`,
+      `Pending Review,${report.summary.pendingCount}`,
+      `Work In Progress,${report.summary.inProgressCount}`,
+      `Resolved Tickets,${report.summary.resolvedCount}`,
+      `Closed Tickets,${report.summary.closedCount}`,
       `Average Resolution Duration (Hours),${report.summary.avgResolutionHours}`,
-    );
-    lines.push("");
-
-    // AI Section
-    lines.push("--- AI CLASSIFIER STATISTICS ---");
-    lines.push("Metric,Value");
-    lines.push(`AI Classifier Confidence,${report.aiStats.avgConfidence}%`);
-    lines.push(`Duplicate Flags Triggered,${report.aiStats.duplicateCount}`);
-    lines.push("");
-
-    // Department Section
-    lines.push("--- DEPARTMENT PERFORMANCE ---");
-    lines.push(
+      "",
+      "--- AI CLASSIFIER STATISTICS ---",
+      "Metric,Value",
+      `AI Classifier Confidence,${report.aiStats.avgConfidence}%`,
+      `Duplicate Flags Triggered,${report.aiStats.duplicateCount}`,
+      "",
+      "--- DEPARTMENT PERFORMANCE ---",
       "Department Name,Total Assigned,Resolved Cases,Active Load,Resolution Rate (%)",
     );
+
     for (const d of report.departments) {
       lines.push(
         `"${d.name}",${d.total},${d.resolved},${d.pending},${d.resolutionRate}%`,

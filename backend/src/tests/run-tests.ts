@@ -12,6 +12,7 @@ import { adminController } from "../modules/admin/admin.controller";
 import { userManagementService } from "../modules/admin/services/user-management.service";
 import { officerService } from "../modules/officer/officer.service";
 import { fieldWorkerService } from "../modules/field-worker/field-worker.service";
+import { reportService } from "../modules/admin/services/report.service";
 
 dotenv.config();
 
@@ -290,6 +291,25 @@ const runDatabaseServiceTests = (isDbConnected: boolean) =>
     );
   });
 
+const runReportServiceTests = (isDbConnected: boolean) =>
+  executeTest("ReportService generateReport & convertToCSV Generation", async () => {
+    if (!isDbConnected) {
+      return { passed: true, details: "Skipped (no DB connection)" };
+    }
+
+    const report = await reportService.generateReport("daily");
+    const csv = reportService.convertToCSV(report);
+
+    const validStructure =
+      report.timeframe === "daily" &&
+      typeof report.summary.totalComplaints === "number" &&
+      csv.includes("CivicPulse Administrative Summary Report (DAILY)") &&
+      csv.includes("--- SUMMARY STATISTICS ---") &&
+      csv.includes("--- DEPARTMENT PERFORMANCE ---");
+
+    return validStructure;
+  });
+
 const runTests = async () => {
   const isDbConnected = await connectTestDatabase();
 
@@ -302,6 +322,7 @@ const runTests = async () => {
     await runExtendedAiTests();
     await runAdminControllerTests();
     await runDatabaseServiceTests(isDbConnected);
+    await runReportServiceTests(isDbConnected);
 
     console.log("\n🌟 Integration Test Suite finished.");
   } finally {
