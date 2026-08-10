@@ -93,48 +93,32 @@ class ReportService {
   }
 
   private calculateComplaintStatistics(complaints: IComplaintDocument[]) {
-    let pendingCount = 0;
-    let inProgressCount = 0;
-    let resolvedCount = 0;
-    let closedCount = 0;
+    const counts = {
+      pendingCount: 0,
+      inProgressCount: 0,
+      resolvedCount: 0,
+      closedCount: 0,
+    };
+
     let totalResolutionTimeMs = 0;
     let resolvedWithTimeCount = 0;
 
-    let aiConfidenceSum = 0;
-    let aiConfidenceCount = 0;
-    let duplicateCount = 0;
+    const aiStats = {
+      aiConfidenceSum: 0,
+      aiConfidenceCount: 0,
+      duplicateCount: 0,
+    };
 
     for (const c of complaints) {
-      if (c.status === "submitted") {
-        pendingCount++;
-      } else if (
-        ["ai_reviewed", "assigned", "in_progress"].includes(c.status)
-      ) {
-        inProgressCount++;
-      } else if (c.status === "resolved") {
-        resolvedCount++;
-      } else if (c.status === "closed") {
-        closedCount++;
+      this.incrementStatusCount(c.status, counts);
+
+      const duration = this.calculateResolutionDuration(c);
+      if (duration !== null) {
+        totalResolutionTimeMs += duration;
+        resolvedWithTimeCount++;
       }
 
-      // Resolution speed check: duration between createdAt and resolution date (last timeline step)
-      if (["resolved", "closed"].includes(c.status)) {
-        const resolutionStep = c.timeline.find((t) => t.status === "resolved");
-        if (resolutionStep) {
-          const duration =
-            resolutionStep.timestamp.getTime() - c.createdAt.getTime();
-          totalResolutionTimeMs += duration;
-          resolvedWithTimeCount++;
-        }
-      }
-
-      if (c.aiAnalysis) {
-        aiConfidenceSum += c.aiAnalysis.confidenceScore;
-        aiConfidenceCount++;
-        if (c.aiAnalysis.duplicateDetected) {
-          duplicateCount++;
-        }
-      }
+      this.processAiAnalysis(c, aiStats);
     }
 
     const avgResolutionHours =
@@ -145,19 +129,75 @@ class ReportService {
         : 0;
 
     const avgConfidence =
-      aiConfidenceCount > 0
-        ? Math.round(aiConfidenceSum / aiConfidenceCount)
+      aiStats.aiConfidenceCount > 0
+        ? Math.round(aiStats.aiConfidenceSum / aiStats.aiConfidenceCount)
         : 0;
 
     return {
-      pendingCount,
-      inProgressCount,
-      resolvedCount,
-      closedCount,
+      pendingCount: counts.pendingCount,
+      inProgressCount: counts.inProgressCount,
+      resolvedCount: counts.resolvedCount,
+      closedCount: counts.closedCount,
       avgResolutionHours,
       avgConfidence,
-      duplicateCount,
+      duplicateCount: aiStats.duplicateCount,
     };
+  }
+
+  private incrementStatusCount(
+    status: string,
+    counts: {
+      pendingCount: number;
+      inProgressCount: number;
+      resolvedCount: number;
+      closedCount: number;
+    },
+  ): void {
+    switch (status) {
+      case "submitted":
+        counts.pendingCount++;
+        break;
+      case "ai_reviewed":
+      case "assigned":
+      case "in_progress":
+        counts.inProgressCount++;
+        break;
+      case "resolved":
+        counts.resolvedCount++;
+        break;
+      case "closed":
+        counts.closedCount++;
+        break;
+    }
+  }
+
+  private calculateResolutionDuration(c: IComplaintDocument): number | null {
+    if (!["resolved", "closed"].includes(c.status)) {
+      return null;
+    }
+    const resolutionStep = c.timeline.find((t) => t.status === "resolved");
+    if (!resolutionStep) {
+      return null;
+    }
+    return resolutionStep.timestamp.getTime() - c.createdAt.getTime();
+  }
+
+  private processAiAnalysis(
+    c: IComplaintDocument,
+    stats: {
+      aiConfidenceSum: number;
+      aiConfidenceCount: number;
+      duplicateCount: number;
+    },
+  ): void {
+    if (!c.aiAnalysis) {
+      return;
+    }
+    stats.aiConfidenceSum += c.aiAnalysis.confidenceScore;
+    stats.aiConfidenceCount++;
+    if (c.aiAnalysis.duplicateDetected) {
+      stats.duplicateCount++;
+    }
   }
 
   private calculateDepartmentStatistics(

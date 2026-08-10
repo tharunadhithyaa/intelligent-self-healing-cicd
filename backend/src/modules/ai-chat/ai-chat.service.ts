@@ -7,6 +7,12 @@ import Department from "../../models/department.model";
 import { ApiError } from "../../utils/api-error.util";
 import { TokenPayload } from "../../utils/jwt.util";
 
+interface PopulatedCitizen {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
+
 class AIChatService {
   async getConversations(userId: string): Promise<IConversationDocument[]> {
     return await Conversation.find({
@@ -98,135 +104,216 @@ class AIChatService {
   ): Promise<string> {
     const cleanText = text.toLowerCase().trim();
 
-    // ─── Citizen Assistance Flow ───
     if (user.role === "citizen") {
-      // 1. Submit guidance
-      if (
-        cleanText.includes("submit") ||
-        cleanText.includes("report") ||
-        cleanText.includes("create issue")
-      ) {
-        return `To submit a new complaint, navigate to the **Report Issue** tab in the sidebar. The system runs a 4-step wizard:
+      return this.handleCitizenAIResponse(user, cleanText);
+    }
+
+    if (user.role === "officer" || user.role === "admin") {
+      return this.handleStaffAIResponse(user, cleanText);
+    }
+
+    return this.getDefaultAIResponse();
+  }
+
+  // ─── Citizen Flow ───
+  private async handleCitizenAIResponse(
+    user: TokenPayload,
+    cleanText: string,
+  ): Promise<string> {
+    if (this.isSubmitRequest(cleanText)) {
+      return this.getSubmitGuidance();
+    }
+
+    if (this.isStatusRequest(cleanText)) {
+      return this.getCitizenComplaintStatus(user);
+    }
+
+    const ticketId = this.extractTicketId(cleanText);
+    if (ticketId) {
+      return this.getCitizenComplaintDetails(user, ticketId);
+    }
+
+    if (this.isDepartmentRequest(cleanText)) {
+      return this.getDepartmentProfiles();
+    }
+
+    return this.getCitizenDefaultResponse();
+  }
+
+  private isSubmitRequest(text: string): boolean {
+    return (
+      text.includes("submit") ||
+      text.includes("report") ||
+      text.includes("create issue")
+    );
+  }
+
+  private isStatusRequest(text: string): boolean {
+    return (
+      text.includes("status") ||
+      text.includes("my complaint") ||
+      text.includes("my tickets") ||
+      text.includes("track")
+    );
+  }
+
+  private isDepartmentRequest(text: string): boolean {
+    return (
+      text.includes("department") ||
+      text.includes("agency") ||
+      text.includes("who handles")
+    );
+  }
+
+  private getSubmitGuidance(): string {
+    return `To submit a new complaint, navigate to the **Report Issue** tab in the sidebar. The system runs a 4-step wizard:
 1. **Issue Info**: Enter your title, description, category, and address.
 2. **AI Copilot**: Inspect predicted category, suggested department, and potential duplicates. You can override suggestions if necessary.
 3. **Media Upload**: Attach up to 3 photos (maximum 2MB per image, JPG/PNG formats).
 4. **Final Confirmation**: Review all fields and submit your ticket. Let me know if you need help explaining categories!`;
-      }
+  }
 
-      // 2. Check status of complaints
-      if (
-        cleanText.includes("status") ||
-        cleanText.includes("my complaint") ||
-        cleanText.includes("my tickets") ||
-        cleanText.includes("track")
-      ) {
-        // Look up citizen complaints
-        const list = await Complaint.find({
-          citizen: new mongoose.Types.ObjectId(user.userId),
-        })
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .exec();
+  private async getCitizenComplaintStatus(user: TokenPayload): Promise<string> {
+    const list = await Complaint.find({
+      citizen: new mongoose.Types.ObjectId(user.userId),
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .exec();
 
-        if (list.length === 0) {
-          return "You haven't submitted any incident tickets in CivicPulse yet. Would you like instructions on how to submit a new complaint?";
-        }
+    if (list.length === 0) {
+      return "You haven't submitted any incident tickets in CivicPulse yet. Would you like instructions on how to submit a new complaint?";
+    }
 
-        const items = list
-          .map(
-            (c) =>
-              `• **${c.title}** (Category: *${c.category}*, Status: **${c.status.toUpperCase()}**) - ID: \`${c._id}\``,
-          )
-          .join("\n");
-        return `Here are your recent submitted incidents:
+    const items = list
+      .map(
+        (c) =>
+          `• **${c.title}** (Category: *${c.category}*, Status: **${c.status.toUpperCase()}**) - ID: \`${c._id}\``,
+      )
+      .join("\n");
+
+    return `Here are your recent submitted incidents:
 ${items}
 
 To get details or explain resolution progress for a specific ticket, please ask me about its ID or paste the ID directly!`;
-      }
+  }
 
-      // 3. Specific Complaint ID lookup
-      const idMatch = cleanText.match(/[0-9a-f]{24}/i);
-      if (idMatch) {
-        const ticketId = idMatch[0];
-        const ticket = await Complaint.findOne({
-          _id: new mongoose.Types.ObjectId(ticketId),
-          citizen: new mongoose.Types.ObjectId(user.userId),
-        });
+  private async getCitizenComplaintDetails(
+    user: TokenPayload,
+    ticketId: string,
+  ): Promise<string> {
+    const ticket = await Complaint.findOne({
+      _id: new mongoose.Types.ObjectId(ticketId),
+      citizen: new mongoose.Types.ObjectId(user.userId),
+    });
 
-        if (!ticket) {
-          return "I couldn't find a complaint matching that ID in your account record. Please make sure the ID is correct and belongs to you.";
-        }
+    if (!ticket) {
+      return "I couldn't find a complaint matching that ID in your account record. Please make sure the ID is correct and belongs to you.";
+    }
 
-        const lastTimeline = ticket.timeline[ticket.timeline.length - 1];
-        return `**Incident Details: "${ticket.title}"**
+    const lastTimeline = ticket.timeline.at(-1);
+    const priority = ticket.aiAnalysis?.priority?.toUpperCase() ?? "MEDIUM";
+    const department = ticket.department || "Not Assigned Yet";
+    const statusUpper = ticket.status.toUpperCase();
+    const actionDesc = lastTimeline?.description ?? "Submitted";
+    const actionDate = lastTimeline
+      ? new Date(lastTimeline.timestamp).toLocaleDateString()
+      : "N/A";
+
+    return `**Incident Details: "${ticket.title}"**
 • **Category**: ${ticket.category}
-• **Priority Severity**: ${ticket.aiAnalysis ? ticket.aiAnalysis.priority.toUpperCase() : "MEDIUM"}
-• **Assigned Department**: ${ticket.department || "Not Assigned Yet"}
-• **Current Status**: **${ticket.status.toUpperCase()}**
-• **Latest Action**: ${lastTimeline ? lastTimeline.description : "Submitted"} on ${lastTimeline ? new Date(lastTimeline.timestamp).toLocaleDateString() : "N/A"}
+• **Priority Severity**: ${priority}
+• **Assigned Department**: ${department}
+• **Current Status**: **${statusUpper}**
+• **Latest Action**: ${actionDesc} on ${actionDate}
 
 *Resolution Progress*: The ticket is currently in the **${ticket.status}** stage. Officers will verify coordinates and reallocate to field crews for repairs. Let me know if you need to know about assigned departments!`;
-      }
+  }
 
-      // 4. Department Profiles
-      if (
-        cleanText.includes("department") ||
-        cleanText.includes("agency") ||
-        cleanText.includes("who handles")
-      ) {
-        const depts = await Department.find({ status: "active" })
-          .select("name contactInfo")
-          .exec();
-        const listStr = depts
-          .map((d) => `• **${d.name}** (Contact: *${d.contactInfo}*)`)
-          .join("\n");
-        return `Here are our active municipal support agencies:
+  private async getDepartmentProfiles(): Promise<string> {
+    const depts = await Department.find({ status: "active" })
+      .select("name contactInfo")
+      .exec();
+
+    const listStr = depts
+      .map((d) => `• **${d.name}** (Contact: *${d.contactInfo}*)`)
+      .join("\n");
+
+    return `Here are our active municipal support agencies:
 ${listStr}
 
 Our backend AI Classifier automatically routes your complaints to the correct department based on keywords in your description.`;
-      }
+  }
 
-      // Default Citizen Help
-      return "Hello! I am your CivicPulse AI assistant chatbot. I can guide you through **submitting new complaints**, **tracking ticket status**, looking up **department contact sheets**, or answering general municipal questions. Try typing 'my complaints' or 'how do I report an issue'!";
+  private getCitizenDefaultResponse(): string {
+    return "Hello! I am your CivicPulse AI assistant chatbot. I can guide you through **submitting new complaints**, **tracking ticket status**, looking up **department contact sheets**, or answering general municipal questions. Try typing 'my complaints' or 'how do I report an issue'!";
+  }
+
+  // ─── Staff Flow ───
+  private async handleStaffAIResponse(
+    user: TokenPayload,
+    cleanText: string,
+  ): Promise<string> {
+    const ticketId = this.extractTicketId(cleanText);
+    if (ticketId) {
+      return this.getStaffComplaintDetails(ticketId);
     }
 
-    // ─── Officer & Admin Assistance Flow ───
-    if (user.role === "officer" || user.role === "admin") {
-      // 1. Complaint Lookup by ID (officers have full system visibility)
-      const idMatch = cleanText.match(/[0-9a-f]{24}/i);
-      if (idMatch) {
-        const ticketId = idMatch[0];
-        const ticket = await Complaint.findById(ticketId).populate(
-          "citizen",
-          "firstName lastName email",
-        );
+    if (
+      user.role === "admin" &&
+      (cleanText.includes("analytics") ||
+        cleanText.includes("stats") ||
+        cleanText.includes("system info"))
+    ) {
+      return this.getAdminAnalyticsGuide();
+    }
 
-        if (!ticket) {
-          return "I couldn't find a system complaint matching that ID. Please check the hex identifier.";
-        }
+    return this.getStaffDefaultResponse(user.role);
+  }
 
-        const lastTimeline = ticket.timeline[ticket.timeline.length - 1];
-        return `**[INTERNAL RETAIL SHEET] ID: ${ticket._id}**
+  private async getStaffComplaintDetails(ticketId: string): Promise<string> {
+    const ticket = await Complaint.findById(ticketId).populate(
+      "citizen",
+      "firstName lastName email",
+    );
+
+    if (!ticket) {
+      return "I couldn't find a system complaint matching that ID. Please check the hex identifier.";
+    }
+
+    const lastTimeline = ticket.timeline.at(-1);
+    const submitterInfo = this.formatCitizenInfo(ticket.citizen);
+    const priority = ticket.aiAnalysis?.priority?.toUpperCase() ?? "MEDIUM";
+    const department = ticket.department || "None";
+    const confidence = ticket.aiAnalysis?.confidenceScore ?? 0;
+    const lastUpdate = lastTimeline?.description ?? "N/A";
+
+    return `**[INTERNAL RETAIL SHEET] ID: ${ticket._id}**
 • **Title**: "${ticket.title}"
-• **Submitter**: ${ticket.citizen ? (ticket.citizen as any).firstName + " " + (ticket.citizen as any).lastName : "Citizen"} (${(ticket.citizen as any)?.email || "N/A"})
-• **Status**: **${ticket.status.toUpperCase()}** (Priority: *${ticket.aiAnalysis ? ticket.aiAnalysis.priority.toUpperCase() : "MEDIUM"}*)
-• **Assigned Agency**: ${ticket.department || "None"}
-• **AI Classification Confidence**: ${ticket.aiAnalysis ? ticket.aiAnalysis.confidenceScore : 0}%
+• **Submitter**: ${submitterInfo}
+• **Status**: **${ticket.status.toUpperCase()}** (Priority: *${priority}*)
+• **Assigned Agency**: ${department}
+• **AI Classification Confidence**: ${confidence}%
 
 **Suggested Actions**:
 - If status is *submitted*, review coordinates and reassign/dispatch.
 - If status is *assigned*, allocate to an active field worker.
-- Current timeline last updated: ${lastTimeline ? lastTimeline.description : "N/A"}`;
-      }
+- Current timeline last updated: ${lastUpdate}`;
+  }
 
-      // 2. Admin System / Analytics Guide
-      if (
-        user.role === "admin" &&
-        (cleanText.includes("analytics") ||
-          cleanText.includes("stats") ||
-          cleanText.includes("system info"))
-      ) {
-        return `**CivicPulse Administration Dashboard Diagnostics Guide**:
+  private formatCitizenInfo(citizen: unknown): string {
+    if (!citizen || typeof citizen !== "object") {
+      return "Citizen (N/A)";
+    }
+    const c = citizen as PopulatedCitizen;
+    const name =
+      [c.firstName, c.lastName].filter(Boolean).join(" ") || "Citizen";
+    const email = c.email || "N/A";
+    return `${name} (${email})`;
+  }
+
+  private getAdminAnalyticsGuide(): string {
+    return `**CivicPulse Administration Dashboard Diagnostics Guide**:
 • **Overview Cards**: Tracks total Citizens, incident counts, pending audit files, active workloads, and resolved cases.
 • **Monthly Complaint Trends**: SVG line chart tracking ticket creation vs resolution rates over the past 6 months.
 • **AI Diagnostics**: Gauge charts highlighting predicted category precision, severity weights, and duplicate detection performance (baseline 92%).
@@ -234,18 +321,25 @@ Our backend AI Classifier automatically routes your complaints to the correct de
 • **System Ledger**: Ledger tracking security locks, deactivations, and reassignments.
 
 Let me know if you want to inspect a specific ticket by pasting its ID!`;
-      }
+  }
 
-      // Default Admin/Officer Help
-      return `Welcome, ${user.role === "admin" ? "Administrator" : "Officer"}! I am the internal control AI assistant. I can:
+  private getStaffDefaultResponse(role: string): string {
+    const roleTitle = role === "admin" ? "Administrator" : "Officer";
+    return `Welcome, ${roleTitle}! I am the internal control AI assistant. I can:
 1. Provide summaries and suggested workflow steps for any incident ticket (paste the 24-character hex ID).
 2. Look up related complaints coordinates.
 3. Guide you through dashboard analytics and control panels.
 
 What can I assist you with today?`;
-    }
+  }
 
+  private getDefaultAIResponse(): string {
     return "Hello! I am your CivicPulse AI assistant. How can I assist you today?";
+  }
+
+  private extractTicketId(text: string): string | null {
+    const match = /[0-9a-f]{24}/i.exec(text);
+    return match ? match[0] : null;
   }
 }
 
