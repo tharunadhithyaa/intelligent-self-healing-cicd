@@ -299,17 +299,127 @@ const runReportServiceTests = (isDbConnected: boolean) =>
       return { passed: true, details: "Skipped (no DB connection)" };
     }
 
-    const report = await reportService.generateReport("daily");
-    const csv = reportService.convertToCSV(report);
+    const testUser = await User.create({
+      firstName: "Report",
+      lastName: "Tester",
+      email: `reporttest_${Date.now()}@test.com`,
+      password: "password123",
+      role: "citizen",
+      isActive: true,
+    });
 
-    const validStructure =
-      report.timeframe === "daily" &&
-      typeof report.summary.totalComplaints === "number" &&
-      csv.includes("CivicPulse Administrative Summary Report (DAILY)") &&
+    const deptActive = await Department.create({
+      name: "Road Maintenance",
+      description: "Fixes roads",
+      contactInfo: "555-ROAD",
+      status: "active",
+    });
+
+    const deptEmpty = await Department.create({
+      name: "Parks & Recreation",
+      description: "Parks",
+      contactInfo: "555-PARK",
+      status: "active",
+    });
+
+    // Create complaints covering statuses & branches:
+    // 1. Submitted (no AI analysis)
+    await Complaint.create({
+      title: "Broken curb",
+      description: "Curb damaged",
+      category: "Road Damage",
+      department: "Road Maintenance",
+      location: { latitude: 12.97, longitude: 77.59, address: "Road 1" },
+      status: "submitted",
+      citizen: testUser._id,
+      timeline: [{ status: "submitted", title: "Sub", description: "Created", timestamp: new Date() }],
+    });
+
+    // 2. In progress (with AI analysis & duplicate detected)
+    await Complaint.create({
+      title: "Pothole main road",
+      description: "Pothole issue",
+      category: "Road Damage",
+      department: "Road Maintenance",
+      location: { latitude: 12.97, longitude: 77.59, address: "Road 2" },
+      status: "in_progress",
+      citizen: testUser._id,
+      aiAnalysis: {
+        category: "Road Damage",
+        priority: "high",
+        department: "Road Maintenance",
+        duplicateDetected: true,
+        summary: "Pothole",
+        confidenceScore: 80,
+      },
+      timeline: [{ status: "in_progress", title: "In Prog", description: "Assigned", timestamp: new Date() }],
+    });
+
+    // 3. Resolved with timeline resolution step
+    await Complaint.create({
+      title: "Fixed streetlight",
+      description: "Light fixed",
+      category: "Streetlight Issue",
+      department: "Road Maintenance",
+      location: { latitude: 12.97, longitude: 77.59, address: "Road 3" },
+      status: "resolved",
+      citizen: testUser._id,
+      aiAnalysis: {
+        category: "Streetlight Issue",
+        priority: "medium",
+        department: "Road Maintenance",
+        duplicateDetected: false,
+        summary: "Light fixed",
+        confidenceScore: 90,
+      },
+      timeline: [
+        { status: "submitted", title: "Sub", description: "Created", timestamp: new Date(Date.now() - 3600000 * 5) },
+        { status: "resolved", title: "Resolved", description: "Fixed", timestamp: new Date() },
+      ],
+    });
+
+    // 4. Closed without resolution step
+    await Complaint.create({
+      title: "Closed ticket no timeline step",
+      description: "Closed directly",
+      category: "Road Damage",
+      department: "Road Maintenance",
+      location: { latitude: 12.97, longitude: 77.59, address: "Road 4" },
+      status: "closed",
+      citizen: testUser._id,
+      timeline: [{ status: "closed", title: "Closed", description: "Done", timestamp: new Date() }],
+    });
+
+    // Test all range branches
+    const dailyReport = await reportService.generateReport("daily");
+    const weeklyReport = await reportService.generateReport("weekly");
+    const monthlyReport = await reportService.generateReport("monthly");
+    const yearlyReport = await reportService.generateReport("yearly");
+
+    const csv = reportService.convertToCSV(dailyReport);
+
+    // Cleanup
+    await User.findByIdAndDelete(testUser._id);
+    await Complaint.deleteMany({ citizen: testUser._id });
+    await Department.findByIdAndDelete(deptActive._id);
+    await Department.findByIdAndDelete(deptEmpty._id);
+
+    const valid =
+      dailyReport.timeframe === "daily" &&
+      weeklyReport.timeframe === "weekly" &&
+      monthlyReport.timeframe === "monthly" &&
+      yearlyReport.timeframe === "yearly" &&
+      dailyReport.summary.pendingCount >= 1 &&
+      dailyReport.summary.inProgressCount >= 1 &&
+      dailyReport.summary.resolvedCount >= 1 &&
+      dailyReport.summary.closedCount >= 1 &&
+      dailyReport.summary.avgResolutionHours >= 0 &&
+      dailyReport.aiStats.avgConfidence > 0 &&
+      dailyReport.aiStats.duplicateCount >= 1 &&
       csv.includes("--- SUMMARY STATISTICS ---") &&
       csv.includes("--- DEPARTMENT PERFORMANCE ---");
 
-    return validStructure;
+    return valid;
   });
 
 const runAiChatServiceTests = (isDbConnected: boolean) =>
