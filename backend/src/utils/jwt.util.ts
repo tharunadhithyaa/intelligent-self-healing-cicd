@@ -43,13 +43,13 @@ export const verifyRefreshToken = (token: string): TokenPayload => {
 
 export const getRefreshTokenExpiryDate = (): Date => {
   const expiryStr = config.jwt.refreshExpiry;
-  const match = expiryStr.match(/^(\d+)([dhms])$/);
+  const match = /^(\d+)([dhms])$/.exec(expiryStr);
 
   if (!match) {
     return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default 7 days
   }
 
-  const value = parseInt(match[1], 10);
+  const value = Number.parseInt(match[1], 10);
   const unit = match[2];
 
   const multipliers: Record<string, number> = {

@@ -4,7 +4,13 @@ import User from "../models/user.model";
 import Complaint from "../models/complaint.model";
 import Role from "../models/role.model";
 import { hashPassword, comparePassword } from "../utils/password.util";
-import { generateTokenPair, verifyAccessToken } from "../utils/jwt.util";
+import {
+  generateTokenPair,
+  verifyAccessToken,
+  verifyRefreshToken,
+  getRefreshTokenExpiryDate,
+} from "../utils/jwt.util";
+import config from "../config";
 import { aiService } from "../modules/complaints/ai.service";
 import { apiCache } from "../utils/cache.util";
 import { securitySanitizer } from "../middleware/security.middleware";
@@ -90,15 +96,76 @@ const runPasswordTests = () =>
   });
 
 const runJwtTests = () =>
-  executeTest("JWT Sign & Access Verification", async () => {
+  executeTest("JWT Sign, Refresh Verification & Expiry Calculations", async () => {
     const payload = {
       userId: "507f1f77bcf86cd799439011",
       email: "officer@test.com",
       role: "officer",
     };
     const tokens = generateTokenPair(payload);
-    const verified = verifyAccessToken(tokens.accessToken);
-    return verified.email === payload.email && verified.role === payload.role;
+    const verifiedAccess = verifyAccessToken(tokens.accessToken);
+    const verifiedRefresh = verifyRefreshToken(tokens.refreshToken);
+
+    const accessValid =
+      verifiedAccess.email === payload.email &&
+      verifiedAccess.role === payload.role;
+    const refreshValid =
+      verifiedRefresh.email === payload.email &&
+      verifiedRefresh.role === payload.role;
+
+    // Unit tests for getRefreshTokenExpiryDate (d, h, m, s, and invalid fallback)
+    const originalRefreshExpiry = config.jwt.refreshExpiry;
+
+    let daysExpiryValid = false;
+    let hoursExpiryValid = false;
+    let minutesExpiryValid = false;
+    let secondsExpiryValid = false;
+    let invalidFallbackValid = false;
+
+    try {
+      // 1. Days (7d)
+      config.jwt.refreshExpiry = "7d";
+      const dDate = getRefreshTokenExpiryDate();
+      const dDiff = dDate.getTime() - Date.now();
+      daysExpiryValid = dDiff > 6.9 * 24 * 3600 * 1000 && dDiff < 7.1 * 24 * 3600 * 1000;
+
+      // 2. Hours (2h)
+      config.jwt.refreshExpiry = "2h";
+      const hDate = getRefreshTokenExpiryDate();
+      const hDiff = hDate.getTime() - Date.now();
+      hoursExpiryValid = hDiff > 1.9 * 3600 * 1000 && hDiff < 2.1 * 3600 * 1000;
+
+      // 3. Minutes (30m)
+      config.jwt.refreshExpiry = "30m";
+      const mDate = getRefreshTokenExpiryDate();
+      const mDiff = mDate.getTime() - Date.now();
+      minutesExpiryValid = mDiff > 29 * 60 * 1000 && mDiff < 31 * 60 * 1000;
+
+      // 4. Seconds (45s)
+      config.jwt.refreshExpiry = "45s";
+      const sDate = getRefreshTokenExpiryDate();
+      const sDiff = sDate.getTime() - Date.now();
+      secondsExpiryValid = sDiff > 44 * 1000 && sDiff < 46 * 1000;
+
+      // 5. Invalid string (triggers 7-day fallback)
+      config.jwt.refreshExpiry = "invalid_expiry_format";
+      const fallbackDate = getRefreshTokenExpiryDate();
+      const fallbackDiff = fallbackDate.getTime() - Date.now();
+      invalidFallbackValid =
+        fallbackDiff > 6.9 * 24 * 3600 * 1000 && fallbackDiff < 7.1 * 24 * 3600 * 1000;
+    } finally {
+      config.jwt.refreshExpiry = originalRefreshExpiry;
+    }
+
+    return (
+      accessValid &&
+      refreshValid &&
+      daysExpiryValid &&
+      hoursExpiryValid &&
+      minutesExpiryValid &&
+      secondsExpiryValid &&
+      invalidFallbackValid
+    );
   });
 
 const runAiClassificationTests = () =>
