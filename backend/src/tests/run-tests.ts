@@ -180,18 +180,37 @@ const runAiClassificationTests = () =>
   });
 
 const runCacheTests = () =>
-  executeTest("In-Memory SimpleCache Performance & Invalidation", async () => {
+  executeTest("In-Memory SimpleCache Performance, Expiration & Invalidation", async () => {
+    // 1. Cache miss (key does not exist)
+    const nonExistent = apiCache.get<any>("key_does_not_exist_999");
+    const missValid = nonExistent === null;
+
+    // 2. Cache hit (item has not expired)
     const cacheKey = "test_key";
     const cacheValue = { departments: ["Sanitation", "PWD"] };
-    apiCache.set(cacheKey, cacheValue, 1000);
+    apiCache.set(cacheKey, cacheValue, 5000);
     const fetched = apiCache.get<any>(cacheKey);
+    const hitValid = fetched !== null && fetched.departments[0] === "Sanitation";
+
+    // 3. Deletion behavior
     apiCache.delete(cacheKey);
     const fetchedAfterDelete = apiCache.get<any>(cacheKey);
-    return (
-      fetched !== null &&
-      fetched.departments[0] === "Sanitation" &&
-      fetchedAfterDelete === null
-    );
+    const deleteValid = fetchedAfterDelete === null;
+
+    // 4. Expired cache entry branch (expiresAt < Date.now())
+    const expiredKey = "expired_key";
+    apiCache.set(expiredKey, "expired_value", -50); // ttlMs in past
+    const fetchedExpired = apiCache.get<any>(expiredKey); // triggers item.expiresAt < Date.now() -> delete & return null
+    const fetchedExpiredAgain = apiCache.get<any>(expiredKey); // key is deleted, returns null
+    const expiredValid = fetchedExpired === null && fetchedExpiredAgain === null;
+
+    // 5. Clear cache behavior
+    apiCache.set("temp1", "v1", 5000);
+    apiCache.set("temp2", "v2", 5000);
+    apiCache.clear();
+    const clearValid = apiCache.get("temp1") === null && apiCache.get("temp2") === null;
+
+    return missValid && hitValid && deleteValid && expiredValid && clearValid;
   });
 
 const runSecurityMiddlewareTests = () =>

@@ -7,7 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { AuthService } from '../../core/services/auth.service';
 import { ComplaintsService } from '../../core/services/complaints.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { Complaint, ComplaintTimeline } from '../../core/models/complaint.model';
+import { Complaint } from '../../core/models/complaint.model';
 import { ROUTE_PATHS } from '../../core/constants/route.constants';
 
 interface DashboardActivity {
@@ -677,8 +677,10 @@ export class DashboardComponent implements OnInit {
     }
 
     // Sort by timestamp descending and take the top 5
-    return list
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 5);
+    const sortedList = [...list];
+    sortedList.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+    return sortedList.slice(0, 5);
   });
 }

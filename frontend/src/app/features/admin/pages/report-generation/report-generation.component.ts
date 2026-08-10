@@ -314,12 +314,12 @@ export class ReportGenerationComponent implements OnInit {
 
   chartPoints = computed<ChartDataPoint[]>(() => {
     const r = this.reportData();
-    if (!r || !r.departments) return [];
-
-    return r.departments.map((d) => ({
-      label: d.name,
-      value: d.total,
-    }));
+    return (
+      r?.departments?.map((d) => ({
+        label: d.name,
+        value: d.total,
+      })) ?? []
+    );
   });
 
   ngOnInit(): void {
@@ -355,7 +355,7 @@ export class ReportGenerationComponent implements OnInit {
         a.download = `civicpulse-report-${range}-${new Date().toISOString().substring(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        a.remove();
         window.URL.revokeObjectURL(url);
 
         this.notificationService.success('CSV Report successfully downloaded');

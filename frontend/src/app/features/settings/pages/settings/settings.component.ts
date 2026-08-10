@@ -576,7 +576,7 @@ export class SettingsComponent implements OnInit {
         a.download = 'account_data.json';
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        a.remove();
         window.URL.revokeObjectURL(url);
         this.notification.success('Data download started.');
       },

@@ -1,5 +1,5 @@
 class SimpleCache {
-  private cache = new Map<string, { value: any; expiresAt: number }>();
+  private readonly cache = new Map<string, { value: any; expiresAt: number }>();
 
   get<T>(key: string): T | null {
     const item = this.cache.get(key);
