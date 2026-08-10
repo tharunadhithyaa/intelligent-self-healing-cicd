@@ -14,6 +14,8 @@ import { officerService } from "../modules/officer/officer.service";
 import { fieldWorkerService } from "../modules/field-worker/field-worker.service";
 import { reportService } from "../modules/admin/services/report.service";
 import { aiChatService } from "../modules/ai-chat/ai-chat.service";
+import { auditService } from "../modules/admin/services/audit.service";
+import { auditLogRepository } from "../repositories/audit-log.repository";
 import Department from "../models/department.model";
 
 dotenv.config();
@@ -627,6 +629,68 @@ const runAiChatServiceTests = (isDbConnected: boolean) =>
     );
   });
 
+const runAuditServiceTests = (isDbConnected: boolean) =>
+  executeTest(
+    "AuditService log, catch-block error handling & getAuditLogs options",
+    async () => {
+      if (isDbConnected) {
+        await auditService.log({
+          actorId: new mongoose.Types.ObjectId().toString(),
+          actorEmail: "audit@test.com",
+          actorRole: "admin",
+          action: "TEST_AUDIT_ACTION",
+          target: "System",
+          details: { test: true },
+        });
+
+        const res = await auditService.getAuditLogs({
+          action: "TEST_AUDIT_ACTION",
+          role: "admin",
+          target: "System",
+          search: "audit",
+          sortField: "timestamp",
+          sortOrder: "desc",
+          page: 1,
+          limit: 5,
+        });
+
+        if (!res.logs || typeof res.total !== "number") {
+          return false;
+        }
+      }
+
+      // Failure path to test catch (err) block in auditService.log
+      const originalError = console.error;
+      let consoleErrorCalled = false;
+      let consoleErrorArgs: any[] = [];
+      console.error = (...args: any[]) => {
+        consoleErrorCalled = true;
+        consoleErrorArgs = args;
+      };
+
+      const originalCreate = auditLogRepository.create;
+      auditLogRepository.create = async () => {
+        throw new Error("Audit DB error simulation");
+      };
+
+      try {
+        await auditService.log({
+          action: "FAIL_ACTION",
+        });
+      } finally {
+        auditLogRepository.create = originalCreate;
+        console.error = originalError;
+      }
+
+      return (
+        consoleErrorCalled &&
+        consoleErrorArgs[0] === "Failed to write audit log:" &&
+        consoleErrorArgs[1] instanceof Error &&
+        consoleErrorArgs[1].message === "Audit DB error simulation"
+      );
+    },
+  );
+
 const runTests = async () => {
   const isDbConnected = await connectTestDatabase();
 
@@ -641,6 +705,7 @@ const runTests = async () => {
     await runDatabaseServiceTests(isDbConnected);
     await runReportServiceTests(isDbConnected);
     await runAiChatServiceTests(isDbConnected);
+    await runAuditServiceTests(isDbConnected);
 
     console.log("\n🌟 Integration Test Suite finished.");
   } finally {

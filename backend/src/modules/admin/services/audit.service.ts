@@ -14,6 +14,19 @@ export interface AuditLogInput {
   userAgent?: string;
 }
 
+export interface AuditLogQueryOptions {
+  search?: string;
+  action?: string;
+  role?: string;
+  target?: string;
+  startDate?: string;
+  endDate?: string;
+  sortField?: string;
+  sortOrder?: string;
+  page?: number;
+  limit?: number;
+}
+
 class AuditService {
   async log(data: AuditLogInput): Promise<void> {
     try {
@@ -37,17 +50,20 @@ class AuditService {
   }
 
   async getAuditLogs(
-    search?: string,
-    action?: string,
-    role?: string,
-    target?: string,
-    startDate?: string,
-    endDate?: string,
-    sortField = "timestamp",
-    sortOrder = "desc",
-    page = 1,
-    limit = 10,
+    options: AuditLogQueryOptions = {},
   ): Promise<{ logs: IAuditLogDocument[]; total: number }> {
+    const {
+      search,
+      action,
+      role,
+      target,
+      startDate,
+      endDate,
+      sortField = "timestamp",
+      sortOrder = "desc",
+      page = 1,
+      limit = 10,
+    } = options;
     const filter: Record<string, any> = {};
 
     if (action) {

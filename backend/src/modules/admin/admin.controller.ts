@@ -342,7 +342,7 @@ class AdminController {
         ? Number.parseInt(req.query["limit"] as string, 10)
         : 10;
 
-      const data = await auditService.getAuditLogs(
+      const data = await auditService.getAuditLogs({
         search,
         action,
         role,
@@ -353,7 +353,7 @@ class AdminController {
         sortOrder,
         page,
         limit,
-      );
+      });
       ApiResponse.success(res, "Audit logs fetched successfully", data);
     } catch (error) {
       next(error);
