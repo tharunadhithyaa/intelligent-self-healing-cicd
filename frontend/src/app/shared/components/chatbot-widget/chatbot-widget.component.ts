@@ -681,11 +681,17 @@ export class ChatbotWidgetComponent implements OnInit, AfterViewInit, OnDestroy 
   messages = signal<ChatMessage[]>([]);
 
   private getInitialText(): string {
-    return this.authService.userRole() === 'admin'
-      ? 'Hello! I am the CivicPulse Admin Copilot. I can explain dashboard analytics, charts, ledger actions, or details of any incident ticket. Paste a ticket ID to query its resolution roadmap.'
-      : this.authService.userRole() === 'officer'
-        ? 'Hello! I am the internal officer assistant. I can summarize complaints and suggest workflow steps. Paste a complaint ID to get started.'
-        : 'Hello! I am your CivicPulse AI Assistant. I can help guide you through submitting issues, tracking your incident folder, or retrieving department directories. How can I help you today?';
+    const role = this.authService.userRole();
+
+    if (role === 'admin') {
+      return 'Hello! I am the CivicPulse Admin Copilot. I can explain dashboard analytics, charts, ledger actions, or details of any incident ticket. Paste a ticket ID to query its resolution roadmap.';
+    }
+
+    if (role === 'officer') {
+      return 'Hello! I am the internal officer assistant. I can summarize complaints and suggest workflow steps. Paste a complaint ID to get started.';
+    }
+
+    return 'Hello! I am your CivicPulse AI Assistant. I can help guide you through submitting issues, tracking your incident folder, or retrieving department directories. How can I help you today?';
   }
 
   ngOnInit(): void {
