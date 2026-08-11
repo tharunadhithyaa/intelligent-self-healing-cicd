@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { ApiResponse } from '../models/api-response.model';
-import { InAppNotification } from '../models/admin.model';
 
 import { environment } from '../../../environments/environment';
 

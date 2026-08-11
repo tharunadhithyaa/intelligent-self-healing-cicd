@@ -24,6 +24,7 @@
             document.documentElement.classList.add('theme-dark');
           }
         } catch (e) {
+          console.warn('Failed to initialize theme:', e);
           document.documentElement.classList.remove('theme-dark');
         }
       })();
