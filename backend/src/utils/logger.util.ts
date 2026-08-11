@@ -7,9 +7,12 @@ export const logFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : "";
-    const stackStr = stack
-      ? `\n${typeof stack === "string" ? stack : JSON.stringify(stack)}`
-      : "";
+    let stackStr = "";
+    if (stack) {
+      const formattedStack =
+        typeof stack === "string" ? stack : JSON.stringify(stack);
+      stackStr = `\n${formattedStack}`;
+    }
     return `[${timestamp}] ${level.toUpperCase()}: ${message}${metaStr}${stackStr}`;
   }),
 );
@@ -18,9 +21,12 @@ export const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: "HH:mm:ss" }),
   winston.format.printf(({ timestamp, level, message, stack }) => {
-    const stackStr = stack
-      ? `\n${typeof stack === "string" ? stack : JSON.stringify(stack)}`
-      : "";
+    let stackStr = "";
+    if (stack) {
+      const formattedStack =
+        typeof stack === "string" ? stack : JSON.stringify(stack);
+      stackStr = `\n${formattedStack}`;
+    }
     return `[${timestamp}] ${level}: ${message}${stackStr}`;
   }),
 );
