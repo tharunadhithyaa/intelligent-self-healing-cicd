@@ -12,7 +12,7 @@ export const authenticate = (
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!authHeader?.startsWith("Bearer ")) {
       throw ApiError.unauthorized(ErrorMessages.TOKEN_REQUIRED);
     }
 
