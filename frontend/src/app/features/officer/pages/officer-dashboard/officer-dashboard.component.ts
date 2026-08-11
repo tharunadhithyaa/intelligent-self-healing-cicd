@@ -334,7 +334,7 @@ export class OfficerDashboardComponent implements OnInit {
 
   workloadChartData = computed<ChartDataPoint[]>(() => {
     const s = this.deptStats();
-    if (!s || !s.workload) return [];
+    if (!s?.workload) return [];
     return [
       { label: 'Submitted', value: s.workload.submitted || 0 },
       { label: 'In Progress', value: s.workload.inProgress || 0 },

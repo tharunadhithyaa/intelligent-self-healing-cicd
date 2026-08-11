@@ -23,7 +23,9 @@
           ) {
             document.documentElement.classList.add('theme-dark');
           }
-        } catch (e) {}
+        } catch (e) {
+          document.documentElement.classList.remove('theme-dark');
+        }
       })();
     </script>
   </head>

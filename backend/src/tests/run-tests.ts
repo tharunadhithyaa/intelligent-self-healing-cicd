@@ -23,6 +23,7 @@ import { aiChatService } from "../modules/ai-chat/ai-chat.service";
 import { auditService } from "../modules/admin/services/audit.service";
 import { auditLogRepository } from "../repositories/audit-log.repository";
 import Department from "../models/department.model";
+import { logger, logFormat, consoleFormat } from "../utils/logger.util";
 
 dotenv.config();
 
@@ -777,6 +778,115 @@ const runAuditServiceTests = (isDbConnected: boolean) =>
     },
   );
 
+const runLoggerTests = () =>
+  executeTest(
+    "Winston Logger Formatter & Stack Trace Serialization",
+    async () => {
+      const LEVEL = Symbol.for("level");
+      const MESSAGE = Symbol.for("message");
+
+      // 1. consoleFormat without stack
+      const consoleNoStackInfo: any = {
+        level: "info",
+        message: "Test message",
+        [LEVEL]: "info",
+      };
+      const consoleNoStackRes = consoleFormat.transform(consoleNoStackInfo) as any;
+      const consoleNoStackMsg = consoleNoStackRes[MESSAGE] || "";
+      const consoleNoStackValid =
+        consoleNoStackMsg.includes("info") &&
+        consoleNoStackMsg.includes("Test message") &&
+        !consoleNoStackMsg.includes("undefined") &&
+        !consoleNoStackMsg.includes("[object Object]");
+
+      // 2. consoleFormat with string stack
+      const consoleStringStackInfo: any = {
+        level: "error",
+        message: "An error occurred",
+        stack: "Error: Something went wrong\n    at Test.fn",
+        [LEVEL]: "error",
+      };
+      const consoleStringStackRes = consoleFormat.transform(
+        consoleStringStackInfo,
+      ) as any;
+      const consoleStringStackMsg = consoleStringStackRes[MESSAGE] || "";
+      const consoleStringStackValid =
+        consoleStringStackMsg.includes("error") &&
+        consoleStringStackMsg.includes("An error occurred") &&
+        consoleStringStackMsg.includes("Error: Something went wrong\n    at Test.fn");
+
+      // 3. consoleFormat with object stack
+      const consoleObjStackInfo: any = {
+        level: "error",
+        message: "Object error",
+        stack: { code: 500, detail: "Internal error" },
+        [LEVEL]: "error",
+      };
+      const consoleObjStackRes = consoleFormat.transform(
+        consoleObjStackInfo,
+      ) as any;
+      const consoleObjStackMsg = consoleObjStackRes[MESSAGE] || "";
+      const consoleObjStackValid =
+        consoleObjStackMsg.includes("error") &&
+        consoleObjStackMsg.includes("Object error") &&
+        consoleObjStackMsg.includes('{"code":500,"detail":"Internal error"}') &&
+        !consoleObjStackMsg.includes("[object Object]");
+
+      // 4. logFormat without stack
+      const logNoStackInfo: any = {
+        level: "info",
+        message: "Log message",
+        service: "test-service",
+        [LEVEL]: "info",
+      };
+      const logNoStackRes = logFormat.transform(logNoStackInfo) as any;
+      const logNoStackMsg = logNoStackRes[MESSAGE] || "";
+      const logNoStackValid =
+        logNoStackMsg.includes("INFO: Log message") &&
+        logNoStackMsg.includes('{"service":"test-service"}') &&
+        !logNoStackMsg.includes("[object Object]");
+
+      // 5. logFormat with string stack
+      const logStringStackInfo: any = {
+        level: "error",
+        message: "File log error",
+        stack: "Error: File read failure\n    at fs.js",
+        [LEVEL]: "error",
+      };
+      const logStringStackRes = logFormat.transform(logStringStackInfo) as any;
+      const logStringStackMsg = logStringStackRes[MESSAGE] || "";
+      const logStringStackValid =
+        logStringStackMsg.includes("ERROR: File log error") &&
+        logStringStackMsg.includes("Error: File read failure\n    at fs.js");
+
+      // 6. logFormat with object stack
+      const logObjStackInfo: any = {
+        level: "error",
+        message: "File log obj error",
+        stack: { errorId: "ERR_123" },
+        [LEVEL]: "error",
+      };
+      const logObjStackRes = logFormat.transform(logObjStackInfo) as any;
+      const logObjStackMsg = logObjStackRes[MESSAGE] || "";
+      const logObjStackValid =
+        logObjStackMsg.includes('{"errorId":"ERR_123"}') &&
+        !logObjStackMsg.includes("[object Object]");
+
+      // 7. Verify main logger methods execution
+      logger.info("Logger test execution verified");
+      logger.error("Logger test error with stack", { stack: "Error: test" });
+
+      return (
+        consoleNoStackValid &&
+        consoleStringStackValid &&
+        consoleObjStackValid &&
+        logNoStackValid &&
+        logStringStackValid &&
+        logObjStackValid
+      );
+    },
+  );
+
 const runTests = async () => {
   const isDbConnected = await connectTestDatabase();
 
@@ -792,6 +902,7 @@ const runTests = async () => {
     await runReportServiceTests(isDbConnected);
     await runAiChatServiceTests(isDbConnected);
     await runAuditServiceTests(isDbConnected);
+    await runLoggerTests();
 
     console.log("\n🌟 Integration Test Suite finished.");
   } finally {

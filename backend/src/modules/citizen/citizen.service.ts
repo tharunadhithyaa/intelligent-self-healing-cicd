@@ -81,9 +81,7 @@ class CitizenService {
       throw ApiError.notFound("User not found");
     }
 
-    if (!user.settings) {
-      user.settings = {};
-    }
+    user.settings ??= {};
 
     if (input.appearance) user.settings.appearance = input.appearance;
     if (input.notifications) user.settings.notifications = input.notifications;

@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal, effect } from '@angular/core';
+import { Component, Input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface ChartDataPoint {
@@ -410,9 +410,11 @@ export class ChartComponent {
   areaPath = computed(() => {
     const pts = this.points();
     if (pts.length === 0) return '';
+    const lastPoint = pts.at(-1);
+    if (!lastPoint) return '';
     const line = this.linePath();
     const firstX = pts[0].x;
-    const lastX = pts[pts.length - 1].x;
+    const lastX = lastPoint.x;
     return `${line} L ${lastX} 180 L ${firstX} 180 Z`;
   });
 

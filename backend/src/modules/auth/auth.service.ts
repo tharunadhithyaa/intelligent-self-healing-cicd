@@ -113,7 +113,7 @@ class AuthService {
     await RefreshToken.findByIdAndUpdate(storedToken._id, { isRevoked: true });
 
     const user = await userRepository.findById(payload.userId);
-    if (!user || !user.isActive) {
+    if (!user?.isActive) {
       throw ApiError.unauthorized(ErrorMessages.UNAUTHORIZED);
     }
 

@@ -1,3 +1,5 @@
+# Backend .gitignore
+
 # Dependencies
 node_modules/
 
@@ -13,11 +15,12 @@ coverage/
 .c8_output/
 .vitest_cache/
 
-# Environment variables
+# Environment variables & Secrets
 .env
 .env.*
 !.env.example
 
-# Logs
+# Logs & Temporary Uploads
 logs/
 *.log
+uploads/
