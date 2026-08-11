@@ -2,7 +2,7 @@
 // CivicPulseAI — Declarative Jenkins CI/CD Pipeline
 // ============================================================================
 // Automates: Checkout → Validate → Install → Lint → Build → SonarQube Scan
-//            → Quality Gate →Trivy FS Scan →Docker Build →Trivy Image Scan → Deploy → Health Check → Report
+//            → Quality Gate → Trivy FS Scan → Docker Build → Trivy Image Scan → Push Images to GHCR → Deploy → Health Check → Report
 // ============================================================================
 
 pipeline {
@@ -55,6 +55,10 @@ pipeline {
 
         // Docker image prefix
         DOCKER_IMAGE_PREFIX = 'civicpulse'
+
+        // GitHub Container Registry (GHCR) settings
+        GHCR_REGISTRY       = 'ghcr.io'
+        GHCR_OWNER          = 'tharunadhithyaa'
 
         // Application URLs (single-server deployment)
         APP_URL             = 'http://localhost:4200'
@@ -716,6 +720,105 @@ ENVEOF
                     // Archive all container image vulnerability reports as Jenkins artifacts
                     archiveArtifacts artifacts: 'jenkins/reports/trivy/**/*', fingerprint: true, allowEmptyArchive: true
                     echo '📦 All Trivy Container Image vulnerability reports archived'
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STAGE 10.5 — Push Images to GHCR
+        // ══════════════════════════════════════════════════════════════════════
+        stage('Push Images to GHCR') {
+            steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 10.5 — Push Images to GHCR\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_TOKEN')]) {
+                        def backendLocal   = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
+                        def frontendLocal  = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
+
+                        def backendGhcrBuild   = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${BUILD_NUMBER}"
+                        def backendGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:latest"
+
+                        def frontendGhcrBuild  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${BUILD_NUMBER}"
+                        def frontendGhcrLatest = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:latest"
+
+                        if (isUnix()) {
+                            sh """
+                                set -e
+                                echo "🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})..."
+                                echo "\${GHCR_TOKEN}" | docker login ${env.GHCR_REGISTRY} -u "\${GHCR_USER}" --password-stdin
+                                echo "  ✅ Logged in to GHCR successfully"
+
+                                echo ""
+                                echo "🏷️ Tagging backend image..."
+                                docker tag ${backendLocal} ${backendGhcrBuild}
+                                docker tag ${backendLocal} ${backendGhcrLatest}
+
+                                echo "🏷️ Tagging frontend image..."
+                                docker tag ${frontendLocal} ${frontendGhcrBuild}
+                                docker tag ${frontendLocal} ${frontendGhcrLatest}
+
+                                echo ""
+                                echo "🚀 Pushing backend images to GHCR..."
+                                docker push ${backendGhcrBuild}
+                                docker push ${backendGhcrLatest}
+
+                                echo "🚀 Pushing frontend images to GHCR..."
+                                docker push ${frontendGhcrBuild}
+                                docker push ${frontendGhcrLatest}
+
+                                echo ""
+                                echo "✅ Successfully pushed container images to GHCR:"
+                                echo "   • ${backendGhcrBuild}"
+                                echo "   • ${backendGhcrLatest}"
+                                echo "   • ${frontendGhcrBuild}"
+                                echo "   • ${frontendGhcrLatest}"
+                            """
+                        } else {
+                            bat """
+                                @echo off
+                                echo 🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})...
+                                echo %GHCR_TOKEN% | docker login ${env.GHCR_REGISTRY} -u %GHCR_USER% --password-stdin
+                                if errorlevel 1 exit /b 1
+                                echo   ✅ Logged in to GHCR successfully
+
+                                echo.
+                                echo 🏷️ Tagging backend image...
+                                docker tag ${backendLocal} ${backendGhcrBuild}
+                                if errorlevel 1 exit /b 1
+                                docker tag ${backendLocal} ${backendGhcrLatest}
+                                if errorlevel 1 exit /b 1
+
+                                echo 🏷️ Tagging frontend image...
+                                docker tag ${frontendLocal} ${frontendGhcrBuild}
+                                if errorlevel 1 exit /b 1
+                                docker tag ${frontendLocal} ${frontendGhcrLatest}
+                                if errorlevel 1 exit /b 1
+
+                                echo.
+                                echo 🚀 Pushing backend images to GHCR...
+                                docker push ${backendGhcrBuild}
+                                if errorlevel 1 exit /b 1
+                                docker push ${backendGhcrLatest}
+                                if errorlevel 1 exit /b 1
+
+                                echo 🚀 Pushing frontend images to GHCR...
+                                docker push ${frontendGhcrBuild}
+                                if errorlevel 1 exit /b 1
+                                docker push ${frontendGhcrLatest}
+                                if errorlevel 1 exit /b 1
+
+                                echo.
+                                echo ✅ Successfully pushed container images to GHCR:
+                                echo    • ${backendGhcrBuild}
+                                echo    • ${backendGhcrLatest}
+                                echo    • ${frontendGhcrBuild}
+                                echo    • ${frontendGhcrLatest}
+                            """
+                        }
+                    }
                 }
             }
         }
