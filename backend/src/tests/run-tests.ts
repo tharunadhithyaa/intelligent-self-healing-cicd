@@ -67,10 +67,11 @@ const connectTestDatabase = async (): Promise<boolean> => {
   console.log("🚀 Starting CivicPulse Production Integration Test Suite...");
   console.log("🔗 Connecting to test MongoDB instance...");
 
+  const mongoUri = getMongoUri();
   try {
-    const mongoUri = getMongoUri();
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 3000 });
-    console.log("Connected successfully. Cleaning up test database...\n");
+    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+    console.log(`✅ MongoDB connection successful: ${mongoUri}`);
+    console.log("Cleaning up test database...\n");
 
     await Promise.all([
       User.deleteMany({ email: /@test\.com$/ }),
@@ -79,8 +80,9 @@ const connectTestDatabase = async (): Promise<boolean> => {
     ]);
     return true;
   } catch (err: any) {
-    console.log(`⚠️ Database connection skipped: ${err.message}\n`);
-    return false;
+    console.error(`\n❌ FATAL: MongoDB connection failed (${mongoUri}): ${err.message}`);
+    console.error("❌ MongoDB is unavailable. Cannot run database integration test suite!\n");
+    throw new Error(`MongoDB is unavailable at ${mongoUri}: ${err.message}`);
   }
 };
 
@@ -893,7 +895,13 @@ const runLoggerTests = () =>
   );
 
 const runTests = async () => {
-  const isDbConnected = await connectTestDatabase();
+  let isDbConnected = false;
+  try {
+    isDbConnected = await connectTestDatabase();
+  } catch (err: any) {
+    console.error(err.message);
+    process.exit(1);
+  }
 
   try {
     await runPasswordTests();
