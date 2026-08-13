@@ -25,6 +25,10 @@ export class WorkflowService {
     return allowed.includes(next);
   }
 
+  static getNextAllowedStatuses(current: ComplaintStatus): ComplaintStatus[] {
+    return this.transitions[current] || [];
+  }
+
   static validateTransition(
     current: ComplaintStatus,
     next: ComplaintStatus,

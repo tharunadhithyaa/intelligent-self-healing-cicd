@@ -6,6 +6,7 @@ export const COMPLAINT_CATEGORIES = [
   "Streetlight Issue",
   "Water Supply",
   "Drainage Problem",
+  "Drainage",
   "Traffic Issue",
   "Public Safety",
   "Electricity Issue",
@@ -29,9 +30,10 @@ export const COMPLAINT_STATUSES = [
 export type ComplaintStatus = (typeof COMPLAINT_STATUSES)[number];
 
 export interface IComplaintImage {
-  base64Data: string;
-  contentType: string;
-  fileName: string;
+  base64Data?: string;
+  contentType?: string;
+  fileName?: string;
+  url?: string;
 }
 
 export interface IComplaintTimeline {

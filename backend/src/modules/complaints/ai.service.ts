@@ -70,6 +70,14 @@ class AIService {
       "stagnant",
       "manhole",
     ],
+    Drainage: [
+      "drain",
+      "clog",
+      "sewage",
+      "overflow",
+      "gutter",
+      "flooding",
+    ],
     "Traffic Issue": [
       "traffic",
       "signal",
@@ -112,6 +120,7 @@ class AIService {
     "Streetlight Issue": "Electrical & Streetlighting Agency",
     "Water Supply": "Water Supply & Sewerage Board (WSSB)",
     "Drainage Problem": "Sanitation & Sewerage Maintenance Division",
+    Drainage: "Sanitation & Sewerage Maintenance Division",
     "Traffic Issue": "Traffic Police & Transit Management Authorities",
     "Public Safety": "Community Safety & Civil Defense Department",
     "Electricity Issue": "State Power Distribution & Grid Corp",
@@ -246,6 +255,14 @@ class AIService {
       ? cleanTitle.slice(0, -1)
       : cleanTitle;
     return `Issue regarding '${category}' reported near ${address}. Summary: ${heading}.`;
+  }
+
+  public async detectDuplicates(
+    category: ComplaintCategory,
+    location: { latitude: number; longitude: number },
+    description: string,
+  ): Promise<{ detected: boolean; warning?: string }> {
+    return this.detectDuplicate(category, location, description);
   }
 
   private async detectDuplicate(

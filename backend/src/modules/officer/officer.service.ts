@@ -266,7 +266,7 @@ class OfficerService {
     userAgent?: string,
   ): Promise<IComplaintDocument> {
     const complaint = await this.getComplaintDetails(user, id);
-    const wid = Types.ObjectId.createFromHexString(workerId);
+    const wid = new Types.ObjectId(workerId);
 
     // Verify worker exists and is a field_worker
     const workerObj = await User.findOne({

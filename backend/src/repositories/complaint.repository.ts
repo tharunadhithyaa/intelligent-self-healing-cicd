@@ -23,6 +23,22 @@ export class ComplaintRepository extends BaseRepository<IComplaintDocument> {
       .populate("assignment.officer", "firstName lastName email")
       .exec();
   }
+
+  async findByCitizenId(citizenId: string): Promise<IComplaintDocument[]> {
+    return this.model.find({ citizen: citizenId }).exec();
+  }
+
+  async updateStatus(id: string, status: any): Promise<IComplaintDocument | null> {
+    return this.model.findByIdAndUpdate(id, { status }, { new: true }).exec();
+  }
+
+  async assignOfficer(id: string, officerId: string, departmentId?: string): Promise<IComplaintDocument | null> {
+    return this.model.findByIdAndUpdate(
+      id,
+      { "assignment.officer": officerId, "assignment.department": departmentId, status: "assigned" },
+      { new: true }
+    ).exec();
+  }
 }
 
 export const complaintRepository = new ComplaintRepository();

@@ -24,6 +24,11 @@ import { auditService } from "../modules/admin/services/audit.service";
 import { auditLogRepository } from "../repositories/audit-log.repository";
 import Department from "../models/department.model";
 import { logger, logFormat, consoleFormat } from "../utils/logger.util";
+import { runDepartmentAndNotificationTests } from "./department-and-notification.test";
+import { runAdminDashboardAndUserMgmtTests } from "./admin-dashboard-and-user-mgmt.test";
+import { runFieldWorkerAndOfficerTests } from "./field-worker-and-officer.test";
+import { runRepositoriesAndAiWorkflowTests } from "./repositories-and-ai-workflow.test";
+import { runAdminControllerFullTests } from "./admin-controller.test";
 
 dotenv.config();
 
@@ -903,6 +908,11 @@ const runTests = async () => {
     await runAiChatServiceTests(isDbConnected);
     await runAuditServiceTests(isDbConnected);
     await runLoggerTests();
+    await runDepartmentAndNotificationTests();
+    await runAdminDashboardAndUserMgmtTests();
+    await runFieldWorkerAndOfficerTests();
+    await runRepositoriesAndAiWorkflowTests();
+    await runAdminControllerFullTests();
 
     console.log("\n🌟 Integration Test Suite finished.");
   } finally {
