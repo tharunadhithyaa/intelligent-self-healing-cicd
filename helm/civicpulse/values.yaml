@@ -1,7 +1,8 @@
 namespace: civicpulse
 createNamespaceResource: false
 
-imagePullSecrets: []
+imagePullSecrets:
+  - name: ghcr-secret
 
 frontend:
   image:

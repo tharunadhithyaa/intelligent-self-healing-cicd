@@ -88,6 +88,25 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_info "Running Helm lint..."
     helm lint "$HELM_CHART_DIR"
 
+    if [ -n "${GHCR_USER:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
+        log_info "Ensuring secret 'ghcr-secret' exists in namespace 'civicpulse'..."
+        kubectl create namespace civicpulse --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true
+        kubectl create secret docker-registry ghcr-secret \
+            --namespace civicpulse \
+            --docker-server="${GHCR_REGISTRY:-ghcr.io}" \
+            --docker-username="${GHCR_USER}" \
+            --docker-password="${GHCR_TOKEN}" \
+            --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1
+        log_ok "Kubernetes secret 'ghcr-secret' successfully created/updated in 'civicpulse' namespace"
+    else
+        log_info "Checking if Kubernetes secret 'ghcr-secret' exists in 'civicpulse' namespace..."
+        if kubectl get secret ghcr-secret -n civicpulse &>/dev/null; then
+            log_ok "Existing Kubernetes secret 'ghcr-secret' confirmed in 'civicpulse' namespace"
+        else
+            log_warn "Kubernetes secret 'ghcr-secret' not found in 'civicpulse' namespace and no GHCR credentials supplied."
+        fi
+    fi
+
     log_info "Executing Helm upgrade/install for release 'civicpulse' (tag: ${IMAGE_TAG})..."
     helm upgrade --install civicpulse "$HELM_CHART_DIR" \
         --namespace civicpulse \
@@ -97,6 +116,32 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
         --set nginx.image.tag="${IMAGE_TAG}"
 
     log_ok "Helm deployment applied successfully"
+
+    log_info "Verifying rollout status for Kubernetes workloads in 'civicpulse' namespace..."
+    ROLLOUT_FAILED=0
+
+    log_info "Checking statefulset/civicpulse-mongodb..."
+    kubectl -n civicpulse rollout status statefulset/civicpulse-mongodb --timeout=120s || ROLLOUT_FAILED=1
+
+    log_info "Checking deployment/civicpulse-backend..."
+    kubectl -n civicpulse rollout status deployment/civicpulse-backend --timeout=120s || ROLLOUT_FAILED=1
+
+    log_info "Checking deployment/civicpulse-frontend..."
+    kubectl -n civicpulse rollout status deployment/civicpulse-frontend --timeout=120s || ROLLOUT_FAILED=1
+
+    log_info "Checking deployment/civicpulse-nginx..."
+    kubectl -n civicpulse rollout status deployment/civicpulse-nginx --timeout=120s || ROLLOUT_FAILED=1
+
+    if [ "$ROLLOUT_FAILED" -ne 0 ]; then
+        log_error "Kubernetes deployment rollout failed! Workloads are not ready."
+        log_info "Current Pod status:"
+        kubectl get pods -n civicpulse 2>/dev/null || true
+        log_info "Recent Kubernetes events:"
+        kubectl get events -n civicpulse --sort-by=.lastTimestamp 2>/dev/null | tail -n 20 || true
+        exit 1
+    fi
+
+    log_ok "All Kubernetes workloads successfully rolled out and are Ready!"
 else
     log_info "Step 4/5 — Starting fresh application deployment via Docker Compose..."
     if ! docker compose up -d --build --force-recreate mongodb backend frontend nginx; then
