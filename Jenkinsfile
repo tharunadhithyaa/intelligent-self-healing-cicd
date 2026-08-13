@@ -416,6 +416,71 @@ ENVEOF
                             script {
                                 if (isUnix()) {
                                     sh '''
+                                        echo "════════════════════════════════════════"
+                                        echo "  🍃 MongoDB CI Test Database"
+                                        echo "════════════════════════════════════════"
+                                        echo ""
+                                        
+                                        check_port() {
+                                            if command -v nc &>/dev/null; then
+                                                nc -z 127.0.0.1 27017 2>/dev/null
+                                            else
+                                                (exec 3<>/dev/tcp/127.0.0.1/27017) 2>/dev/null
+                                            fi
+                                        }
+
+                                        echo "Checking MongoDB connectivity on 127.0.0.1:27017..."
+                                        if check_port; then
+                                            echo "  ℹ️  MongoDB is already listening on 127.0.0.1:27017"
+                                        else
+                                            echo "Starting MongoDB..."
+                                            docker rm -f civicpulse-ci-mongodb 2>/dev/null || true
+                                            docker run -d \
+                                                --name civicpulse-ci-mongodb \
+                                                -p 27017:27017 \
+                                                mongo:8.0 || {
+                                                    echo "  ⚠️ mongo:8.0 launch failed, trying civicpulse/mongodb:v1..."
+                                                    docker run -d --name civicpulse-ci-mongodb -p 27017:27017 civicpulse/mongodb:v1
+                                                }
+                                        fi
+
+                                        echo "Waiting for MongoDB..."
+                                        MAX_RETRIES=30
+                                        RETRY_COUNT=0
+                                        READY=0
+
+                                        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                                            if check_port; then
+                                                if docker ps --format '{{.Names}}' | grep -q "^civicpulse-ci-mongodb$"; then
+                                                    PING_RES=$(docker exec civicpulse-ci-mongodb mongosh --quiet --eval "db.adminCommand('ping').ok" 2>/dev/null || true)
+                                                    if [ "$PING_RES" = "1" ] || echo "$PING_RES" | grep -q "1"; then
+                                                        READY=1
+                                                        break
+                                                    fi
+                                                else
+                                                    READY=1
+                                                    break
+                                                fi
+                                            fi
+                                            RETRY_COUNT=$((RETRY_COUNT + 1))
+                                            echo "  ⏳ Waiting for MongoDB... ($RETRY_COUNT/$MAX_RETRIES)"
+                                            sleep 1
+                                        done
+
+                                        if [ $READY -eq 1 ]; then
+                                            echo "MongoDB is ready."
+                                            echo "MongoDB listening on 127.0.0.1:27017"
+                                            echo "Starting backend integration tests..."
+                                            echo ""
+                                        else
+                                            echo "❌ FATAL: MongoDB did not become ready on 127.0.0.1:27017"
+                                            docker logs civicpulse-ci-mongodb 2>&1 || true
+                                            docker rm -f civicpulse-ci-mongodb 2>/dev/null || true
+                                            exit 1
+                                        fi
+
+                                        export TEST_MONGODB_URI="mongodb://127.0.0.1:27017/civicpulse_test"
+                                        export MONGODB_URI="mongodb://127.0.0.1:27017/civicpulse_test"
                                         npm test
                                         echo "  ✅ Backend tests completed"
                                         if [ -f "coverage/lcov.info" ]; then
@@ -427,6 +492,19 @@ ENVEOF
                                     '''
                                 } else {
                                     bat '''
+                                        echo ════════════════════════════════════════
+                                        echo   🍃 MongoDB CI Test Database
+                                        echo ════════════════════════════════════════
+                                        echo Starting MongoDB...
+                                        docker rm -f civicpulse-ci-mongodb 2>NUL
+                                        docker run -d --name civicpulse-ci-mongodb -p 27017:27017 mongo:8.0
+                                        echo Waiting for MongoDB...
+                                        docker exec civicpulse-ci-mongodb mongosh --quiet --eval "db.adminCommand('ping').ok"
+                                        echo MongoDB is ready.
+                                        echo MongoDB listening on 127.0.0.1:27017
+                                        echo Starting backend integration tests...
+                                        set TEST_MONGODB_URI=mongodb://127.0.0.1:27017/civicpulse_test
+                                        set MONGODB_URI=mongodb://127.0.0.1:27017/civicpulse_test
                                         npm test
                                         if exist coverage\\lcov.info (
                                             echo ✅ backend\\coverage\\lcov.info successfully generated
@@ -435,6 +513,17 @@ ENVEOF
                                             exit 1
                                         )
                                     '''
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                if (isUnix()) {
+                                    sh 'docker rm -f civicpulse-ci-mongodb 2>/dev/null || true'
+                                } else {
+                                    bat 'docker rm -f civicpulse-ci-mongodb 2>NUL || exit 0'
                                 }
                             }
                         }

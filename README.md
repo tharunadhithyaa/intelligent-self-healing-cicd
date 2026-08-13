@@ -9,7 +9,7 @@ As a reference workload, the platform deploys and monitors **CivicPulse AI**—a
 
 ## 📁 System Architecture & Core Layout
 
-The repository is structured into two main scopes: the **CI/CD Orchestration Layer** (Jenkins automation and deployment lifecycle management) and the **Target Web Application Layer** (distributed services ready for containerized deployment).
+The repository is structured into two main scopes: the **CI/CD Orchestration Layer** (Jenkins automation and deployment lifecycle management) and the **Target Web Application Layer** (distributed services ready for containerized deployment) .
 
 ```
 intelligent-self-healing-cicd/
