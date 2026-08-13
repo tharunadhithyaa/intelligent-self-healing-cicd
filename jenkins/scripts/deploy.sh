@@ -72,8 +72,8 @@ log_info "Step 3/5 — Pruning unused Docker networks..."
 docker network prune -f 2>/dev/null || true
 log_ok "Network cleanup complete"
 
-# ── Step 4: Deploy (Helm on K3s or Docker Compose) ───────────────────────────
-DEPLOY_METHOD="${DEPLOY_METHOD:-helm}"
+# ── Step 4: Deploy (Docker Compose or Helm) ──────────────────────────────────
+DEPLOY_METHOD="${DEPLOY_METHOD:-docker-compose}"
 
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_info "Step 4/5 — Deploying application via Helm on Kubernetes (K3s)..."
@@ -99,16 +99,24 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_ok "Helm deployment applied successfully"
 else
     log_info "Step 4/5 — Starting fresh application deployment via Docker Compose..."
-    if ! docker compose up -d --build --force-recreate mongodb backend frontend nginx 2>&1; then
+    if ! docker compose up -d --build --force-recreate mongodb backend frontend nginx; then
         log_warn "First docker compose up attempt encountered an issue. Checking for storage volume incompatibilities..."
         if docker logs civicpulse-mongodb 2>&1 | grep -E -q "exitCode.*62|featureCompatibilityVersion"; then
             log_warn "Detected incompatible MongoDB data directory (exitCode 62). Pruning stale volume and retrying..."
             docker compose down -v 2>/dev/null || true
             docker volume rm "${COMPOSE_PROJECT_NAME}_mongodb-data" 2>/dev/null || true
-            docker compose up -d --build --force-recreate mongodb backend frontend nginx
+            if ! docker compose up -d --build --force-recreate mongodb backend frontend nginx; then
+                log_error "docker compose up failed on retry!"
+                echo ""
+                log_error "Dumping Docker Compose logs for diagnosis:"
+                docker compose logs --tail=50 2>&1 || true
+                exit 1
+            fi
         else
             log_error "docker compose up failed!"
-            docker compose logs --tail 30 2>/dev/null || true
+            echo ""
+            log_error "Dumping Docker Compose logs for diagnosis:"
+            docker compose logs --tail=50 2>&1 || true
             exit 1
         fi
     fi
@@ -130,43 +138,42 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null && command -v ku
     log_info "Helm release status:"
     helm list -n civicpulse 2>/dev/null || true
 else
-    EXPECTED_CONTAINERS=("civicpulse-mongodb" "civicpulse-backend" "civicpulse-frontend" "civicpulse-nginx")
+    log_info "Docker Compose Services Status (docker compose ps):"
+    docker compose ps 2>/dev/null || true
+    echo ""
+    log_info "Running Docker Containers (docker ps):"
+    docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
+    echo ""
+
+    EXPECTED_SERVICES=("mongodb" "backend" "frontend" "nginx")
     FAILED=0
 
-    for container in "${EXPECTED_CONTAINERS[@]}"; do
-        STATUS=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null || echo "not_found")
-        if [ "$STATUS" = "running" ]; then
-            log_ok "$container is running"
+    for svc in "${EXPECTED_SERVICES[@]}"; do
+        CID=$(docker compose ps -q "$svc" 2>/dev/null | head -1 || true)
+        if [ -z "$CID" ]; then
+            CID=$(docker ps -aq --filter "name=${svc}" 2>/dev/null | head -1 || true)
+        fi
+
+        if [ -n "$CID" ]; then
+            STATUS=$(docker inspect -f '{{.State.Status}}' "$CID" 2>/dev/null || echo "not_found")
+            CNAME=$(docker inspect -f '{{.Name}}' "$CID" 2>/dev/null | sed 's/^\///' || echo "$svc")
+            if [ "$STATUS" = "running" ]; then
+                log_ok "Service '$svc' ($CNAME) is running"
+            else
+                log_error "Service '$svc' ($CNAME) status: $STATUS"
+                FAILED=$((FAILED + 1))
+            fi
         else
-            log_error "$container status: $STATUS"
+            log_error "Service '$svc' — no container found"
             FAILED=$((FAILED + 1))
         fi
     done
 
-    echo ""
-    log_info "Container overview:"
-    docker compose ps 2>/dev/null || true
-
     if [ $FAILED -gt 0 ]; then
-        if docker logs civicpulse-mongodb 2>&1 | grep -E -q "exitCode.*62|featureCompatibilityVersion"; then
-            log_warn "MongoDB failed due to stale incompatible volume format (exitCode 62). Performing self-healing volume recovery..."
-            docker compose down -v 2>/dev/null || true
-            docker volume rm "${COMPOSE_PROJECT_NAME}_mongodb-data" 2>/dev/null || true
-            log_info "Retrying fresh deployment after volume recovery..."
-            docker compose up -d --build --force-recreate mongodb backend frontend nginx
-        else
-            log_error "$FAILED container(s) failed to start"
-            log_info "Dumping logs for failed containers..."
-            for container in "${EXPECTED_CONTAINERS[@]}"; do
-                STATUS=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null || echo "not_found")
-                if [ "$STATUS" != "running" ]; then
-                    echo ""
-                    echo "── Logs: $container ──"
-                    docker logs --tail 30 "$container" 2>&1 || echo "(no logs available)"
-                fi
-            done
-            exit 1
-        fi
+        log_error "$FAILED service(s) failed to start"
+        log_info "Dumping logs for services..."
+        docker compose logs --tail=50 2>&1 || true
+        exit 1
     fi
 fi
 
@@ -174,4 +181,6 @@ echo ""
 log_ok "═══════════════════════════════════════════════════"
 log_ok "  Deployment successful — application is live"
 log_ok "═══════════════════════════════════════════════════"
+
+
 

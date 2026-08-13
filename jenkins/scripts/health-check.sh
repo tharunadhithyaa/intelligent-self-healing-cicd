@@ -60,39 +60,67 @@ check_http() {
     fi
 }
 
-# Check Docker container health status
+# Check Docker Compose service container health status
 check_container_health() {
-    local container="$1"
-    local health
-    health=$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "none")
+    local service="$1"
+    local container_id
+
+    # 1. Prefer lookup via docker compose ps -q <service>
+    container_id=$(docker compose ps -q "$service" 2>/dev/null | head -1 || true)
+
+    # 2. Fallback: match by container name or project container name
+    if [ -z "$container_id" ]; then
+        local fallback_name
+        case "$service" in
+            mongodb)  fallback_name="civicpulse-mongodb"  ;;
+            backend)  fallback_name="civicpulse-backend"  ;;
+            frontend) fallback_name="civicpulse-frontend" ;;
+            nginx)    fallback_name="civicpulse-nginx"    ;;
+            *)        fallback_name="civicpulse-${service}" ;;
+        esac
+        container_id=$(docker ps -aq --filter "name=^/${fallback_name}$" 2>/dev/null | head -1 || true)
+        if [ -z "$container_id" ]; then
+            container_id=$(docker ps -aq --filter "name=${fallback_name}" 2>/dev/null | head -1 || true)
+        fi
+    fi
+
+    if [ -z "$container_id" ]; then
+        log_warn "Service '$service' — no container found via 'docker compose ps' or name lookup"
+        return 1
+    fi
+
+    local cname
+    cname=$(docker inspect -f '{{.Name}}' "$container_id" 2>/dev/null | sed 's/^\///' || echo "$service")
     local status
-    status=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null || echo "not_found")
+    status=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "not_found")
+    local health
+    health=$(docker inspect -f '{{.State.Health.Status}}' "$container_id" 2>/dev/null || echo "none")
 
     if [ "$status" != "running" ]; then
-        log_warn "Container $container is not running (status: $status)"
+        log_warn "Container $cname (service: $service) status: $status"
         return 1
     fi
 
     case "$health" in
         healthy)
-            log_ok "Container $container — healthy"
+            log_ok "Container $cname (service: $service) — healthy"
             return 0
             ;;
         starting)
-            log_warn "Container $container — still starting"
+            log_warn "Container $cname (service: $service) — still starting"
             return 1
             ;;
         unhealthy)
-            log_warn "Container $container — unhealthy"
+            log_warn "Container $cname (service: $service) — unhealthy"
             return 1
             ;;
         none|"")
             # No healthcheck defined, but container is running
-            log_ok "Container $container — running (no healthcheck)"
+            log_ok "Container $cname (service: $service) — running (no healthcheck)"
             return 0
             ;;
         *)
-            log_warn "Container $container — unknown health: $health"
+            log_warn "Container $cname (service: $service) — unknown health: $health"
             return 1
             ;;
     esac
@@ -138,6 +166,14 @@ log_info "  Backend URL : $BACKEND_URL"
 log_info "  App URL     : $APP_URL"
 echo ""
 
+log_info "Pre-check container overview:"
+echo "── Docker Compose Services (docker compose ps) ──"
+docker compose ps 2>/dev/null || true
+echo ""
+echo "── Running Docker Containers (docker ps) ──"
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
+echo ""
+
 ATTEMPT=0
 ALL_HEALTHY=false
 
@@ -154,11 +190,11 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
     check_http "${APP_URL}/health"         "200" "Nginx /health"            || FAILURES=$((FAILURES + 1))
     check_http "${APP_URL}/"               "200" "Frontend /"               || FAILURES=$((FAILURES + 1))
 
-    # 2. Container health checks
-    check_container_health "civicpulse-backend"  || FAILURES=$((FAILURES + 1))
-    check_container_health "civicpulse-frontend" || FAILURES=$((FAILURES + 1))
-    check_container_health "civicpulse-mongodb"  || FAILURES=$((FAILURES + 1))
-    check_container_health "civicpulse-nginx"    || FAILURES=$((FAILURES + 1))
+    # 2. Container health checks (by Docker Compose service name)
+    check_container_health "backend"  || FAILURES=$((FAILURES + 1))
+    check_container_health "frontend" || FAILURES=$((FAILURES + 1))
+    check_container_health "mongodb"  || FAILURES=$((FAILURES + 1))
+    check_container_health "nginx"    || FAILURES=$((FAILURES + 1))
 
     # 3. Port availability
     check_port 80   "Nginx (HTTP)"       || FAILURES=$((FAILURES + 1))
@@ -191,14 +227,14 @@ if [ "$ALL_HEALTHY" = true ]; then
 else
     log_error "Health checks FAILED after $MAX_RETRIES attempts"
     echo ""
-    log_error "Dumping container status for diagnosis:"
+    log_error "Dumping container status for diagnosis (docker compose ps):"
     docker compose ps 2>/dev/null || true
     echo ""
-    log_error "Last 20 lines of container logs:"
-    for c in civicpulse-backend civicpulse-frontend civicpulse-mongodb civicpulse-nginx; do
-        echo ""
-        echo "── $c ──"
-        docker logs --tail 20 "$c" 2>&1 || echo "(not available)"
-    done
+    log_error "Dumping running docker containers (docker ps):"
+    docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
+    echo ""
+    log_error "Last 50 lines of logs for services:"
+    docker compose logs --tail=50 2>&1 || true
     exit 1
 fi
+
