@@ -60,6 +60,9 @@ pipeline {
         GHCR_REGISTRY       = 'ghcr.io'
         GHCR_OWNER          = 'tharunadhithyaa'
 
+        // Single pipeline image tag
+        IMAGE_TAG           = "${env.BUILD_NUMBER ?: 'latest'}"
+
         // Application URLs (single-server deployment)
         APP_URL             = 'http://localhost:4200'
         BACKEND_URL         = 'http://localhost:8000'
@@ -814,6 +817,7 @@ ENVEOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════════
         // STAGE 10.5 — Push Images to GHCR
         // ══════════════════════════════════════════════════════════════════════
         stage('Push Images to GHCR') {
@@ -828,6 +832,10 @@ ENVEOF
                         def frontendLocal      = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
                         def nginxLocal         = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
 
+                        def backendGhcrTagged  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}"
+                        def frontendGhcrTagged = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}"
+                        def nginxGhcrTagged    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
+
                         def backendGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:latest"
                         def frontendGhcrLatest = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:latest"
                         def nginxGhcrLatest    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:latest"
@@ -840,19 +848,30 @@ ENVEOF
                                 echo "  ✅ Logged in to GHCR successfully"
 
                                 echo ""
-                                echo "🏷️ Tagging container images as latest..."
+                                echo "🏷️ Tagging container images as ${env.IMAGE_TAG} and latest..."
+                                docker tag ${backendLocal} ${backendGhcrTagged}
+                                docker tag ${frontendLocal} ${frontendGhcrTagged}
+                                docker tag ${nginxLocal} ${nginxGhcrTagged}
+
                                 docker tag ${backendLocal} ${backendGhcrLatest}
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
                                 docker tag ${nginxLocal} ${nginxGhcrLatest}
 
                                 echo ""
-                                echo "🚀 Pushing container images to GHCR..."
+                                echo "🚀 Pushing container images to GHCR (tag: ${env.IMAGE_TAG} and latest)..."
+                                docker push ${backendGhcrTagged}
+                                docker push ${frontendGhcrTagged}
+                                docker push ${nginxGhcrTagged}
+
                                 docker push ${backendGhcrLatest}
                                 docker push ${frontendGhcrLatest}
                                 docker push ${nginxGhcrLatest}
 
                                 echo ""
                                 echo "✅ Successfully pushed container images to GHCR:"
+                                echo "   • ${backendGhcrTagged}"
+                                echo "   • ${frontendGhcrTagged}"
+                                echo "   • ${nginxGhcrTagged}"
                                 echo "   • ${backendGhcrLatest}"
                                 echo "   • ${frontendGhcrLatest}"
                                 echo "   • ${nginxGhcrLatest}"
@@ -866,14 +885,22 @@ ENVEOF
                                 echo   ✅ Logged in to GHCR successfully
 
                                 echo.
-                                echo 🏷️ Tagging container images as latest...
+                                echo 🏷️ Tagging container images as ${env.IMAGE_TAG} and latest...
+                                docker tag ${backendLocal} ${backendGhcrTagged}
+                                docker tag ${frontendLocal} ${frontendGhcrTagged}
+                                docker tag ${nginxLocal} ${nginxGhcrTagged}
+
                                 docker tag ${backendLocal} ${backendGhcrLatest}
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
                                 docker tag ${nginxLocal} ${nginxGhcrLatest}
                                 if errorlevel 1 exit /b 1
 
                                 echo.
-                                echo 🚀 Pushing container images to GHCR...
+                                echo 🚀 Pushing container images to GHCR (tag: ${env.IMAGE_TAG} and latest)...
+                                docker push ${backendGhcrTagged}
+                                docker push ${frontendGhcrTagged}
+                                docker push ${nginxGhcrTagged}
+
                                 docker push ${backendGhcrLatest}
                                 docker push ${frontendGhcrLatest}
                                 docker push ${nginxGhcrLatest}
@@ -881,9 +908,77 @@ ENVEOF
 
                                 echo.
                                 echo ✅ Successfully pushed container images to GHCR:
+                                echo    • ${backendGhcrTagged}
+                                echo    • ${frontendGhcrTagged}
+                                echo    • ${nginxGhcrTagged}
                                 echo    • ${backendGhcrLatest}
                                 echo    • ${frontendGhcrLatest}
                                 echo    • ${nginxGhcrLatest}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STAGE 10.6 — Pre-Deployment Image Verification
+        // ══════════════════════════════════════════════════════════════════════
+        stage('Pre-Deployment Image Verification') {
+            steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 10.6 — Pre-Deployment Image Verification\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
+                script {
+                    echo "=================================================="
+                    echo "IMAGE VERSION VERIFICATION"
+                    echo "=================================================="
+                    echo "IMAGE_TAG = ${env.IMAGE_TAG}"
+                    echo ""
+                    echo "Backend:  ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}"
+                    echo "Frontend: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}"
+                    echo "Nginx:    ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
+                    echo "=================================================="
+
+                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_TOKEN')]) {
+                        if (isUnix()) {
+                            sh """
+                                set -e
+                                echo "🔍 Verifying images exist in GHCR before deployment..."
+                                for img in \
+                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}" \
+                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}" \
+                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"; do
+                                    echo "  Verifying image: \${img}..."
+                                    if ! docker manifest inspect "\${img}" >/dev/null 2>&1; then
+                                        echo "  ❌ FATAL: Image manifest not found in GHCR: \${img}"
+                                        exit 1
+                                    fi
+                                    echo "  ✅ Verified image in GHCR: \${img}"
+                                done
+                                echo "✅ All required container images verified in GHCR"
+                            """
+                        } else {
+                            bat """
+                                @echo off
+                                echo 🔍 Verifying images exist in GHCR before deployment...
+                                docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG} >nul 2>&1
+                                if errorlevel 1 (
+                                    echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}
+                                    exit /b 1
+                                )
+                                docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG} >nul 2>&1
+                                if errorlevel 1 (
+                                    echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}
+                                    exit /b 1
+                                )
+                                docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG} >nul 2>&1
+                                if errorlevel 1 (
+                                    echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}
+                                    exit /b 1
+                                )
+                                echo ✅ All required container images verified in GHCR
                             """
                         }
                     }
@@ -901,12 +996,14 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    sh 'chmod +x jenkins/scripts/deploy.sh'
-                    def exitCode = sh(script: 'DEPLOY_METHOD=helm ./jenkins/scripts/deploy.sh', returnStatus: true)
-                    if (exitCode != 0) {
-                        echo "⚠️  First Helm deployment attempt failed (exit code: ${exitCode}). Retrying..."
-                        sleep(time: 10, unit: 'SECONDS')
-                        sh 'DEPLOY_METHOD=helm ./jenkins/scripts/deploy.sh'
+                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_TOKEN')]) {
+                        sh 'chmod +x jenkins/scripts/deploy.sh'
+                        def exitCode = sh(script: 'DEPLOY_METHOD=helm IMAGE_TAG="${env.IMAGE_TAG}" ./jenkins/scripts/deploy.sh', returnStatus: true)
+                        if (exitCode != 0) {
+                            echo "⚠️  First Helm deployment attempt failed (exit code: ${exitCode}). Retrying..."
+                            sleep(time: 10, unit: 'SECONDS')
+                            sh 'DEPLOY_METHOD=helm IMAGE_TAG="${env.IMAGE_TAG}" ./jenkins/scripts/deploy.sh'
+                        }
                     }
                 }
             }

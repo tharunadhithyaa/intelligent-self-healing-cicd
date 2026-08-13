@@ -78,7 +78,7 @@ DEPLOY_METHOD="${DEPLOY_METHOD:-docker-compose}"
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_info "Step 4/5 — Deploying application via Helm on Kubernetes (K3s)..."
     export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
-    IMAGE_TAG="${BUILD_NUMBER:-latest}"
+    IMAGE_TAG="${IMAGE_TAG:-${BUILD_NUMBER:-latest}}"
     HELM_CHART_DIR="${SCRIPT_DIR}/../../helm/civicpulse"
 
     if [ ! -d "$HELM_CHART_DIR" ]; then
@@ -87,6 +87,31 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
 
     log_info "Running Helm lint..."
     helm lint "$HELM_CHART_DIR"
+
+    log_info "Verifying rendered Helm manifest for tag '${IMAGE_TAG}'..."
+    RENDERED=$(helm template civicpulse "$HELM_CHART_DIR" \
+        --namespace civicpulse \
+        --set backend.image.tag="${IMAGE_TAG}" \
+        --set frontend.image.tag="${IMAGE_TAG}" \
+        --set nginx.image.tag="${IMAGE_TAG}")
+
+    if ! echo "$RENDERED" | grep -q "civicpulse-backend:${IMAGE_TAG}"; then
+        log_error "Rendered manifest missing expected backend tag '${IMAGE_TAG}'"
+        exit 1
+    fi
+    if ! echo "$RENDERED" | grep -q "civicpulse-frontend:${IMAGE_TAG}"; then
+        log_error "Rendered manifest missing expected frontend tag '${IMAGE_TAG}'"
+        exit 1
+    fi
+    if ! echo "$RENDERED" | grep -q "civicpulse-nginx:${IMAGE_TAG}"; then
+        log_error "Rendered manifest missing expected nginx tag '${IMAGE_TAG}'"
+        exit 1
+    fi
+    if ! echo "$RENDERED" | grep -q "ghcr-secret"; then
+        log_error "Rendered manifest missing imagePullSecrets 'ghcr-secret'"
+        exit 1
+    fi
+    log_ok "Rendered Helm manifest verified: all images set to '${IMAGE_TAG}' with 'ghcr-secret'"
 
     if [ -n "${GHCR_USER:-}" ] && [ -n "${GHCR_TOKEN:-}" ]; then
         log_info "Ensuring secret 'ghcr-secret' exists in namespace 'civicpulse'..."
