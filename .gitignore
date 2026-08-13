@@ -22,10 +22,22 @@
 *.pfx
 *.pub
 *secret*
+!helm/civicpulse/templates/secret.yaml
+!helm/**/secret.yaml
 *credentials*
 firebase-adminsdk.json
 google-service-account.json
 aws-credentials.csv
+
+# ------------------------------------------------------------------------------
+# 1.1 Helm & Kubernetes
+# ------------------------------------------------------------------------------
+helm/civicpulse/charts/
+helm/civicpulse/Chart.lock
+.helm/
+kubeconfig
+*.kubeconfig
+
 
 # ------------------------------------------------------------------------------
 # 2. Node.js & Dependencies

@@ -735,11 +735,13 @@ ENVEOF
 
                 script {
                     withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_TOKEN')]) {
-                        def backendLocal   = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
-                        def frontendLocal  = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
+                        def backendLocal       = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
+                        def frontendLocal      = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
+                        def nginxLocal         = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
 
                         def backendGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:latest"
                         def frontendGhcrLatest = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:latest"
+                        def nginxGhcrLatest    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:latest"
 
                         if (isUnix()) {
                             sh """
@@ -749,23 +751,22 @@ ENVEOF
                                 echo "  ✅ Logged in to GHCR successfully"
 
                                 echo ""
-                                echo "🏷️ Tagging backend image..."
+                                echo "🏷️ Tagging container images as latest..."
                                 docker tag ${backendLocal} ${backendGhcrLatest}
-
-                                echo "🏷️ Tagging frontend image..."
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
+                                docker tag ${nginxLocal} ${nginxGhcrLatest}
 
                                 echo ""
-                                echo "🚀 Pushing backend image to GHCR..."
+                                echo "🚀 Pushing container images to GHCR..."
                                 docker push ${backendGhcrLatest}
-
-                                echo "🚀 Pushing frontend image to GHCR..."
                                 docker push ${frontendGhcrLatest}
+                                docker push ${nginxGhcrLatest}
 
                                 echo ""
                                 echo "✅ Successfully pushed container images to GHCR:"
                                 echo "   • ${backendGhcrLatest}"
                                 echo "   • ${frontendGhcrLatest}"
+                                echo "   • ${nginxGhcrLatest}"
                             """
                         } else {
                             bat """
@@ -776,27 +777,24 @@ ENVEOF
                                 echo   ✅ Logged in to GHCR successfully
 
                                 echo.
-                                echo 🏷️ Tagging backend image...
+                                echo 🏷️ Tagging container images as latest...
                                 docker tag ${backendLocal} ${backendGhcrLatest}
-                                if errorlevel 1 exit /b 1
-
-                                echo 🏷️ Tagging frontend image...
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
+                                docker tag ${nginxLocal} ${nginxGhcrLatest}
                                 if errorlevel 1 exit /b 1
 
                                 echo.
-                                echo 🚀 Pushing backend image to GHCR...
+                                echo 🚀 Pushing container images to GHCR...
                                 docker push ${backendGhcrLatest}
-                                if errorlevel 1 exit /b 1
-
-                                echo 🚀 Pushing frontend image to GHCR...
                                 docker push ${frontendGhcrLatest}
+                                docker push ${nginxGhcrLatest}
                                 if errorlevel 1 exit /b 1
 
                                 echo.
                                 echo ✅ Successfully pushed container images to GHCR:
                                 echo    • ${backendGhcrLatest}
                                 echo    • ${frontendGhcrLatest}
+                                echo    • ${nginxGhcrLatest}
                             """
                         }
                     }
@@ -805,22 +803,21 @@ ENVEOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 11 — Deployment
+        // STAGE 11 — Helm Kubernetes Deployment
         // ══════════════════════════════════════════════════════════════════════
-        stage('Deployment') {
+        stage('Helm Kubernetes Deployment') {
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 11 — Deployment\033[0m'
+                echo '\033[1;36m  STAGE 11 — Helm Kubernetes Deployment (K3s)\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    // Make deployment script executable and run it
                     sh 'chmod +x jenkins/scripts/deploy.sh'
-                    def exitCode = sh(script: './jenkins/scripts/deploy.sh', returnStatus: true)
+                    def exitCode = sh(script: 'DEPLOY_METHOD=helm ./jenkins/scripts/deploy.sh', returnStatus: true)
                     if (exitCode != 0) {
-                        echo "⚠️  First deployment attempt failed (exit code: ${exitCode}). Retrying..."
+                        echo "⚠️  First Helm deployment attempt failed (exit code: ${exitCode}). Retrying..."
                         sleep(time: 10, unit: 'SECONDS')
-                        sh './jenkins/scripts/deploy.sh'
+                        sh 'DEPLOY_METHOD=helm ./jenkins/scripts/deploy.sh'
                     }
                 }
             }

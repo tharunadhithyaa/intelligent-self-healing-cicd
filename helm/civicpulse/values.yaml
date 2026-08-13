@@ -1,0 +1,94 @@
+namespace: civicpulse
+createNamespaceResource: false
+
+imagePullSecrets: []
+
+frontend:
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-frontend
+    tag: latest
+    pullPolicy: Always
+  replicaCount: 1
+  port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+backend:
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-backend
+    tag: latest
+    pullPolicy: Always
+  replicaCount: 1
+  port: 3000
+  env:
+    nodeEnv: production
+    corsOrigin: "http://localhost:4200"
+    logLevel: info
+    jwtAccessExpiry: 15m
+    jwtRefreshExpiry: 7d
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+mongodb:
+  image:
+    repository: mongo
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+  port: 27017
+  database: civicpulse
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+nginx:
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-nginx
+    tag: latest
+    pullPolicy: Always
+  replicaCount: 1
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+secret:
+  jwtAccessSecret: civicpulse-ci-access-secret-1785569895
+  jwtRefreshSecret: civicpulse-ci-refresh-secret-1785569895
+  defaultPassword: CivicPulse@2026
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: civicpulse.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

@@ -129,6 +129,63 @@ npm install
 npm test
 ```
 
+### 4. Helm-Based Kubernetes Deployment (K3s)
+
+CivicPulse AI includes a production-grade Helm chart located in `helm/civicpulse`.
+
+#### Prerequisites
+* **Kubernetes Cluster** (K3s, MicroK8s, Minikube, or EKS/GKE/AKS)
+* **Helm v3** (`helm version`)
+* **kubectl** (`kubectl version --client`)
+
+#### GHCR Image Pull Secret (Optional for Private Registries)
+```bash
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=<YOUR_GITHUB_USERNAME> \
+  --docker-password=<YOUR_GITHUB_PAT> \
+  --namespace=civicpulse
+```
+
+#### Install / Deploy
+```bash
+helm upgrade --install civicpulse ./helm/civicpulse \
+  --namespace civicpulse \
+  --create-namespace
+```
+
+#### Check Deployment
+```bash
+kubectl get pods -n civicpulse
+kubectl get services -n civicpulse
+kubectl get deployments -n civicpulse
+kubectl get pvc -n civicpulse
+helm list -n civicpulse
+```
+
+#### Upgrade
+```bash
+helm upgrade civicpulse ./helm/civicpulse \
+  --namespace civicpulse \
+  --set backend.image.tag=$BUILD_NUMBER \
+  --set frontend.image.tag=$BUILD_NUMBER \
+  --set nginx.image.tag=$BUILD_NUMBER
+```
+
+#### Rollback
+```bash
+# View release history and revisions
+helm history civicpulse -n civicpulse
+
+# Rollback to a specific revision (e.g. revision 1)
+helm rollback civicpulse 1 -n civicpulse
+```
+
+#### Uninstall
+```bash
+helm uninstall civicpulse -n civicpulse
+```
+
 ---
 
 ## 📚 Technical Setup & References Guides
@@ -139,5 +196,6 @@ Detailed architecture manuals and instructions are available in the [docs/](file
 *   **Poll SCM Trigger**: [docs/POLL_SCM_SETUP.md](file:///d:/Project/intelligent-self-healing-cicd/docs/POLL_SCM_SETUP.md) — Configuring Poll SCM schedule for automated build triggers.
 *   **System Design**: [docs/ARCHITECTURE.md](file:///d:/Project/intelligent-self-healing-cicd/docs/ARCHITECTURE.md) — Detailed overview of database schemas, role permissions, and API structure.
 *   **API Directory**: [docs/API_DOCUMENTATION.md](file:///d:/Project/intelligent-self-healing-cicd/docs/API_DOCUMENTATION.md) — REST API endpoints payload structures, roles requirements, and authentication.
+
 
 
