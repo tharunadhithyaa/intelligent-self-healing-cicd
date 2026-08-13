@@ -7,7 +7,14 @@ import { complaintRepository } from "../repositories/complaint.repository";
 import { WorkflowService } from "../modules/complaints/workflow.service";
 import { aiService } from "../modules/complaints/ai.service";
 
-export const runRepositoriesAndAiWorkflowTests = async () => {
+const getErrorStatusCode = (err: unknown): number | undefined => {
+  if (typeof err === "object" && err !== null && "statusCode" in err) {
+    return (err as { statusCode: number }).statusCode;
+  }
+  return undefined;
+};
+
+export const runRepositoriesAndAiWorkflowTests = async (): Promise<boolean> => {
   console.log("🧪 Running Repositories & AI/Workflow Tests...");
 
   await User.deleteMany({ email: /^repo_test_/ });
@@ -123,8 +130,8 @@ export const runRepositoriesAndAiWorkflowTests = async () => {
   let invalidTransitionErr = false;
   try {
     WorkflowService.validateTransition("submitted", "closed");
-  } catch (err: any) {
-    if (err.statusCode === 400) invalidTransitionErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 400) invalidTransitionErr = true;
   }
   if (!invalidTransitionErr) throw new Error("WorkflowService.validateTransition expected 400 error");
 

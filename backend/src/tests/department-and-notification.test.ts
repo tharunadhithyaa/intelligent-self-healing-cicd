@@ -7,13 +7,20 @@ import { departmentService } from "../modules/admin/services/department.service"
 import { notificationService } from "../modules/admin/services/notification.service";
 import { TokenPayload } from "../utils/jwt.util";
 
+const getErrorStatusCode = (err: unknown): number | undefined => {
+  if (typeof err === "object" && err !== null && "statusCode" in err) {
+    return (err as { statusCode: number }).statusCode;
+  }
+  return undefined;
+};
+
 const mockAdmin: TokenPayload = {
   userId: new mongoose.Types.ObjectId().toString(),
   email: "admin_test@test.com",
   role: "admin",
 };
 
-export const runDepartmentAndNotificationTests = async () => {
+export const runDepartmentAndNotificationTests = async (): Promise<boolean> => {
   console.log("🧪 Running Department & Notification Service Tests...");
 
   // Clean up relevant test documents first
@@ -49,8 +56,8 @@ export const runDepartmentAndNotificationTests = async () => {
       "Duplicate",
       "contact@test.com",
     );
-  } catch (err: any) {
-    if (err.statusCode === 409) {
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 409) {
       createConflictError = true;
     }
   }
@@ -72,8 +79,9 @@ export const runDepartmentAndNotificationTests = async () => {
       contactInfo: "Info",
       status: "active",
     });
-  } catch (err: any) {
-    if (err.statusCode === 444 || err.statusCode === 404) updateNotFound = true;
+  } catch (err: unknown) {
+    const code = getErrorStatusCode(err);
+    if (code === 444 || code === 404) updateNotFound = true;
   }
   if (!updateNotFound) throw new Error("updateDepartment expected notFound error");
 
@@ -94,8 +102,8 @@ export const runDepartmentAndNotificationTests = async () => {
       contactInfo: "contact@test.com",
       status: "active",
     });
-  } catch (err: any) {
-    if (err.statusCode === 409) updateConflict = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 409) updateConflict = true;
   }
   if (!updateConflict) throw new Error("updateDepartment expected conflict error");
 
@@ -132,8 +140,8 @@ export const runDepartmentAndNotificationTests = async () => {
   let assignRoleErr = false;
   try {
     await departmentService.assignOfficer(mockAdmin, dept1._id.toString(), citizenUser._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 400) assignRoleErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 400) assignRoleErr = true;
   }
   if (!assignRoleErr) throw new Error("assignOfficer expected invalid role error");
 
@@ -141,16 +149,16 @@ export const runDepartmentAndNotificationTests = async () => {
   let assignDeptNotFound = false;
   try {
     await departmentService.assignOfficer(mockAdmin, new mongoose.Types.ObjectId().toString(), officerUser._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 404) assignDeptNotFound = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) assignDeptNotFound = true;
   }
   if (!assignDeptNotFound) throw new Error("assignOfficer expected dept not found");
 
   let assignOfficerNotFound = false;
   try {
     await departmentService.assignOfficer(mockAdmin, dept1._id.toString(), new mongoose.Types.ObjectId().toString());
-  } catch (err: any) {
-    if (err.statusCode === 404) assignOfficerNotFound = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) assignOfficerNotFound = true;
   }
   if (!assignOfficerNotFound) throw new Error("assignOfficer expected officer not found");
 
@@ -166,8 +174,8 @@ export const runDepartmentAndNotificationTests = async () => {
   let removeDeptNotFound = false;
   try {
     await departmentService.removeOfficer(mockAdmin, new mongoose.Types.ObjectId().toString(), officerUser._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 404) removeDeptNotFound = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) removeDeptNotFound = true;
   }
   if (!removeDeptNotFound) throw new Error("removeOfficer expected dept not found");
 
@@ -202,8 +210,8 @@ export const runDepartmentAndNotificationTests = async () => {
   let deleteWithComplaintsErr = false;
   try {
     await departmentService.deleteDepartment(mockAdmin, dept2._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 400) deleteWithComplaintsErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 400) deleteWithComplaintsErr = true;
   }
   if (!deleteWithComplaintsErr) throw new Error("deleteDepartment expected active complaints error");
 
@@ -211,8 +219,8 @@ export const runDepartmentAndNotificationTests = async () => {
   let deleteNotFound = false;
   try {
     await departmentService.deleteDepartment(mockAdmin, new mongoose.Types.ObjectId().toString());
-  } catch (err: any) {
-    if (err.statusCode === 404) deleteNotFound = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) deleteNotFound = true;
   }
   if (!deleteNotFound) throw new Error("deleteDepartment expected not found error");
 
@@ -308,8 +316,8 @@ export const runDepartmentAndNotificationTests = async () => {
       citizenUser._id.toString(),
       new mongoose.Types.ObjectId().toString(),
     );
-  } catch (err: any) {
-    if (err.statusCode === 404) markNotFoundErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) markNotFoundErr = true;
   }
   if (!markNotFoundErr) throw new Error("markNotificationAsRead expected 404 not found");
 
@@ -329,8 +337,8 @@ export const runDepartmentAndNotificationTests = async () => {
       citizenUser._id.toString(),
       new mongoose.Types.ObjectId().toString(),
     );
-  } catch (err: any) {
-    if (err.statusCode === 404) deleteNotifNotFoundErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) deleteNotifNotFoundErr = true;
   }
   if (!deleteNotifNotFoundErr) throw new Error("deleteNotification expected 404 not found");
 

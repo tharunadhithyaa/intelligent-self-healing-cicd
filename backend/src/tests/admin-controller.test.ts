@@ -1,32 +1,49 @@
+import { Response, NextFunction } from "express";
 import User from "../models/user.model";
 import Department from "../models/department.model";
 import Notification from "../models/notification.model";
 import { adminController } from "../modules/admin/admin.controller";
 import { TokenPayload } from "../utils/jwt.util";
+import { AuthenticatedRequest } from "../interfaces/request.interface";
 
-const createMockRes = () => {
-  const res: any = {};
-  res.statusCode = 200;
-  res.headers = {};
-  res.status = (code: number) => {
-    res.statusCode = code;
-    return res;
+export interface IMockResponse {
+  statusCode: number;
+  headers: Record<string, string>;
+  body: Record<string, unknown> | null;
+  sentData: unknown;
+  status: (code: number) => IMockResponse;
+  json: (data: Record<string, unknown>) => IMockResponse;
+  setHeader: (key: string, val: string) => IMockResponse;
+  send: (data: unknown) => IMockResponse;
+}
+
+const createMockRes = (): IMockResponse => {
+  const mockRes: IMockResponse = {
+    statusCode: 200,
+    headers: {},
+    body: null,
+    sentData: null,
+    status(code: number): IMockResponse {
+      this.statusCode = code;
+      return this;
+    },
+    json(data: Record<string, unknown>): IMockResponse {
+      this.body = data;
+      return this;
+    },
+    setHeader(key: string, val: string): IMockResponse {
+      this.headers[key] = val;
+      return this;
+    },
+    send(data: unknown): IMockResponse {
+      this.sentData = data;
+      return this;
+    },
   };
-  res.json = (data: any) => {
-    res.body = data;
-    return res;
-  };
-  res.setHeader = (key: string, val: string) => {
-    res.headers[key] = val;
-  };
-  res.send = (data: any) => {
-    res.sentData = data;
-    return res;
-  };
-  return res;
+  return mockRes;
 };
 
-export const runAdminControllerFullTests = async () => {
+export const runAdminControllerFullTests = async (): Promise<boolean> => {
   console.log("🧪 Running Admin Controller Full Tests...");
 
   await User.deleteMany({ email: /^adm_ctrl_test_/ });
@@ -57,14 +74,22 @@ export const runAdminControllerFullTests = async () => {
     isActive: true,
   });
 
-  const nextErrHandler = (_err: any) => {};
+  const nextErrHandler: NextFunction = (_err?: unknown): void => {};
 
   // 1. Overview & Analytics
   const resOverview = createMockRes();
-  await adminController.getOverviewStats({ user: mockAdminToken } as any, resOverview, nextErrHandler);
+  await adminController.getOverviewStats(
+    { user: mockAdminToken } as unknown as AuthenticatedRequest,
+    resOverview as unknown as Response,
+    nextErrHandler,
+  );
 
   const resAnalytics = createMockRes();
-  await adminController.getAnalyticsOverview({ user: mockAdminToken } as any, resAnalytics, nextErrHandler);
+  await adminController.getAnalyticsOverview(
+    { user: mockAdminToken } as unknown as AuthenticatedRequest,
+    resAnalytics as unknown as Response,
+    nextErrHandler,
+  );
 
   // 2. User Management
   const resGetUsers = createMockRes();
@@ -81,8 +106,8 @@ export const runAdminControllerFullTests = async () => {
         sortField: "createdAt",
         sortOrder: "desc",
       },
-    } as any,
-    resGetUsers,
+    } as unknown as AuthenticatedRequest,
+    resGetUsers as unknown as Response,
     nextErrHandler,
   );
 
@@ -94,8 +119,8 @@ export const runAdminControllerFullTests = async () => {
       body: { isActive: false },
       ip: "127.0.0.1",
       headers: { "user-agent": "TestAgent" },
-    } as any,
-    resSetActive,
+    } as unknown as AuthenticatedRequest,
+    resSetActive as unknown as Response,
     nextErrHandler,
   );
 
@@ -107,8 +132,8 @@ export const runAdminControllerFullTests = async () => {
       body: { isLocked: true },
       ip: "127.0.0.1",
       headers: { "user-agent": "TestAgent" },
-    } as any,
-    resSetLock,
+    } as unknown as AuthenticatedRequest,
+    resSetLock as unknown as Response,
     nextErrHandler,
   );
 
@@ -121,8 +146,8 @@ export const runAdminControllerFullTests = async () => {
       params: { id: targetUser._id.toString() },
       ip: "127.0.0.1",
       headers: { "user-agent": "TestAgent" },
-    } as any,
-    resResetPass,
+    } as unknown as AuthenticatedRequest,
+    resResetPass as unknown as Response,
     nextErrHandler,
   );
 
@@ -135,14 +160,20 @@ export const runAdminControllerFullTests = async () => {
       body: { name: deptName, description: "Ctrl Dept", contactInfo: "contact@test.com" },
       ip: "127.0.0.1",
       headers: { "user-agent": "TestAgent" },
-    } as any,
-    resCreateDept,
+    } as unknown as AuthenticatedRequest,
+    resCreateDept as unknown as Response,
     nextErrHandler,
   );
-  const createdDept = resCreateDept.body?.data?.department;
+
+  const responseBody = resCreateDept.body as { data?: { department?: { _id?: { toString(): string } } } } | null;
+  const createdDept = responseBody?.data?.department;
 
   const resGetDepts = createMockRes();
-  await adminController.getDepartments({ user: mockAdminToken } as any, resGetDepts, nextErrHandler);
+  await adminController.getDepartments(
+    { user: mockAdminToken } as unknown as AuthenticatedRequest,
+    resGetDepts as unknown as Response,
+    nextErrHandler,
+  );
 
   if (createdDept?._id) {
     const resUpdateDept = createMockRes();
@@ -153,8 +184,8 @@ export const runAdminControllerFullTests = async () => {
         body: { name: deptName, description: "Updated", contactInfo: "info", status: "active" },
         ip: "127.0.0.1",
         headers: { "user-agent": "TestAgent" },
-      } as any,
-      resUpdateDept,
+      } as unknown as AuthenticatedRequest,
+      resUpdateDept as unknown as Response,
       nextErrHandler,
     );
 
@@ -166,8 +197,8 @@ export const runAdminControllerFullTests = async () => {
         body: { officerId: targetUser._id.toString() },
         ip: "127.0.0.1",
         headers: { "user-agent": "TestAgent" },
-      } as any,
-      resAssignOfficer,
+      } as unknown as AuthenticatedRequest,
+      resAssignOfficer as unknown as Response,
       nextErrHandler,
     );
 
@@ -179,8 +210,8 @@ export const runAdminControllerFullTests = async () => {
         body: { officerId: targetUser._id.toString() },
         ip: "127.0.0.1",
         headers: { "user-agent": "TestAgent" },
-      } as any,
-      resRemoveOfficer,
+      } as unknown as AuthenticatedRequest,
+      resRemoveOfficer as unknown as Response,
       nextErrHandler,
     );
 
@@ -191,8 +222,8 @@ export const runAdminControllerFullTests = async () => {
         params: { id: createdDept._id.toString() },
         ip: "127.0.0.1",
         headers: { "user-agent": "TestAgent" },
-      } as any,
-      resDelDept,
+      } as unknown as AuthenticatedRequest,
+      resDelDept as unknown as Response,
       nextErrHandler,
     );
   }
@@ -200,15 +231,15 @@ export const runAdminControllerFullTests = async () => {
   // 4. Reports & Export
   const resGenReport = createMockRes();
   await adminController.generateReport(
-    { user: mockAdminToken, query: { timeframe: "monthly" } } as any,
-    resGenReport,
+    { user: mockAdminToken, query: { timeframe: "monthly" } } as unknown as AuthenticatedRequest,
+    resGenReport as unknown as Response,
     nextErrHandler,
   );
 
   const resExportCSV = createMockRes();
   await adminController.exportReportCSV(
-    { user: mockAdminToken, query: { timeframe: "weekly" } } as any,
-    resExportCSV,
+    { user: mockAdminToken, query: { timeframe: "weekly" } } as unknown as AuthenticatedRequest,
+    resExportCSV as unknown as Response,
     nextErrHandler,
   );
 
@@ -229,8 +260,8 @@ export const runAdminControllerFullTests = async () => {
         page: "1",
         limit: "10",
       },
-    } as any,
-    resAuditLogs,
+    } as unknown as AuthenticatedRequest,
+    resAuditLogs as unknown as Response,
     nextErrHandler,
   );
 
@@ -242,13 +273,17 @@ export const runAdminControllerFullTests = async () => {
       body: { targetRoles: ["officer"], title: "Alert", message: "Notice" },
       ip: "127.0.0.1",
       headers: { "user-agent": "TestAgent" },
-    } as any,
-    resBroadcast,
+    } as unknown as AuthenticatedRequest,
+    resBroadcast as unknown as Response,
     nextErrHandler,
   );
 
   const resGetNotifs = createMockRes();
-  await adminController.getNotifications({ user: mockAdminToken } as any, resGetNotifs, nextErrHandler);
+  await adminController.getNotifications(
+    { user: mockAdminToken } as unknown as AuthenticatedRequest,
+    resGetNotifs as unknown as Response,
+    nextErrHandler,
+  );
 
   // Create a notification to mark as read
   const notifObj = await Notification.create({
@@ -264,30 +299,34 @@ export const runAdminControllerFullTests = async () => {
     {
       user: mockAdminToken,
       params: { id: notifObj._id.toString() },
-    } as any,
-    resMarkRead,
+    } as unknown as AuthenticatedRequest,
+    resMarkRead as unknown as Response,
     nextErrHandler,
   );
 
   // 7. Error catch paths (next(error))
   let errorHandledCount = 0;
-  const mockNextCatch = (err: any) => {
-    if (err) errorHandledCount++;
+  const mockNextCatch: NextFunction = (err?: unknown): void => {
+    if (err) {
+      errorHandledCount++;
+    }
   };
 
-  // Trigger error path in getOverviewStats (by passing invalid object if needed or invalid params)
+  // Trigger error path in getOverviewStats
   await adminController.setUserActiveState(
-    { user: mockAdminToken, params: { id: "invalid_id" }, body: {} } as any,
-    createMockRes(),
+    { user: mockAdminToken, params: { id: "invalid_id" }, body: {} } as unknown as AuthenticatedRequest,
+    createMockRes() as unknown as Response,
     mockNextCatch,
   );
   await adminController.deleteDepartment(
-    { user: mockAdminToken, params: { id: "invalid_id" } } as any,
-    createMockRes(),
+    { user: mockAdminToken, params: { id: "invalid_id" } } as unknown as AuthenticatedRequest,
+    createMockRes() as unknown as Response,
     mockNextCatch,
   );
 
-  if (errorHandledCount !== 2) throw new Error("adminController error catch handling failed");
+  if (errorHandledCount !== 2) {
+    throw new Error("adminController error catch handling failed");
+  }
 
   console.log("✅ Admin Controller Full Tests PASSED cleanly!");
   return true;

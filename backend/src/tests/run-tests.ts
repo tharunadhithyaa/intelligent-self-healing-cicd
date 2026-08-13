@@ -29,6 +29,10 @@ import { runAdminDashboardAndUserMgmtTests } from "./admin-dashboard-and-user-mg
 import { runFieldWorkerAndOfficerTests } from "./field-worker-and-officer.test";
 import { runRepositoriesAndAiWorkflowTests } from "./repositories-and-ai-workflow.test";
 import { runAdminControllerFullTests } from "./admin-controller.test";
+import { testCitizenAuthComplaints } from "./citizen-auth-complaints.test";
+import { testMiddleware } from "./middleware.test";
+import { testRepositoriesAndControllers } from "./repositories-and-controllers.test";
+import { testUtils } from "./utils.test";
 
 dotenv.config();
 
@@ -100,7 +104,8 @@ const runPasswordTests = () =>
     const hash = await hashPassword(password);
     const isMatch = await comparePassword(password, hash);
     const isMatchWrong = await comparePassword("wrong_password", hash);
-    return isMatch && !isMatchWrong;
+    const unitTestsPassed = await testUtils();
+    return isMatch && !isMatchWrong && unitTestsPassed;
   });
 
 const runJwtTests = () =>
@@ -239,8 +244,11 @@ const runSecurityMiddlewareTests = () =>
       nextCalled = true;
     });
 
+    const unitTestPassed = testMiddleware();
+
     return (
       nextCalled &&
+      unitTestPassed &&
       req.body["$where"] === undefined &&
       req.body.nested["key.with.dot"] === undefined &&
       req.body.nested.xss.includes("&lt;script&gt;") &&
@@ -921,6 +929,8 @@ const runTests = async () => {
     await runFieldWorkerAndOfficerTests();
     await runRepositoriesAndAiWorkflowTests();
     await runAdminControllerFullTests();
+    await testCitizenAuthComplaints();
+    await testRepositoriesAndControllers();
 
     console.log("\n🌟 Integration Test Suite finished.");
   } finally {

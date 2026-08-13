@@ -6,7 +6,14 @@ import { fieldWorkerService } from "../modules/field-worker/field-worker.service
 import { officerService } from "../modules/officer/officer.service";
 import { TokenPayload } from "../utils/jwt.util";
 
-export const runFieldWorkerAndOfficerTests = async () => {
+const getErrorStatusCode = (err: unknown): number | undefined => {
+  if (typeof err === "object" && err !== null && "statusCode" in err) {
+    return (err as { statusCode: number }).statusCode;
+  }
+  return undefined;
+};
+
+export const runFieldWorkerAndOfficerTests = async (): Promise<boolean> => {
   console.log("🧪 Running Field Worker & Officer Service Tests...");
 
   // Clean test data
@@ -114,16 +121,16 @@ export const runFieldWorkerAndOfficerTests = async () => {
   let fwNotFoundErr = false;
   try {
     await fieldWorkerService.getJobDetails(workerPayload, new mongoose.Types.ObjectId().toString());
-  } catch (err: any) {
-    if (err.statusCode === 404) fwNotFoundErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) fwNotFoundErr = true;
   }
   if (!fwNotFoundErr) throw new Error("fieldWorker.getJobDetails expected 404");
 
   let fwForbiddenErr = false;
   try {
     await fieldWorkerService.getJobDetails(otherWorkerPayload, complaint1._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 403) fwForbiddenErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 403) fwForbiddenErr = true;
   }
   if (!fwForbiddenErr) throw new Error("fieldWorker.getJobDetails expected 403");
 
@@ -230,8 +237,8 @@ export const runFieldWorkerAndOfficerTests = async () => {
   let offNotFoundErr = false;
   try {
     await officerService.getComplaintDetails(officerPayload, new mongoose.Types.ObjectId().toString());
-  } catch (err: any) {
-    if (err.statusCode === 404) offNotFoundErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) offNotFoundErr = true;
   }
   if (!offNotFoundErr) throw new Error("officer.getComplaintDetails expected 404");
 
@@ -254,8 +261,8 @@ export const runFieldWorkerAndOfficerTests = async () => {
   let offDeptForbidden = false;
   try {
     await officerService.getComplaintDetails(officerPayload, otherDeptComplaint._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 403) offDeptForbidden = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 403) offDeptForbidden = true;
   }
   if (!offDeptForbidden) throw new Error("officer.getComplaintDetails expected 403 dept mismatch");
 
@@ -263,8 +270,8 @@ export const runFieldWorkerAndOfficerTests = async () => {
   let offUnassignedForbidden = false;
   try {
     await officerService.getComplaintDetails(unmappedOfficerPayload, otherDeptComplaint._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 403) offUnassignedForbidden = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 403) offUnassignedForbidden = true;
   }
   if (!offUnassignedForbidden) throw new Error("officer.getComplaintDetails expected 403 unassigned officer");
 
@@ -275,8 +282,8 @@ export const runFieldWorkerAndOfficerTests = async () => {
   let invalidWorkerErr = false;
   try {
     await officerService.assignWorker(officerPayload, complaint2._id.toString(), citizenUser._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 400) invalidWorkerErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 400) invalidWorkerErr = true;
   }
   if (!invalidWorkerErr) throw new Error("officer.assignWorker expected 400 invalid worker role");
 

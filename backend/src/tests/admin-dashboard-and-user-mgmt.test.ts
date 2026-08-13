@@ -6,7 +6,14 @@ import { adminDashboardService } from "../modules/admin/services/admin-dashboard
 import { userManagementService } from "../modules/admin/services/user-management.service";
 import { TokenPayload } from "../utils/jwt.util";
 
-export const runAdminDashboardAndUserMgmtTests = async () => {
+const getErrorStatusCode = (err: unknown): number | undefined => {
+  if (typeof err === "object" && err !== null && "statusCode" in err) {
+    return (err as { statusCode: number }).statusCode;
+  }
+  return undefined;
+};
+
+export const runAdminDashboardAndUserMgmtTests = async (): Promise<boolean> => {
   console.log("🧪 Running Admin Dashboard & User Management Service Tests...");
 
   // Clean test data
@@ -141,16 +148,16 @@ export const runAdminDashboardAndUserMgmtTests = async () => {
   let selfDeactivateErr = false;
   try {
     await userManagementService.setUserActiveState(mockAdmin, mockAdmin.userId, false);
-  } catch (err: any) {
-    if (err.statusCode === 400) selfDeactivateErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 400) selfDeactivateErr = true;
   }
   if (!selfDeactivateErr) throw new Error("setUserActiveState expected error when admin deactivates self");
 
   let notFoundUserErr = false;
   try {
     await userManagementService.setUserActiveState(mockAdmin, new mongoose.Types.ObjectId().toString(), false);
-  } catch (err: any) {
-    if (err.statusCode === 404) notFoundUserErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) notFoundUserErr = true;
   }
   if (!notFoundUserErr) throw new Error("setUserActiveState expected notFound error");
 
@@ -175,16 +182,16 @@ export const runAdminDashboardAndUserMgmtTests = async () => {
   let selfLockErr = false;
   try {
     await userManagementService.setUserLockState(mockAdmin, mockAdmin.userId, true);
-  } catch (err: any) {
-    if (err.statusCode === 400) selfLockErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 400) selfLockErr = true;
   }
   if (!selfLockErr) throw new Error("setUserLockState expected error when admin locks self");
 
   let lockNotFoundErr = false;
   try {
     await userManagementService.setUserLockState(mockAdmin, new mongoose.Types.ObjectId().toString(), true);
-  } catch (err: any) {
-    if (err.statusCode === 404) lockNotFoundErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) lockNotFoundErr = true;
   }
   if (!lockNotFoundErr) throw new Error("setUserLockState expected notFound error");
 
@@ -208,36 +215,39 @@ export const runAdminDashboardAndUserMgmtTests = async () => {
   let resetNotFoundErr = false;
   try {
     await userManagementService.resetUserPasswordByAdmin(mockAdmin, new mongoose.Types.ObjectId().toString());
-  } catch (err: any) {
-    if (err.statusCode === 404) resetNotFoundErr = true;
+  } catch (err: unknown) {
+    if (getErrorStatusCode(err) === 404) resetNotFoundErr = true;
   }
   if (!resetNotFoundErr) throw new Error("resetUserPasswordByAdmin expected notFound error");
 
   // Test missing DEFAULT_PASSWORD branch
   const originalEnvPass = process.env["DEFAULT_PASSWORD"];
-  delete process.env["DEFAULT_PASSWORD"];
-
-  let missingEnvPassErr = false;
   try {
-    await userManagementService.resetUserPasswordByAdmin(mockAdmin, officerUser._id.toString());
-  } catch (err: any) {
-    if (err.statusCode === 500) missingEnvPassErr = true;
-  }
-  if (!missingEnvPassErr) throw new Error("resetUserPasswordByAdmin expected 500 when DEFAULT_PASSWORD is unset");
+    delete process.env["DEFAULT_PASSWORD"];
 
-  // Restore DEFAULT_PASSWORD and perform success reset
-  process.env["DEFAULT_PASSWORD"] = "CivicPulseTempPass123!";
-  const resetResult = await userManagementService.resetUserPasswordByAdmin(
-    mockAdmin,
-    officerUser._id.toString(),
-    "127.0.0.1",
-    "TestAgent",
-  );
-  if (resetResult !== "CivicPulseTempPass123!") throw new Error("resetUserPasswordByAdmin failed");
+    let missingEnvPassErr = false;
+    try {
+      await userManagementService.resetUserPasswordByAdmin(mockAdmin, officerUser._id.toString());
+    } catch (err: unknown) {
+      if (getErrorStatusCode(err) === 500) missingEnvPassErr = true;
+    }
+    if (!missingEnvPassErr) throw new Error("resetUserPasswordByAdmin expected 500 when DEFAULT_PASSWORD is unset");
 
-  // Restore env if it was previously defined
-  if (originalEnvPass) {
-    process.env["DEFAULT_PASSWORD"] = originalEnvPass;
+    // Restore DEFAULT_PASSWORD and perform success reset
+    process.env["DEFAULT_PASSWORD"] = "CivicPulseTempPass123!";
+    const resetResult = await userManagementService.resetUserPasswordByAdmin(
+      mockAdmin,
+      officerUser._id.toString(),
+      "127.0.0.1",
+      "TestAgent",
+    );
+    if (resetResult !== "CivicPulseTempPass123!") throw new Error("resetUserPasswordByAdmin failed");
+  } finally {
+    if (originalEnvPass) {
+      process.env["DEFAULT_PASSWORD"] = originalEnvPass;
+    } else {
+      delete process.env["DEFAULT_PASSWORD"];
+    }
   }
 
   console.log("✅ Admin Dashboard & User Management Service Tests PASSED cleanly!");
