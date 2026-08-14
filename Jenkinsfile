@@ -111,6 +111,7 @@ pipeline {
                 }
 
                 echo "✅ Repository cloned successfully"
+                echo "Using GHCR credential ID: ghcr-credentials"
                 echo "   Branch : ${env.GIT_BRANCH_NAME}"
                 echo "   Commit : ${env.GIT_COMMIT_SHORT} — ${env.GIT_MESSAGE}"
                 echo "   Author : ${env.GIT_AUTHOR}"
