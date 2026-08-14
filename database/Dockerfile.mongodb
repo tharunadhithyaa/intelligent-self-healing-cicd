@@ -1,4 +1,14 @@
+# Builder stage to compile gosu with an updated Go toolchain (resolves CVE-2026-46600)
+FROM golang:alpine AS gosu-builder
+RUN apk add --no-cache git
+ENV CGO_ENABLED=0
+RUN go install github.com/tianon/gosu@latest
+
 FROM mongo:8.0
+
+# Replace base image gosu binary with patched version
+COPY --from=gosu-builder /go/bin/gosu /usr/local/bin/gosu
+RUN chmod +x /usr/local/bin/gosu
 
 # Upgrade OS packages to pull latest security patches
 RUN rm -rf /var/lib/apt/lists/* && \
@@ -13,5 +23,6 @@ COPY mongo-init.js /docker-entrypoint-initdb.d/
 # Add basic health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD mongosh --quiet --eval "db.adminCommand('ping')" || exit 1
+
 
 
