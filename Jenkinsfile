@@ -996,13 +996,26 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_TOKEN')]) {
-                        sh 'chmod +x jenkins/scripts/deploy.sh'
-                        def exitCode = sh(script: 'DEPLOY_METHOD=helm IMAGE_TAG="${env.IMAGE_TAG}" ./jenkins/scripts/deploy.sh', returnStatus: true)
+                    withCredentials([
+                        string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')
+                    ]) {
+                        sh '''
+                            chmod +x jenkins/scripts/deploy.sh
+                        '''
+                        def exitCode = sh(
+                            script: '''
+                                export DEPLOY_METHOD=helm
+                                bash jenkins/scripts/deploy.sh
+                            ''',
+                            returnStatus: true
+                        )
                         if (exitCode != 0) {
                             echo "⚠️  First Helm deployment attempt failed (exit code: ${exitCode}). Retrying..."
                             sleep(time: 10, unit: 'SECONDS')
-                            sh 'DEPLOY_METHOD=helm IMAGE_TAG="${env.IMAGE_TAG}" ./jenkins/scripts/deploy.sh'
+                            sh '''
+                                export DEPLOY_METHOD=helm
+                                bash jenkins/scripts/deploy.sh
+                            '''
                         }
                     }
                 }
@@ -1094,28 +1107,17 @@ ENVEOF
   📋 Stage   : ${env.STAGE_NAME ?: 'unknown'}
             """
 
-            // Dump container logs for debugging
+            // Kubernetes deployment failure diagnostics
             sh '''
+                export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
                 echo ""
                 echo "════════════════════════════════════════"
-                echo "  📋 Docker Container Logs (last 50 lines each)"
+                echo "  📋 Kubernetes Deployment Diagnostics"
                 echo "════════════════════════════════════════"
-                for container in civicpulse-backend civicpulse-frontend civicpulse-mongodb civicpulse-nginx; do
-                    echo ""
-                    echo "── $container ──"
-                    docker logs --tail 50 "$container" 2>&1 || echo "  (container not running)"
-                done
-            '''
-
-            // Dump docker compose status
-            sh '''
-                echo ""
-                echo "════════════════════════════════════════"
-                echo "  📋 Docker Compose Status"
-                echo "════════════════════════════════════════"
-                docker compose ps 2>/dev/null || true
-                echo ""
-                docker compose logs --tail 20 2>/dev/null || true
+                kubectl get pods -n civicpulse -o wide 2>/dev/null || true
+                kubectl get deployments -n civicpulse 2>/dev/null || true
+                kubectl get services -n civicpulse 2>/dev/null || true
+                kubectl get events -n civicpulse --sort-by='.lastTimestamp' 2>/dev/null || true
             '''
         }
 
