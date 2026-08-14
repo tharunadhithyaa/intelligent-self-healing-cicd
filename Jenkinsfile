@@ -61,7 +61,7 @@ pipeline {
         GHCR_OWNER          = 'tharunadhithyaa'
 
         // Single pipeline image tag
-        IMAGE_TAG           = "${env.BUILD_NUMBER ?: 'latest'}"
+        IMAGE_TAG           = 'latest'
 
         // Application URLs (single-server deployment)
         APP_URL             = 'http://localhost:4200'
@@ -832,10 +832,6 @@ ENVEOF
                         def frontendLocal      = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
                         def nginxLocal         = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
 
-                        def backendGhcrTagged  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}"
-                        def frontendGhcrTagged = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}"
-                        def nginxGhcrTagged    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
-
                         def backendGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:latest"
                         def frontendGhcrLatest = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:latest"
                         def nginxGhcrLatest    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:latest"
@@ -848,30 +844,19 @@ ENVEOF
                                 echo "  ✅ Logged in to GHCR successfully"
 
                                 echo ""
-                                echo "🏷️ Tagging container images as ${env.IMAGE_TAG} and latest..."
-                                docker tag ${backendLocal} ${backendGhcrTagged}
-                                docker tag ${frontendLocal} ${frontendGhcrTagged}
-                                docker tag ${nginxLocal} ${nginxGhcrTagged}
-
+                                echo "🏷️ Tagging container images as latest..."
                                 docker tag ${backendLocal} ${backendGhcrLatest}
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
                                 docker tag ${nginxLocal} ${nginxGhcrLatest}
 
                                 echo ""
-                                echo "🚀 Pushing container images to GHCR (tag: ${env.IMAGE_TAG} and latest)..."
-                                docker push ${backendGhcrTagged}
-                                docker push ${frontendGhcrTagged}
-                                docker push ${nginxGhcrTagged}
-
+                                echo "🚀 Pushing container images to GHCR (tag: latest)..."
                                 docker push ${backendGhcrLatest}
                                 docker push ${frontendGhcrLatest}
                                 docker push ${nginxGhcrLatest}
 
                                 echo ""
                                 echo "✅ Successfully pushed container images to GHCR:"
-                                echo "   • ${backendGhcrTagged}"
-                                echo "   • ${frontendGhcrTagged}"
-                                echo "   • ${nginxGhcrTagged}"
                                 echo "   • ${backendGhcrLatest}"
                                 echo "   • ${frontendGhcrLatest}"
                                 echo "   • ${nginxGhcrLatest}"
@@ -885,22 +870,14 @@ ENVEOF
                                 echo   ✅ Logged in to GHCR successfully
 
                                 echo.
-                                echo 🏷️ Tagging container images as ${env.IMAGE_TAG} and latest...
-                                docker tag ${backendLocal} ${backendGhcrTagged}
-                                docker tag ${frontendLocal} ${frontendGhcrTagged}
-                                docker tag ${nginxLocal} ${nginxGhcrTagged}
-
+                                echo 🏷️ Tagging container images as latest...
                                 docker tag ${backendLocal} ${backendGhcrLatest}
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
                                 docker tag ${nginxLocal} ${nginxGhcrLatest}
                                 if errorlevel 1 exit /b 1
 
                                 echo.
-                                echo 🚀 Pushing container images to GHCR (tag: ${env.IMAGE_TAG} and latest)...
-                                docker push ${backendGhcrTagged}
-                                docker push ${frontendGhcrTagged}
-                                docker push ${nginxGhcrTagged}
-
+                                echo 🚀 Pushing container images to GHCR (tag: latest)...
                                 docker push ${backendGhcrLatest}
                                 docker push ${frontendGhcrLatest}
                                 docker push ${nginxGhcrLatest}
@@ -908,9 +885,6 @@ ENVEOF
 
                                 echo.
                                 echo ✅ Successfully pushed container images to GHCR:
-                                echo    • ${backendGhcrTagged}
-                                echo    • ${frontendGhcrTagged}
-                                echo    • ${nginxGhcrTagged}
                                 echo    • ${backendGhcrLatest}
                                 echo    • ${frontendGhcrLatest}
                                 echo    • ${nginxGhcrLatest}

@@ -78,7 +78,7 @@ DEPLOY_METHOD="${DEPLOY_METHOD:-docker-compose}"
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_info "Step 4/5 — Deploying application via Helm on Kubernetes (K3s)..."
     export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
-    IMAGE_TAG="${IMAGE_TAG:-${BUILD_NUMBER:-latest}}"
+    IMAGE_TAG="${IMAGE_TAG:-latest}"
     HELM_CHART_DIR="${SCRIPT_DIR}/../../helm/civicpulse"
 
     if [ ! -d "$HELM_CHART_DIR" ]; then
