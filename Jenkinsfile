@@ -979,6 +979,17 @@ ENVEOF
                         '''
                         def exitCode = sh(
                             script: '''
+                                if [ -z "${KUBECONFIG:-}" ]; then
+                                    if [ -f "/home/jenkins/k3s.yaml" ]; then
+                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
+                                    elif [ -f "${HOME}/.kube/config" ]; then
+                                        export KUBECONFIG="${HOME}/.kube/config"
+                                    elif [ -f "${HOME}/k3s.yaml" ]; then
+                                        export KUBECONFIG="${HOME}/k3s.yaml"
+                                    else
+                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
+                                    fi
+                                fi
                                 export DEPLOY_METHOD=helm
                                 bash jenkins/scripts/deploy.sh
                             ''',
@@ -988,6 +999,17 @@ ENVEOF
                             echo "⚠️  First Helm deployment attempt failed (exit code: ${exitCode}). Retrying..."
                             sleep(time: 10, unit: 'SECONDS')
                             sh '''
+                                if [ -z "${KUBECONFIG:-}" ]; then
+                                    if [ -f "/home/jenkins/k3s.yaml" ]; then
+                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
+                                    elif [ -f "${HOME}/.kube/config" ]; then
+                                        export KUBECONFIG="${HOME}/.kube/config"
+                                    elif [ -f "${HOME}/k3s.yaml" ]; then
+                                        export KUBECONFIG="${HOME}/k3s.yaml"
+                                    else
+                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
+                                    fi
+                                fi
                                 export DEPLOY_METHOD=helm
                                 bash jenkins/scripts/deploy.sh
                             '''
@@ -1084,10 +1106,20 @@ ENVEOF
 
             // Kubernetes deployment failure diagnostics
             sh '''
-                export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+                if [ -z "${KUBECONFIG:-}" ]; then
+                    if [ -f "/home/jenkins/k3s.yaml" ]; then
+                        export KUBECONFIG="/home/jenkins/k3s.yaml"
+                    elif [ -f "${HOME}/.kube/config" ]; then
+                        export KUBECONFIG="${HOME}/.kube/config"
+                    elif [ -f "${HOME}/k3s.yaml" ]; then
+                        export KUBECONFIG="${HOME}/k3s.yaml"
+                    else
+                        export KUBECONFIG="/home/jenkins/k3s.yaml"
+                    fi
+                fi
                 echo ""
                 echo "════════════════════════════════════════"
-                echo "  📋 Kubernetes Deployment Diagnostics"
+                echo "  📋 Kubernetes Deployment Diagnostics (KUBECONFIG=${KUBECONFIG})"
                 echo "════════════════════════════════════════"
                 kubectl get pods -n civicpulse -o wide 2>/dev/null || true
                 kubectl get deployments -n civicpulse 2>/dev/null || true

@@ -77,7 +77,25 @@ DEPLOY_METHOD="${DEPLOY_METHOD:-docker-compose}"
 
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_info "Step 4/5 — Deploying application via Helm on Kubernetes (K3s)..."
-    export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+    if [ -z "${KUBECONFIG:-}" ]; then
+        if [ -f "/home/jenkins/k3s.yaml" ]; then
+            export KUBECONFIG="/home/jenkins/k3s.yaml"
+        elif [ -f "${HOME}/.kube/config" ]; then
+            export KUBECONFIG="${HOME}/.kube/config"
+        elif [ -f "${HOME}/k3s.yaml" ]; then
+            export KUBECONFIG="${HOME}/k3s.yaml"
+        else
+            export KUBECONFIG="/home/jenkins/k3s.yaml"
+        fi
+    fi
+
+    log_info "Checking Kubernetes connectivity..."
+    if ! kubectl get nodes >/dev/null 2>&1; then
+        log_error "Cannot connect to Kubernetes cluster using KUBECONFIG=${KUBECONFIG}. Ensure Jenkins user has read access to a valid kubeconfig file."
+        exit 1
+    fi
+    log_ok "K3s cluster accessible"
+
     IMAGE_TAG="${IMAGE_TAG:-latest}"
     HELM_CHART_DIR="${SCRIPT_DIR}/../../helm/civicpulse"
 
@@ -113,6 +131,7 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     fi
     log_ok "Rendered Helm manifest verified: all images set to '${IMAGE_TAG}' with 'ghcr-secret'"
 
+    log_info "Checking GHCR secret..."
     GHCR_USER="${GHCR_USERNAME:-${GHCR_USER:-${GHCR_OWNER:-tharunadhithyaa}}}"
     if [ -n "${GHCR_TOKEN:-}" ]; then
         log_info "Ensuring secret 'ghcr-secret' exists in namespace 'civicpulse'..."
@@ -123,16 +142,17 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
             --docker-username="${GHCR_USER}" \
             --docker-password="${GHCR_TOKEN}" \
             --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1
-        log_ok "Kubernetes secret 'ghcr-secret' successfully created/updated in 'civicpulse' namespace"
+        log_ok "ghcr-secret ready"
     else
         log_info "Checking if Kubernetes secret 'ghcr-secret' exists in 'civicpulse' namespace..."
         if kubectl get secret ghcr-secret -n civicpulse &>/dev/null; then
-            log_ok "Existing Kubernetes secret 'ghcr-secret' confirmed in 'civicpulse' namespace"
+            log_ok "ghcr-secret ready"
         else
             log_warn "Kubernetes secret 'ghcr-secret' not found in 'civicpulse' namespace and no GHCR credentials supplied."
         fi
     fi
 
+    log_info "Deploying CivicPulse with Helm..."
     log_info "Executing Helm upgrade/install for release 'civicpulse' (tag: ${IMAGE_TAG})..."
     helm upgrade --install civicpulse "$HELM_CHART_DIR" \
         --namespace civicpulse \
@@ -199,7 +219,17 @@ log_info "Step 5/5 — Verifying deployment status..."
 sleep 5
 
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null && command -v kubectl &>/dev/null; then
-    export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+    if [ -z "${KUBECONFIG:-}" ]; then
+        if [ -f "/home/jenkins/k3s.yaml" ]; then
+            export KUBECONFIG="/home/jenkins/k3s.yaml"
+        elif [ -f "${HOME}/.kube/config" ]; then
+            export KUBECONFIG="${HOME}/.kube/config"
+        elif [ -f "${HOME}/k3s.yaml" ]; then
+            export KUBECONFIG="${HOME}/k3s.yaml"
+        else
+            export KUBECONFIG="/home/jenkins/k3s.yaml"
+        fi
+    fi
     log_info "Kubernetes Pods in 'civicpulse' namespace:"
     kubectl get pods -n civicpulse 2>/dev/null || true
     echo ""
