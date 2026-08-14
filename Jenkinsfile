@@ -801,7 +801,7 @@ ENVEOF
                             bat """
                                 trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || exit 0
                                 trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || exit 0
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@contrib/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
                             """
                             bat "trivy image --severity %TRIVY_SEVERITY% --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ${img}"
                         }
@@ -828,7 +828,7 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    withCredentials([string(credentialsId: 'ghcr-credentials', variable: 'GHCR_TOKEN')]) {
+                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')]) {
                         def backendLocal       = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
                         def frontendLocal      = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
                         def nginxLocal         = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
@@ -841,7 +841,7 @@ ENVEOF
                             sh """
                                 set +x
                                 echo "🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})..."
-                                echo "\${GHCR_TOKEN}" | docker login ${env.GHCR_REGISTRY} -u ${env.GHCR_OWNER} --password-stdin
+                                echo "\${GHCR_TOKEN}" | docker login "${env.GHCR_REGISTRY}" -u "\${GHCR_USERNAME}" --password-stdin
                                 echo "  ✅ Logged in to GHCR successfully"
 
                                 echo ""
@@ -866,7 +866,7 @@ ENVEOF
                             bat """
                                 @echo off
                                 echo 🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})...
-                                echo %GHCR_TOKEN% | docker login ${env.GHCR_REGISTRY} -u ${env.GHCR_OWNER} --password-stdin
+                                echo %GHCR_TOKEN% | docker login %GHCR_REGISTRY% -u %GHCR_USERNAME% --password-stdin
                                 if errorlevel 1 exit /b 1
                                 echo   ✅ Logged in to GHCR successfully
 
@@ -916,7 +916,7 @@ ENVEOF
                     echo "Nginx:    ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
                     echo "=================================================="
 
-                    withCredentials([string(credentialsId: 'ghcr-credentials', variable: 'GHCR_TOKEN')]) {
+                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')]) {
                         if (isUnix()) {
                             sh """
                                 set -e
@@ -972,7 +972,7 @@ ENVEOF
 
                 script {
                     withCredentials([
-                        string(credentialsId: 'ghcr-credentials', variable: 'GHCR_TOKEN')
+                        usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')
                     ]) {
                         sh '''
                             chmod +x jenkins/scripts/deploy.sh

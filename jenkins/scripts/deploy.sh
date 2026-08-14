@@ -113,7 +113,7 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     fi
     log_ok "Rendered Helm manifest verified: all images set to '${IMAGE_TAG}' with 'ghcr-secret'"
 
-    GHCR_USER="${GHCR_USER:-${GHCR_OWNER:-tharunadhithyaa}}"
+    GHCR_USER="${GHCR_USERNAME:-${GHCR_USER:-${GHCR_OWNER:-tharunadhithyaa}}}"
     if [ -n "${GHCR_TOKEN:-}" ]; then
         log_info "Ensuring secret 'ghcr-secret' exists in namespace 'civicpulse'..."
         kubectl create namespace civicpulse --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true
