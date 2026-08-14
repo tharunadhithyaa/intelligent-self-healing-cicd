@@ -827,7 +827,7 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'ghcr-credentials', variable: 'GHCR_TOKEN')]) {
                         def backendLocal       = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
                         def frontendLocal      = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
                         def nginxLocal         = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
@@ -838,9 +838,9 @@ ENVEOF
 
                         if (isUnix()) {
                             sh """
-                                set -e
+                                set +x
                                 echo "🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})..."
-                                echo "\${GHCR_TOKEN}" | docker login ${env.GHCR_REGISTRY} -u "\${GHCR_USER}" --password-stdin
+                                echo "\${GHCR_TOKEN}" | docker login ${env.GHCR_REGISTRY} -u ${env.GHCR_OWNER} --password-stdin
                                 echo "  ✅ Logged in to GHCR successfully"
 
                                 echo ""
@@ -865,7 +865,7 @@ ENVEOF
                             bat """
                                 @echo off
                                 echo 🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})...
-                                echo %GHCR_TOKEN% | docker login ${env.GHCR_REGISTRY} -u %GHCR_USER% --password-stdin
+                                echo %GHCR_TOKEN% | docker login ${env.GHCR_REGISTRY} -u ${env.GHCR_OWNER} --password-stdin
                                 if errorlevel 1 exit /b 1
                                 echo   ✅ Logged in to GHCR successfully
 
@@ -915,7 +915,7 @@ ENVEOF
                     echo "Nginx:    ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
                     echo "=================================================="
 
-                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'ghcr-credentials', variable: 'GHCR_TOKEN')]) {
                         if (isUnix()) {
                             sh """
                                 set -e
@@ -971,7 +971,7 @@ ENVEOF
 
                 script {
                     withCredentials([
-                        string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')
+                        string(credentialsId: 'ghcr-credentials', variable: 'GHCR_TOKEN')
                     ]) {
                         sh '''
                             chmod +x jenkins/scripts/deploy.sh
