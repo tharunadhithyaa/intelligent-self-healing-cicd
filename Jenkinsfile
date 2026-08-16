@@ -745,17 +745,34 @@ ENVEOF
 
                     // Build Docker images (statically tagged as v1 in docker-compose.yml)
                     def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--no-cache --pull'
-                    sh """
-                        echo "🐳 Building Docker images statically tagged as v1 (flags: ${buildFlags})..."
-                        docker compose build ${buildFlags} 2>&1
-                        echo ""
-                        echo "✅ Docker images built successfully"
-                    """
+                    if (isUnix()) {
+                        sh """
+                            echo "🐳 Building Docker images statically tagged as v1 (flags: ${buildFlags})..."
+                            if ! docker compose build ${buildFlags}; then
+                                echo "❌ [DOCKER BUILD] Frontend image build failed"
+                                exit 1
+                            fi
+                            echo ""
+                            echo "✅ Docker images built successfully"
+                        """
+                    } else {
+                        bat """
+                            echo 🐳 Building Docker images statically tagged as v1 (flags: ${buildFlags})...
+                            docker compose build ${buildFlags}
+                            if errorlevel 1 (
+                                echo ❌ [DOCKER BUILD] Frontend image build failed
+                                exit /b 1
+                            )
+                            echo.
+                            echo ✅ Docker images built successfully
+                        """
+                    }
 
                     // Prune old overwritten build images immediately to free disk space
                     sh '''
-                        echo "🧹 Cleaning up old overwritten/dangling images..."
+                        echo "🧹 Cleaning up old overwritten/dangling images and builder cache..."
                         docker image prune -f 2>/dev/null || true
+                        docker builder prune -f 2>/dev/null || true
                         echo "  ✅ Cleanup complete"
                     '''
 
@@ -1018,6 +1035,7 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
+                    env.KUBERNETES_STAGE_REACHED = 'true'
                     withCredentials([
                         usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')
                     ]) {
@@ -1165,28 +1183,39 @@ ENVEOF
   📋 Stage   : ${env.STAGE_NAME ?: 'unknown'}
             """
 
-            // Kubernetes deployment failure diagnostics
-            sh '''
-                if [ -z "${KUBECONFIG:-}" ]; then
-                    if [ -f "/home/jenkins/k3s.yaml" ]; then
-                        export KUBECONFIG="/home/jenkins/k3s.yaml"
-                    elif [ -f "${HOME}/.kube/config" ]; then
-                        export KUBECONFIG="${HOME}/.kube/config"
-                    elif [ -f "${HOME}/k3s.yaml" ]; then
-                        export KUBECONFIG="${HOME}/k3s.yaml"
-                    else
-                        export KUBECONFIG="/home/jenkins/k3s.yaml"
-                    fi
-                fi
-                echo ""
-                echo "════════════════════════════════════════"
-                echo "  📋 Kubernetes Deployment Diagnostics (KUBECONFIG=${KUBECONFIG})"
-                echo "════════════════════════════════════════"
-                kubectl get pods -n civicpulse -o wide 2>/dev/null || true
-                kubectl get deployments -n civicpulse 2>/dev/null || true
-                kubectl get services -n civicpulse 2>/dev/null || true
-                kubectl get events -n civicpulse --sort-by='.lastTimestamp' 2>/dev/null || true
-            '''
+            script {
+                if (env.KUBERNETES_STAGE_REACHED == 'true') {
+                    sh '''
+                        KUBECONFIG_FOUND=""
+                        if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ] && [ -r "${KUBECONFIG}" ]; then
+                            KUBECONFIG_FOUND="${KUBECONFIG}"
+                        else
+                            for candidate in "${HOME}/.kube/config" "/home/jenkins/.kube/config" "/etc/rancher/k3s/k3s.yaml" "/home/jenkins/k3s.yaml" "${HOME}/k3s.yaml"; do
+                                if [ -f "$candidate" ] && [ -r "$candidate" ]; then
+                                    KUBECONFIG_FOUND="$candidate"
+                                    break
+                                fi
+                            done
+                        fi
+
+                        if [ -n "$KUBECONFIG_FOUND" ]; then
+                            export KUBECONFIG="$KUBECONFIG_FOUND"
+                            echo ""
+                            echo "════════════════════════════════════════"
+                            echo "  📋 Kubernetes Deployment Diagnostics (KUBECONFIG=${KUBECONFIG})"
+                            echo "════════════════════════════════════════"
+                            kubectl get pods -n civicpulse -o wide 2>/dev/null || true
+                            kubectl get deployments -n civicpulse 2>/dev/null || true
+                            kubectl get services -n civicpulse 2>/dev/null || true
+                            kubectl get events -n civicpulse --sort-by='.lastTimestamp' 2>/dev/null || true
+                        else
+                            echo "ℹ️  Kubernetes stage was reached, but no readable kubeconfig found for diagnostics."
+                        fi
+                    '''
+                } else {
+                    echo "ℹ️  Pipeline failed prior to Kubernetes deployment stage. Skipping Kubernetes diagnostics."
+                }
+            }
         }
 
         always {

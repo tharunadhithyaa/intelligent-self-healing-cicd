@@ -61,12 +61,13 @@ rm -rf /tmp/civicpulse-* 2>/dev/null || true
 rm -rf /tmp/npm-* 2>/dev/null || true
 log_ok "Temporary files cleaned"
 
-# ── Step 5: Prune Untagged/Dangling Images ────────────────────────────────────
-log_info "Pruning untagged and dangling Docker images..."
+# ── Step 5: Prune Untagged Images & Builder Cache ─────────────────────────────
+log_info "Pruning untagged Docker images and BuildKit build cache..."
 # When static v1 images are rebuilt and overwritten, the previous builds
 # become dangling (<none>:<none>) images. Pruning them recovers the disk space.
 docker image prune -f 2>/dev/null || true
-log_ok "Pruned untagged images"
+docker builder prune -f 2>/dev/null || true
+log_ok "Pruned untagged images and build cache"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
