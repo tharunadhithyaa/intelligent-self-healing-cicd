@@ -10,13 +10,6 @@ FROM mongo:8.0
 COPY --from=gosu-builder /go/bin/gosu /usr/local/bin/gosu
 RUN chmod +x /usr/local/bin/gosu
 
-# Upgrade OS packages to pull latest security patches
-RUN rm -rf /var/lib/apt/lists/* && \
-    apt-get clean && \
-    apt-get update && \
-    apt-get upgrade -y && \
-    rm -rf /var/lib/apt/lists/*
-
 # Add initialization scripts
 COPY mongo-init.js /docker-entrypoint-initdb.d/
 

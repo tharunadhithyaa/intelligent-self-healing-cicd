@@ -42,9 +42,9 @@ backend:
 
 mongodb:
   image:
-    repository: mongo
-    tag: "8.0"
-    pullPolicy: IfNotPresent
+    repository: ghcr.io/tharunadhithyaa/civicpulse-mongodb
+    tag: "latest"
+    pullPolicy: Always
   port: 27017
   database: civicpulse
   persistence:

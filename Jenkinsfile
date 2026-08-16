@@ -102,19 +102,30 @@ pipeline {
 
                 // Display commit information for traceability
                 script {
-                    env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    env.GIT_COMMIT_FULL  = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                    env.GIT_AUTHOR       = sh(script: 'git log -1 --pretty=format:"%an"', returnStdout: true).trim()
-                    env.GIT_MESSAGE      = sh(script: 'git log -1 --pretty=format:"%s"', returnStdout: true).trim()
-                    env.GIT_BRANCH_NAME  = env.BRANCH_NAME ?: env.GIT_BRANCH ?: params.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                    env.BUILD_TIMESTAMP  = sh(script: 'date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown"', returnStdout: true).trim()
+                    if (isUnix()) {
+                        env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD 2>/dev/null || echo "b${BUILD_NUMBER}"', returnStdout: true).trim()
+                        env.GIT_COMMIT_FULL  = sh(script: 'git rev-parse HEAD 2>/dev/null || echo "unknown"', returnStdout: true).trim()
+                        env.GIT_AUTHOR       = sh(script: 'git log -1 --pretty=format:"%an" 2>/dev/null || echo "jenkins"', returnStdout: true).trim()
+                        env.GIT_MESSAGE      = sh(script: 'git log -1 --pretty=format:"%s" 2>/dev/null || echo "build"', returnStdout: true).trim()
+                        env.GIT_BRANCH_NAME  = env.BRANCH_NAME ?: env.GIT_BRANCH ?: params.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main"', returnStdout: true).trim()
+                        env.BUILD_TIMESTAMP  = sh(script: 'date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown"', returnStdout: true).trim()
+                    } else {
+                        env.GIT_COMMIT_SHORT = bat(script: '@git rev-parse --short HEAD 2>nul || echo b%BUILD_NUMBER%', returnStdout: true).trim()
+                        env.GIT_COMMIT_FULL  = bat(script: '@git rev-parse HEAD 2>nul || echo unknown', returnStdout: true).trim()
+                        env.GIT_AUTHOR       = bat(script: '@git log -1 --pretty=format:"%%an" 2>nul || echo jenkins', returnStdout: true).trim()
+                        env.GIT_MESSAGE      = bat(script: '@git log -1 --pretty=format:"%%s" 2>nul || echo build', returnStdout: true).trim()
+                        env.GIT_BRANCH_NAME  = env.BRANCH_NAME ?: env.GIT_BRANCH ?: params.BRANCH_NAME ?: bat(script: '@git rev-parse --abbrev-ref HEAD 2>nul || echo main', returnStdout: true).trim()
+                        env.BUILD_TIMESTAMP  = bat(script: '@powershell -Command "Get-Date -Format yyyy-MM-ddTHH:mm:ssZ"', returnStdout: true).trim()
+                    }
+                    env.IMAGE_TAG = env.GIT_COMMIT_SHORT ?: "b${env.BUILD_NUMBER}"
                 }
 
                 echo "✅ Repository cloned successfully"
                 echo "Using GHCR credential ID: ghcr-credentials"
-                echo "   Branch : ${env.GIT_BRANCH_NAME}"
-                echo "   Commit : ${env.GIT_COMMIT_SHORT} — ${env.GIT_MESSAGE}"
-                echo "   Author : ${env.GIT_AUTHOR}"
+                echo "   Branch   : ${env.GIT_BRANCH_NAME}"
+                echo "   Commit   : ${env.GIT_COMMIT_SHORT} — ${env.GIT_MESSAGE}"
+                echo "   Author   : ${env.GIT_AUTHOR}"
+                echo "   ImageTag : ${env.IMAGE_TAG}"
 
                 // Verify critical project files exist
                 sh '''
@@ -832,10 +843,17 @@ ENVEOF
                         def backendLocal       = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
                         def frontendLocal      = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
                         def nginxLocal         = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
+                        def mongodbLocal       = "${env.DOCKER_IMAGE_PREFIX}/mongodb:v1"
+
+                        def backendGhcrTag     = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}"
+                        def frontendGhcrTag    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}"
+                        def nginxGhcrTag       = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
+                        def mongodbGhcrTag     = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}"
 
                         def backendGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:latest"
                         def frontendGhcrLatest = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:latest"
                         def nginxGhcrLatest    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:latest"
+                        def mongodbGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:latest"
 
                         if (isUnix()) {
                             sh """
@@ -845,22 +863,33 @@ ENVEOF
                                 echo "  ✅ Logged in to GHCR successfully"
 
                                 echo ""
-                                echo "🏷️ Tagging container images as latest..."
+                                echo "🏷️ Tagging container images for GHCR (tags: ${env.IMAGE_TAG}, latest)..."
+                                docker tag ${backendLocal} ${backendGhcrTag}
                                 docker tag ${backendLocal} ${backendGhcrLatest}
+                                docker tag ${frontendLocal} ${frontendGhcrTag}
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
+                                docker tag ${nginxLocal} ${nginxGhcrTag}
                                 docker tag ${nginxLocal} ${nginxGhcrLatest}
+                                docker tag ${mongodbLocal} ${mongodbGhcrTag}
+                                docker tag ${mongodbLocal} ${mongodbGhcrLatest}
 
                                 echo ""
-                                echo "🚀 Pushing container images to GHCR (tag: latest)..."
+                                echo "🚀 Pushing container images to GHCR..."
+                                docker push ${backendGhcrTag}
                                 docker push ${backendGhcrLatest}
+                                docker push ${frontendGhcrTag}
                                 docker push ${frontendGhcrLatest}
+                                docker push ${nginxGhcrTag}
                                 docker push ${nginxGhcrLatest}
+                                docker push ${mongodbGhcrTag}
+                                docker push ${mongodbGhcrLatest}
 
                                 echo ""
                                 echo "✅ Successfully pushed container images to GHCR:"
-                                echo "   • ${backendGhcrLatest}"
-                                echo "   • ${frontendGhcrLatest}"
-                                echo "   • ${nginxGhcrLatest}"
+                                echo "   • ${backendGhcrTag}"
+                                echo "   • ${frontendGhcrTag}"
+                                echo "   • ${nginxGhcrTag}"
+                                echo "   • ${mongodbGhcrTag}"
                             """
                         } else {
                             bat """
@@ -871,24 +900,35 @@ ENVEOF
                                 echo   ✅ Logged in to GHCR successfully
 
                                 echo.
-                                echo 🏷️ Tagging container images as latest...
+                                echo 🏷️ Tagging container images for GHCR (tags: ${env.IMAGE_TAG}, latest)...
+                                docker tag ${backendLocal} ${backendGhcrTag}
                                 docker tag ${backendLocal} ${backendGhcrLatest}
+                                docker tag ${frontendLocal} ${frontendGhcrTag}
                                 docker tag ${frontendLocal} ${frontendGhcrLatest}
+                                docker tag ${nginxLocal} ${nginxGhcrTag}
                                 docker tag ${nginxLocal} ${nginxGhcrLatest}
+                                docker tag ${mongodbLocal} ${mongodbGhcrTag}
+                                docker tag ${mongodbLocal} ${mongodbGhcrLatest}
                                 if errorlevel 1 exit /b 1
 
                                 echo.
-                                echo 🚀 Pushing container images to GHCR (tag: latest)...
+                                echo 🚀 Pushing container images to GHCR...
+                                docker push ${backendGhcrTag}
                                 docker push ${backendGhcrLatest}
+                                docker push ${frontendGhcrTag}
                                 docker push ${frontendGhcrLatest}
+                                docker push ${nginxGhcrTag}
                                 docker push ${nginxGhcrLatest}
+                                docker push ${mongodbGhcrTag}
+                                docker push ${mongodbGhcrLatest}
                                 if errorlevel 1 exit /b 1
 
                                 echo.
                                 echo ✅ Successfully pushed container images to GHCR:
-                                echo    • ${backendGhcrLatest}
-                                echo    • ${frontendGhcrLatest}
-                                echo    • ${nginxGhcrLatest}
+                                echo    • ${backendGhcrTag}
+                                echo    • ${frontendGhcrTag}
+                                echo    • ${nginxGhcrTag}
+                                echo    • ${mongodbGhcrTag}
                             """
                         }
                     }
@@ -914,6 +954,7 @@ ENVEOF
                     echo "Backend:  ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}"
                     echo "Frontend: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}"
                     echo "Nginx:    ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
+                    echo "MongoDB:  ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}"
                     echo "=================================================="
 
                     withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')]) {
@@ -924,7 +965,8 @@ ENVEOF
                                 for img in \
                                     "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}" \
                                     "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}" \
-                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"; do
+                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}" \
+                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}"; do
                                     echo "  Verifying image: \${img}..."
                                     if ! docker manifest inspect "\${img}" >/dev/null 2>&1; then
                                         echo "  ❌ FATAL: Image manifest not found in GHCR: \${img}"
@@ -953,6 +995,11 @@ ENVEOF
                                     echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}
                                     exit /b 1
                                 )
+                                docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG} >nul 2>&1
+                                if errorlevel 1 (
+                                    echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}
+                                    exit /b 1
+                                )
                                 echo ✅ All required container images verified in GHCR
                             """
                         }
@@ -976,44 +1023,58 @@ ENVEOF
                     ]) {
                         sh '''
                             chmod +x jenkins/scripts/deploy.sh
+                            
+                            # Kubeconfig resolution strategy
+                            KUBECONFIG_FOUND=""
+                            if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ] && [ -r "${KUBECONFIG}" ]; then
+                                KUBECONFIG_FOUND="${KUBECONFIG}"
+                            else
+                                for candidate in "${HOME}/.kube/config" "/home/jenkins/.kube/config" "/etc/rancher/k3s/k3s.yaml" "/home/jenkins/k3s.yaml" "${HOME}/k3s.yaml"; do
+                                    if [ -f "$candidate" ] && [ -r "$candidate" ]; then
+                                        KUBECONFIG_FOUND="$candidate"
+                                        break
+                                    fi
+                                done
+                            fi
+
+                            if [ -n "$KUBECONFIG_FOUND" ]; then
+                                export KUBECONFIG="$KUBECONFIG_FOUND"
+                                echo "📌 Selected KUBECONFIG=${KUBECONFIG}"
+                            else
+                                echo "❌ FATAL: No readable kubeconfig found."
+                                echo "   Current user: $(whoami) (id: $(id -u))"
+                                echo "   Checked candidate locations:"
+                                echo "     - \${HOME}/.kube/config (${HOME}/.kube/config)"
+                                echo "     - /home/jenkins/.kube/config"
+                                echo "     - /etc/rancher/k3s/k3s.yaml"
+                                echo "     - /home/jenkins/k3s.yaml"
+                                echo "   Setup requirement:"
+                                echo "     sudo mkdir -p /home/jenkins/.kube"
+                                echo "     sudo cp /etc/rancher/k3s/k3s.yaml /home/jenkins/.kube/config"
+                                echo "     sudo chown -R jenkins:jenkins /home/jenkins/.kube"
+                                echo "     sudo chmod 600 /home/jenkins/.kube/config"
+                                exit 1
+                            fi
+
+                            echo "🔍 Stage 11 Pre-Deployment Kubernetes Validation..."
+                            test -f "$KUBECONFIG"
+                            kubectl version --client
+                            helm version
+                            echo "Current Context:"
+                            kubectl config current-context || true
+
+                            echo "Checking K3s cluster connectivity..."
+                            if ! kubectl get nodes -o wide; then
+                                echo "❌ FATAL: Cannot connect to K3s cluster using KUBECONFIG=${KUBECONFIG}"
+                                echo "Cluster Info Diagnostic:"
+                                kubectl cluster-info || true
+                                exit 1
+                            fi
+
+                            export DEPLOY_METHOD=helm
+                            export IMAGE_TAG="${IMAGE_TAG}"
+                            bash jenkins/scripts/deploy.sh
                         '''
-                        def exitCode = sh(
-                            script: '''
-                                if [ -z "${KUBECONFIG:-}" ]; then
-                                    if [ -f "/home/jenkins/k3s.yaml" ]; then
-                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
-                                    elif [ -f "${HOME}/.kube/config" ]; then
-                                        export KUBECONFIG="${HOME}/.kube/config"
-                                    elif [ -f "${HOME}/k3s.yaml" ]; then
-                                        export KUBECONFIG="${HOME}/k3s.yaml"
-                                    else
-                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
-                                    fi
-                                fi
-                                export DEPLOY_METHOD=helm
-                                bash jenkins/scripts/deploy.sh
-                            ''',
-                            returnStatus: true
-                        )
-                        if (exitCode != 0) {
-                            echo "⚠️  First Helm deployment attempt failed (exit code: ${exitCode}). Retrying..."
-                            sleep(time: 10, unit: 'SECONDS')
-                            sh '''
-                                if [ -z "${KUBECONFIG:-}" ]; then
-                                    if [ -f "/home/jenkins/k3s.yaml" ]; then
-                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
-                                    elif [ -f "${HOME}/.kube/config" ]; then
-                                        export KUBECONFIG="${HOME}/.kube/config"
-                                    elif [ -f "${HOME}/k3s.yaml" ]; then
-                                        export KUBECONFIG="${HOME}/k3s.yaml"
-                                    else
-                                        export KUBECONFIG="/home/jenkins/k3s.yaml"
-                                    fi
-                                fi
-                                export DEPLOY_METHOD=helm
-                                bash jenkins/scripts/deploy.sh
-                            '''
-                        }
                     }
                 }
             }

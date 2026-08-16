@@ -72,26 +72,42 @@ log_info "Step 3/5 — Pruning unused Docker networks..."
 docker network prune -f 2>/dev/null || true
 log_ok "Network cleanup complete"
 
+# ── Helper: Discover Kubeconfig ─────────────────────────────────────────────
+find_kubeconfig() {
+    if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ] && [ -r "${KUBECONFIG}" ]; then
+        return 0
+    fi
+    for candidate in "${HOME}/.kube/config" "/home/jenkins/.kube/config" "/etc/rancher/k3s/k3s.yaml" "/home/jenkins/k3s.yaml" "${HOME}/k3s.yaml"; do
+        if [ -f "$candidate" ] && [ -r "$candidate" ]; then
+            export KUBECONFIG="$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # ── Step 4: Deploy (Docker Compose or Helm) ──────────────────────────────────
 DEPLOY_METHOD="${DEPLOY_METHOD:-docker-compose}"
 
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_info "Step 4/5 — Deploying application via Helm on Kubernetes (K3s)..."
-    if [ -z "${KUBECONFIG:-}" ]; then
-        if [ -f "/home/jenkins/k3s.yaml" ]; then
-            export KUBECONFIG="/home/jenkins/k3s.yaml"
-        elif [ -f "${HOME}/.kube/config" ]; then
-            export KUBECONFIG="${HOME}/.kube/config"
-        elif [ -f "${HOME}/k3s.yaml" ]; then
-            export KUBECONFIG="${HOME}/k3s.yaml"
-        else
-            export KUBECONFIG="/home/jenkins/k3s.yaml"
-        fi
+    if ! find_kubeconfig; then
+        log_error "No readable kubeconfig file found."
+        log_info "Current user: $(whoami) (UID: $(id -u))"
+        log_info "Ensure /etc/rancher/k3s/k3s.yaml is copied to ~/.kube/config and readable by jenkins."
+        exit 1
     fi
+
+    log_info "Using KUBECONFIG=${KUBECONFIG}"
+    log_info "Current Kubernetes context: $(kubectl config current-context 2>/dev/null || echo 'unknown')"
 
     log_info "Checking Kubernetes connectivity..."
     if ! kubectl get nodes >/dev/null 2>&1; then
-        log_error "Cannot connect to Kubernetes cluster using KUBECONFIG=${KUBECONFIG}. Ensure Jenkins user has read access to a valid kubeconfig file."
+        log_error "Cannot connect to Kubernetes cluster using KUBECONFIG=${KUBECONFIG}."
+        log_info "Diagnostic outputs:"
+        kubectl config current-context || true
+        kubectl cluster-info || true
+        kubectl get nodes -o wide || true
         exit 1
     fi
     log_ok "K3s cluster accessible"
@@ -111,7 +127,8 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
         --namespace civicpulse \
         --set backend.image.tag="${IMAGE_TAG}" \
         --set frontend.image.tag="${IMAGE_TAG}" \
-        --set nginx.image.tag="${IMAGE_TAG}")
+        --set nginx.image.tag="${IMAGE_TAG}" \
+        --set mongodb.image.tag="${IMAGE_TAG}")
 
     if ! echo "$RENDERED" | grep -q "civicpulse-backend:${IMAGE_TAG}"; then
         log_error "Rendered manifest missing expected backend tag '${IMAGE_TAG}'"
@@ -123,6 +140,10 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     fi
     if ! echo "$RENDERED" | grep -q "civicpulse-nginx:${IMAGE_TAG}"; then
         log_error "Rendered manifest missing expected nginx tag '${IMAGE_TAG}'"
+        exit 1
+    fi
+    if ! echo "$RENDERED" | grep -q "civicpulse-mongodb:${IMAGE_TAG}"; then
+        log_error "Rendered manifest missing expected mongodb tag '${IMAGE_TAG}'"
         exit 1
     fi
     if ! echo "$RENDERED" | grep -q "ghcr-secret"; then
@@ -159,7 +180,10 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
         --create-namespace \
         --set backend.image.tag="${IMAGE_TAG}" \
         --set frontend.image.tag="${IMAGE_TAG}" \
-        --set nginx.image.tag="${IMAGE_TAG}"
+        --set nginx.image.tag="${IMAGE_TAG}" \
+        --set mongodb.image.tag="${IMAGE_TAG}" \
+        --wait \
+        --timeout 5m
 
     log_ok "Helm deployment applied successfully"
 
@@ -167,23 +191,30 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     ROLLOUT_FAILED=0
 
     log_info "Checking statefulset/civicpulse-mongodb..."
-    kubectl -n civicpulse rollout status statefulset/civicpulse-mongodb --timeout=120s || ROLLOUT_FAILED=1
+    kubectl -n civicpulse rollout status statefulset/civicpulse-mongodb --timeout=180s || ROLLOUT_FAILED=1
 
     log_info "Checking deployment/civicpulse-backend..."
-    kubectl -n civicpulse rollout status deployment/civicpulse-backend --timeout=120s || ROLLOUT_FAILED=1
+    kubectl -n civicpulse rollout status deployment/civicpulse-backend --timeout=180s || ROLLOUT_FAILED=1
 
     log_info "Checking deployment/civicpulse-frontend..."
-    kubectl -n civicpulse rollout status deployment/civicpulse-frontend --timeout=120s || ROLLOUT_FAILED=1
+    kubectl -n civicpulse rollout status deployment/civicpulse-frontend --timeout=180s || ROLLOUT_FAILED=1
 
     log_info "Checking deployment/civicpulse-nginx..."
-    kubectl -n civicpulse rollout status deployment/civicpulse-nginx --timeout=120s || ROLLOUT_FAILED=1
+    kubectl -n civicpulse rollout status deployment/civicpulse-nginx --timeout=180s || ROLLOUT_FAILED=1
 
     if [ "$ROLLOUT_FAILED" -ne 0 ]; then
         log_error "Kubernetes deployment rollout failed! Workloads are not ready."
         log_info "Current Pod status:"
-        kubectl get pods -n civicpulse 2>/dev/null || true
+        kubectl get pods -n civicpulse -o wide 2>/dev/null || true
+        log_info "Describing non-ready pods:"
+        for pod in $(kubectl get pods -n civicpulse --no-headers 2>/dev/null | grep -v "Running" | awk '{print $1}'); do
+            log_info "--- Describe pod ${pod} ---"
+            kubectl describe pod "$pod" -n civicpulse || true
+            log_info "--- Logs for pod ${pod} ---"
+            kubectl logs "$pod" -n civicpulse --all-containers --tail=50 || true
+        done
         log_info "Recent Kubernetes events:"
-        kubectl get events -n civicpulse --sort-by=.lastTimestamp 2>/dev/null | tail -n 20 || true
+        kubectl get events -n civicpulse --sort-by=.lastTimestamp 2>/dev/null | tail -n 25 || true
         exit 1
     fi
 
@@ -219,19 +250,9 @@ log_info "Step 5/5 — Verifying deployment status..."
 sleep 5
 
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null && command -v kubectl &>/dev/null; then
-    if [ -z "${KUBECONFIG:-}" ]; then
-        if [ -f "/home/jenkins/k3s.yaml" ]; then
-            export KUBECONFIG="/home/jenkins/k3s.yaml"
-        elif [ -f "${HOME}/.kube/config" ]; then
-            export KUBECONFIG="${HOME}/.kube/config"
-        elif [ -f "${HOME}/k3s.yaml" ]; then
-            export KUBECONFIG="${HOME}/k3s.yaml"
-        else
-            export KUBECONFIG="/home/jenkins/k3s.yaml"
-        fi
-    fi
+    find_kubeconfig || true
     log_info "Kubernetes Pods in 'civicpulse' namespace:"
-    kubectl get pods -n civicpulse 2>/dev/null || true
+    kubectl get pods -n civicpulse -o wide 2>/dev/null || true
     echo ""
     log_info "Kubernetes Services in 'civicpulse' namespace:"
     kubectl get services -n civicpulse 2>/dev/null || true
