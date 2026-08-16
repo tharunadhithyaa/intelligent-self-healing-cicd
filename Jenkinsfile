@@ -744,12 +744,12 @@ ENVEOF
                     }
 
                     // Build Docker images (statically tagged as v1 in docker-compose.yml)
-                    def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--no-cache --pull'
+                    def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--pull'
                     if (isUnix()) {
                         sh """
                             echo "🐳 Building Docker images statically tagged as v1 (flags: ${buildFlags})..."
                             if ! docker compose build ${buildFlags}; then
-                                echo "❌ [DOCKER BUILD] Frontend image build failed"
+                                echo "❌ [DOCKER BUILD] Docker Compose image build failed"
                                 exit 1
                             fi
                             echo ""
@@ -760,7 +760,7 @@ ENVEOF
                             echo 🐳 Building Docker images statically tagged as v1 (flags: ${buildFlags})...
                             docker compose build ${buildFlags}
                             if errorlevel 1 (
-                                echo ❌ [DOCKER BUILD] Frontend image build failed
+                                echo ❌ [DOCKER BUILD] Docker Compose image build failed
                                 exit /b 1
                             )
                             echo.
@@ -770,9 +770,8 @@ ENVEOF
 
                     // Prune old overwritten build images immediately to free disk space
                     sh '''
-                        echo "🧹 Cleaning up old overwritten/dangling images and builder cache..."
+                        echo "🧹 Cleaning up old overwritten/dangling images..."
                         docker image prune -f 2>/dev/null || true
-                        docker builder prune -f 2>/dev/null || true
                         echo "  ✅ Cleanup complete"
                     '''
 
@@ -1042,40 +1041,33 @@ ENVEOF
                         sh '''
                             chmod +x jenkins/scripts/deploy.sh
                             
-                            # Kubeconfig resolution strategy
-                            KUBECONFIG_FOUND=""
-                            if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ] && [ -r "${KUBECONFIG}" ]; then
-                                KUBECONFIG_FOUND="${KUBECONFIG}"
-                            else
-                                for candidate in "${HOME}/.kube/config" "/home/jenkins/.kube/config" "/etc/rancher/k3s/k3s.yaml" "/home/jenkins/k3s.yaml" "${HOME}/k3s.yaml"; do
-                                    if [ -f "$candidate" ] && [ -r "$candidate" ]; then
-                                        KUBECONFIG_FOUND="$candidate"
-                                        break
-                                    fi
-                                done
+                            # Dynamic validated Kubeconfig path strategy
+                            if [ -z "${KUBECONFIG:-}" ]; then
+                                if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
+                                    export KUBECONFIG="${HOME}/.kube/config"
+                                elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
+                                    export KUBECONFIG="/home/jenkins/.kube/config"
+                                elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
+                                    export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
+                                else
+                                    export KUBECONFIG="${HOME}/.kube/config"
+                                fi
                             fi
 
-                            if [ -n "$KUBECONFIG_FOUND" ]; then
-                                export KUBECONFIG="$KUBECONFIG_FOUND"
-                                echo "📌 Selected KUBECONFIG=${KUBECONFIG}"
-                            else
-                                echo "❌ FATAL: No readable kubeconfig found."
+                            if [ ! -f "$KUBECONFIG" ] || [ ! -r "$KUBECONFIG" ]; then
+                                echo "❌ FATAL: Kubeconfig file missing or unreadable at KUBECONFIG=${KUBECONFIG}"
                                 echo "   Current user: $(whoami) (id: $(id -u))"
-                                echo "   Checked candidate locations:"
-                                echo "     - \${HOME}/.kube/config (${HOME}/.kube/config)"
-                                echo "     - /home/jenkins/.kube/config"
-                                echo "     - /etc/rancher/k3s/k3s.yaml"
-                                echo "     - /home/jenkins/k3s.yaml"
                                 echo "   Setup requirement:"
-                                echo "     sudo mkdir -p /home/jenkins/.kube"
-                                echo "     sudo cp /etc/rancher/k3s/k3s.yaml /home/jenkins/.kube/config"
-                                echo "     sudo chown -R jenkins:jenkins /home/jenkins/.kube"
-                                echo "     sudo chmod 600 /home/jenkins/.kube/config"
+                                echo "     sudo mkdir -p ~/.kube"
+                                echo "     sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config"
+                                echo "     sudo chown -R \$(whoami):\$(id -gn) ~/.kube"
+                                echo "     sudo chmod 600 ~/.kube/config"
                                 exit 1
                             fi
 
                             echo "🔍 Stage 11 Pre-Deployment Kubernetes Validation..."
                             test -f "$KUBECONFIG"
+                            test -r "$KUBECONFIG"
                             kubectl version --client
                             helm version
                             echo "Current Context:"
@@ -1186,20 +1178,18 @@ ENVEOF
             script {
                 if (env.KUBERNETES_STAGE_REACHED == 'true') {
                     sh '''
-                        KUBECONFIG_FOUND=""
-                        if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ] && [ -r "${KUBECONFIG}" ]; then
-                            KUBECONFIG_FOUND="${KUBECONFIG}"
-                        else
-                            for candidate in "${HOME}/.kube/config" "/home/jenkins/.kube/config" "/etc/rancher/k3s/k3s.yaml" "/home/jenkins/k3s.yaml" "${HOME}/k3s.yaml"; do
-                                if [ -f "$candidate" ] && [ -r "$candidate" ]; then
-                                    KUBECONFIG_FOUND="$candidate"
-                                    break
-                                fi
-                            done
+                        if [ -z "${KUBECONFIG:-}" ]; then
+                            if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
+                                export KUBECONFIG="${HOME}/.kube/config"
+                            elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
+                                export KUBECONFIG="/home/jenkins/.kube/config"
+                            elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
+                                export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
+                            else
+                                export KUBECONFIG="${HOME}/.kube/config"
+                            fi
                         fi
-
-                        if [ -n "$KUBECONFIG_FOUND" ]; then
-                            export KUBECONFIG="$KUBECONFIG_FOUND"
+                        if [ -f "$KUBECONFIG" ] && [ -r "$KUBECONFIG" ]; then
                             echo ""
                             echo "════════════════════════════════════════"
                             echo "  📋 Kubernetes Deployment Diagnostics (KUBECONFIG=${KUBECONFIG})"
@@ -1209,7 +1199,7 @@ ENVEOF
                             kubectl get services -n civicpulse 2>/dev/null || true
                             kubectl get events -n civicpulse --sort-by='.lastTimestamp' 2>/dev/null || true
                         else
-                            echo "ℹ️  Kubernetes stage was reached, but no readable kubeconfig found for diagnostics."
+                            echo "ℹ️  Kubernetes stage was reached, but no readable kubeconfig found at ${KUBECONFIG} for diagnostics."
                         fi
                     '''
                 } else {

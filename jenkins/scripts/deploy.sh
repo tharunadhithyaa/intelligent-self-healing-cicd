@@ -72,29 +72,31 @@ log_info "Step 3/5 — Pruning unused Docker networks..."
 docker network prune -f 2>/dev/null || true
 log_ok "Network cleanup complete"
 
-# ── Helper: Discover Kubeconfig ─────────────────────────────────────────────
-find_kubeconfig() {
-    if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ] && [ -r "${KUBECONFIG}" ]; then
-        return 0
-    fi
-    for candidate in "${HOME}/.kube/config" "/home/jenkins/.kube/config" "/etc/rancher/k3s/k3s.yaml" "/home/jenkins/k3s.yaml" "${HOME}/k3s.yaml"; do
-        if [ -f "$candidate" ] && [ -r "$candidate" ]; then
-            export KUBECONFIG="$candidate"
-            return 0
-        fi
-    done
-    return 1
-}
-
 # ── Step 4: Deploy (Docker Compose or Helm) ──────────────────────────────────
 DEPLOY_METHOD="${DEPLOY_METHOD:-docker-compose}"
 
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     log_info "Step 4/5 — Deploying application via Helm on Kubernetes (K3s)..."
-    if ! find_kubeconfig; then
-        log_error "No readable kubeconfig file found."
+    if [ -z "${KUBECONFIG:-}" ]; then
+        if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
+            export KUBECONFIG="${HOME}/.kube/config"
+        elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
+            export KUBECONFIG="/home/jenkins/.kube/config"
+        elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
+            export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
+        else
+            export KUBECONFIG="${HOME}/.kube/config"
+        fi
+    fi
+
+    if [ ! -f "$KUBECONFIG" ] || [ ! -r "$KUBECONFIG" ]; then
+        log_error "Kubeconfig file missing or unreadable at KUBECONFIG=${KUBECONFIG}."
         log_info "Current user: $(whoami) (UID: $(id -u))"
-        log_info "Ensure /etc/rancher/k3s/k3s.yaml is copied to ~/.kube/config and readable by jenkins."
+        log_info "Ensure /etc/rancher/k3s/k3s.yaml is copied to ~/.kube/config and readable by $(whoami) user:"
+        log_info "  sudo mkdir -p ~/.kube"
+        log_info "  sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config"
+        log_info "  sudo chown -R \$(whoami):\$(id -gn) ~/.kube"
+        log_info "  sudo chmod 600 ~/.kube/config"
         exit 1
     fi
 
@@ -250,7 +252,7 @@ log_info "Step 5/5 — Verifying deployment status..."
 sleep 5
 
 if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null && command -v kubectl &>/dev/null; then
-    find_kubeconfig || true
+    export KUBECONFIG="${KUBECONFIG:-/home/jenkins/.kube/config}"
     log_info "Kubernetes Pods in 'civicpulse' namespace:"
     kubectl get pods -n civicpulse -o wide 2>/dev/null || true
     echo ""
