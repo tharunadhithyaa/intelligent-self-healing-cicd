@@ -1,13 +1,12 @@
 // ============================================================================
-// CivicPulseAI — Declarative Jenkins CI/CD Pipeline (Two-Node Architecture)
+// CivicPulseAI — Declarative Jenkins CI/CD Pipeline
 // ============================================================================
-// Nodes:
-//   1. windows-agent : Build, Docker Desktop, MongoDB CI, SonarQube, Scans, GHCR Push
-//   2. ubuntu-agent  : K3s, kubectl, Helm Deployment, Health Check, Diagnostics
+// Automates: Checkout → Validate → Install → Lint → Build → SonarQube Scan
+//            → Quality Gate → Trivy FS Scan → Docker Build → Trivy Image Scan → Push Images to GHCR → Deploy → Health Check → Report
 // ============================================================================
 
 pipeline {
-    agent none
+    agent any
 
     // ── Pipeline Options ─────────────────────────────────────────────────────
     options {
@@ -87,82 +86,21 @@ pipeline {
 
     stages {
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 0 — Infrastructure Validation
-        // ══════════════════════════════════════════════════════════════════════
-        stage('Infrastructure Validation') {
-            parallel {
-                stage('Validate Windows Docker Node') {
-                    agent { label 'windows-agent' }
-                    steps {
-                        echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                        echo '\033[1;36m  NODE: windows-agent Validation\033[0m'
-                        echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                        script {
-                            if (isUnix()) {
-                                sh '''
-                                    echo "Checking Windows/Docker environment..."
-                                    which docker || { echo "❌ FATAL: docker executable not found on windows-agent"; exit 1; }
-                                    docker version || { echo "❌ FATAL: Docker daemon not responding"; exit 1; }
-                                    docker info || { echo "❌ FATAL: Docker info failed"; exit 1; }
-                                    echo "✅ Windows Docker windows-agent validated successfully"
-                                '''
-                            } else {
-                                bat '''
-                                    @echo off
-                                    echo Checking Windows Docker environment...
-                                    where docker >nul 2>&1 || (echo ❌ FATAL: docker executable not found on windows-agent & exit /b 1)
-                                    docker version || (echo ❌ FATAL: Docker daemon not responding & exit /b 1)
-                                    docker info || (echo ❌ FATAL: Docker info failed & exit /b 1)
-                                    echo ✅ Windows Docker windows-agent validated successfully
-                                '''
-                            }
-                        }
-                    }
-                }
-
-                stage('Validate Ubuntu K3s Node') {
-                    agent { label 'ubuntu-agent' }
-                    steps {
-                        echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                        echo '\033[1;36m  NODE: ubuntu-agent Validation\033[0m'
-                        echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                        sh '''
-                            echo "Checking Ubuntu K3s environment..."
-                            which kubectl || { echo "❌ FATAL: kubectl executable not found on ubuntu-agent node"; exit 1; }
-                            which helm || { echo "❌ FATAL: helm executable not found on ubuntu-agent node"; exit 1; }
-
-                            if [ -z "${KUBECONFIG:-}" ]; then
-                                if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
-                                    export KUBECONFIG="${HOME}/.kube/config"
-                                elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
-                                    export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
-                                elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
-                                    export KUBECONFIG="/home/jenkins/.kube/config"
-                                fi
-                            fi
-                            echo "Using KUBECONFIG=${KUBECONFIG}"
-                            kubectl get nodes || { echo "❌ FATAL: K3s cluster not accessible"; exit 1; }
-                            helm version || { echo "❌ FATAL: helm version failed"; exit 1; }
-                            echo "✅ Ubuntu K3s ubuntu-agent validated successfully"
-                        '''
-                    }
-                }
-            }
-        }
-
-        // ══════════════════════════════════════════════════════════════════════
         // STAGE 1 — Checkout Source Code
         // ══════════════════════════════════════════════════════════════════════
         stage('Checkout Source Code') {
-            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 1 — Checkout Source Code (windows-agent)\033[0m'
+                echo '\033[1;36m  STAGE 1 — Checkout Source Code\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
+                // Clean workspace before checkout
                 cleanWs()
+
+                // Checkout from SCM (configured in Jenkins job)
                 checkout scm
 
+                // Display commit information for traceability
                 script {
                     if (isUnix()) {
                         env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD 2>/dev/null || echo "b${BUILD_NUMBER}"', returnStdout: true).trim()
@@ -189,149 +127,162 @@ pipeline {
                 echo "   Author   : ${env.GIT_AUTHOR}"
                 echo "   ImageTag : ${env.IMAGE_TAG}"
 
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            echo "🔍 Verifying repository integrity..."
-                            for f in docker-compose.yml backend/package.json frontend/package.json; do
-                                if [ ! -f "$f" ]; then
-                                    echo "❌ FATAL: Missing required file: $f"
-                                    exit 1
-                                fi
-                            done
-                            echo "✅ All critical project files present"
-                        '''
-                    } else {
-                        bat '''
-                            @echo off
-                            echo 🔍 Verifying repository integrity...
-                            if not exist docker-compose.yml (echo ❌ FATAL: Missing docker-compose.yml & exit /b 1)
-                            if not exist backend\\package.json (echo ❌ FATAL: Missing backend\\package.json & exit /b 1)
-                            if not exist frontend\\package.json (echo ❌ FATAL: Missing frontend\\package.json & exit /b 1)
-                            echo ✅ All critical project files present
-                        '''
-                    }
-                }
+                // Verify critical project files exist
+                sh '''
+                    echo "🔍 Verifying repository integrity..."
+                    for f in docker-compose.yml backend/package.json frontend/package.json; do
+                        if [ ! -f "$f" ]; then
+                            echo "❌ FATAL: Missing required file: $f"
+                            exit 1
+                        fi
+                    done
+                    echo "✅ All critical project files present"
+                '''
             }
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 2 — Environment Validation & Generation
+        // STAGE 2 — Environment Validation
         // ══════════════════════════════════════════════════════════════════════
         stage('Environment Validation') {
-            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 2 — Environment Validation (windows-agent)\033[0m'
+                echo '\033[1;36m  STAGE 2 — Environment Validation\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            ERRORS=0
-                            echo "🔍 Checking required tools..."
+                sh '''
+                    ERRORS=0
 
-                            if command -v docker &>/dev/null; then
-                                echo "  ✅ Docker        : $(docker --version)"
+                    echo "🔍 Checking required tools..."
+
+                    # Docker
+                    if command -v docker &>/dev/null; then
+                        echo "  ✅ Docker        : $(docker --version)"
+                    else
+                        echo "  ❌ Docker        : NOT FOUND"
+                        ERRORS=$((ERRORS + 1))
+                    fi
+
+                    # Docker Compose (v2 plugin)
+                    if docker compose version &>/dev/null; then
+                        echo "  ✅ Docker Compose: $(docker compose version --short)"
+                    elif command -v docker-compose &>/dev/null; then
+                        echo "  ✅ Docker Compose: $(docker-compose --version)"
+                    else
+                        echo "  ❌ Docker Compose: NOT FOUND"
+                        ERRORS=$((ERRORS + 1))
+                    fi
+
+                    # Git
+                    if command -v git &>/dev/null; then
+                        echo "  ✅ Git           : $(git --version)"
+                    else
+                        echo "  ❌ Git           : NOT FOUND"
+                        ERRORS=$((ERRORS + 1))
+                    fi
+
+                    # Node.js
+                    if command -v node &>/dev/null; then
+                        echo "  ✅ Node.js       : $(node --version)"
+                    else
+                        echo "  ❌ Node.js       : NOT FOUND"
+                        ERRORS=$((ERRORS + 1))
+                    fi
+
+                    # npm
+                    if command -v npm &>/dev/null; then
+                        echo "  ✅ npm           : $(npm --version)"
+                    else
+                        echo "  ❌ npm           : NOT FOUND"
+                        ERRORS=$((ERRORS + 1))
+                    fi
+
+                    echo ""
+                    echo "🔍 Checking required directories..."
+                    for dir in backend frontend nginx database; do
+                        if [ -d "$dir" ]; then
+                            echo "  ✅ $dir/"
+                        else
+                            echo "  ❌ $dir/ — MISSING"
+                            ERRORS=$((ERRORS + 1))
+                        fi
+                    done
+
+                    echo ""
+                    echo "🔍 Checking and generating environment files..."
+                    # Generate .env files if missing (they are gitignored for security)
+                    chmod +x jenkins/scripts/generate-env.sh 2>/dev/null || true
+                    if [ -x jenkins/scripts/generate-env.sh ]; then
+                        ./jenkins/scripts/generate-env.sh
+                    else
+                        # Fallback: inline generation if script not available
+                        for envfile in backend/.env frontend/.env; do
+                            if [ -f "$envfile" ]; then
+                                echo "  ✅ $envfile"
                             else
-                                echo "  ❌ Docker        : NOT FOUND"
-                                ERRORS=$((ERRORS + 1))
-                            fi
-
-                            if docker compose version &>/dev/null; then
-                                echo "  ✅ Docker Compose: $(docker compose version --short)"
-                            elif command -v docker-compose &>/dev/null; then
-                                echo "  ✅ Docker Compose: $(docker-compose --version)"
-                            else
-                                echo "  ❌ Docker Compose: NOT FOUND"
-                                ERRORS=$((ERRORS + 1))
-                            fi
-
-                            if command -v git &>/dev/null; then
-                                echo "  ✅ Git           : $(git --version)"
-                            else
-                                echo "  ❌ Git           : NOT FOUND"
-                                ERRORS=$((ERRORS + 1))
-                            fi
-
-                            if command -v node &>/dev/null; then
-                                echo "  ✅ Node.js       : $(node --version)"
-                            else
-                                echo "  ❌ Node.js       : NOT FOUND"
-                                ERRORS=$((ERRORS + 1))
-                            fi
-
-                            if command -v npm &>/dev/null; then
-                                echo "  ✅ npm           : $(npm --version)"
-                            else
-                                echo "  ❌ npm           : NOT FOUND"
-                                ERRORS=$((ERRORS + 1))
-                            fi
-
-                            if [ "$ERRORS" -gt 0 ]; then
-                                echo "❌ FATAL: $ERRORS required tool(s) missing on windows-agent node."
-                                exit 1
-                            fi
-                            echo "✅ All required build tools available"
-                        '''
-                    } else {
-                        bat '''
-                            @echo off
-                            echo 🔍 Checking required tools on windows-agent...
-                            docker --version || exit /b 1
-                            docker compose version || exit /b 1
-                            git --version || exit /b 1
-                            node --version || exit /b 1
-                            npm --version || exit /b 1
-                            echo ✅ All required build tools available
-                        '''
-                    }
-
-                    // Generate environment files
-                    echo "⚙️ Generating environment files..."
-                    if (isUnix()) {
-                        sh '''
-                            chmod +x jenkins/scripts/generate-env.sh 2>/dev/null || true
-                            if [ -x jenkins/scripts/generate-env.sh ]; then
-                                ./jenkins/scripts/generate-env.sh
-                            else
-                                echo "Generating default .env files inline..."
-                                cat <<'EOF' > backend/.env
-PORT=8000
-NODE_ENV=production
+                                echo "  ⚠️  $envfile — MISSING"
+                                TEMPLATE="${envfile%.env}.env.example"
+                                if [ -f "$TEMPLATE" ]; then
+                                    echo "  📋 Generating from $TEMPLATE..."
+                                    cp "$TEMPLATE" "$envfile"
+                                    # Fix MongoDB URI for Docker networking
+                                    sed -i 's|mongodb://localhost:|mongodb://mongodb:|' "$envfile"
+                                    echo "  ✅ $envfile generated from template"
+                                else
+                                    echo "  ❌ No template found — creating minimal defaults"
+                                    if echo "$envfile" | grep -q "backend"; then
+                                        cat > "$envfile" <<ENVEOF
+NODE_ENV=development
+PORT=3000
 MONGODB_URI=mongodb://mongodb:27017/civicpulse
-JWT_ACCESS_SECRET=civicpulse-access-secret-key-32bytes-min!!
-JWT_REFRESH_SECRET=civicpulse-refresh-secret-key-32bytes-min!!
+JWT_ACCESS_SECRET=civicpulse-ci-access-secret
+JWT_REFRESH_SECRET=civicpulse-ci-refresh-secret
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
 CORS_ORIGIN=http://localhost:4200
-LOG_LEVEL=info
-EOF
-                                cat <<'EOF' > frontend/.env
-API_URL=http://localhost:8000
-EOF
+LOG_LEVEL=debug
+ENVEOF
+                                    else
+                                        cat > "$envfile" <<ENVEOF
+NODE_ENV=development
+API_URL=http://localhost:3000/api
+PORT=3000
+MONGODB_URI=mongodb://mongodb:27017/civicpulse
+JWT_ACCESS_SECRET=civicpulse-ci-access-secret
+JWT_REFRESH_SECRET=civicpulse-ci-refresh-secret
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=user
+SMTP_PASS=pass
+AI_API_KEY=your-ai-api-key-here
+ENVEOF
+                                    fi
+                                    echo "  ✅ $envfile generated with defaults"
+                                fi
                             fi
-                        '''
-                    } else {
-                        bat '''
-                            @echo off
-                            echo Generating default .env files inline for Windows...
-                            (
-                                echo PORT=8000
-                                echo NODE_ENV=production
-                                echo MONGODB_URI=mongodb://mongodb:27017/civicpulse
-                                echo JWT_ACCESS_SECRET=civicpulse-access-secret-key-32bytes-min!!
-                                echo JWT_REFRESH_SECRET=civicpulse-refresh-secret-key-32bytes-min!!
-                                echo CORS_ORIGIN=http://localhost:4200
-                                echo LOG_LEVEL=info
-                            ) > backend\\.env
+                        done
+                    fi
 
-                            (
-                                echo API_URL=http://localhost:8000
-                            ) > frontend\\.env
-                        '''
-                    }
+                    echo ""
+                    echo "🔍 Checking Dockerfiles..."
+                    for df in backend/Dockerfile.backend frontend/Dockerfile.frontend database/Dockerfile.mongodb nginx/Dockerfile.nginx; do
+                        if [ -f "$df" ]; then
+                            echo "  ✅ $df"
+                        else
+                            echo "  ❌ $df — MISSING"
+                            ERRORS=$((ERRORS + 1))
+                        fi
+                    done
 
-                    echo "✅ Environment files generated successfully"
-                }
+                    echo ""
+                    if [ $ERRORS -gt 0 ]; then
+                        echo "❌ FATAL: $ERRORS environment validation error(s) found. Aborting pipeline."
+                        exit 1
+                    fi
+                    echo "✅ Environment validation passed — all checks green"
+                '''
             }
         }
 
@@ -341,32 +292,31 @@ EOF
         stage('Install Dependencies') {
             parallel {
                 stage('Backend Dependencies') {
-                    agent { label 'windows-agent' }
                     steps {
-                        echo "📦 Installing backend dependencies..."
-                        script {
-                            if (isUnix()) {
-                                sh 'cd backend && npm ci --no-audit --no-fund'
-                            } else {
-                                bat 'cd backend && npm ci --no-audit --no-fund'
-                            }
+                        echo '📦 Installing backend dependencies...'
+                        dir('backend') {
+                            sh '''
+                                if [ -d "node_modules" ] && [ -f "package-lock.json" ]; then
+                                    echo "  ℹ️  node_modules exists — running npm ci for deterministic install"
+                                fi
+                                npm ci --prefer-offline --no-audit
+                                echo "  ✅ Backend dependencies installed ($(ls node_modules | wc -l) packages)"
+                            '''
                         }
-                        echo "  ✅ Backend dependencies installed"
                     }
                 }
-
                 stage('Frontend Dependencies') {
-                    agent { label 'windows-agent' }
                     steps {
-                        echo "📦 Installing frontend dependencies..."
-                        script {
-                            if (isUnix()) {
-                                sh 'cd frontend && npm ci --no-audit --no-fund'
-                            } else {
-                                bat 'cd frontend && npm ci --no-audit --no-fund'
-                            }
+                        echo '📦 Installing frontend dependencies...'
+                        dir('frontend') {
+                            sh '''
+                                if [ -d "node_modules" ] && [ -f "package-lock.json" ]; then
+                                    echo "  ℹ️  node_modules exists — running npm ci for deterministic install"
+                                fi
+                                npm ci --prefer-offline --no-audit
+                                echo "  ✅ Frontend dependencies installed ($(ls node_modules | wc -l) packages)"
+                            '''
                         }
-                        echo "  ✅ Frontend dependencies installed"
                     }
                 }
             }
@@ -376,41 +326,48 @@ EOF
         // STAGE 4 — Static Code Validation
         // ══════════════════════════════════════════════════════════════════════
         stage('Static Code Validation') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
             parallel {
                 stage('Backend Lint') {
-                    agent { label 'windows-agent' }
                     steps {
-                        script {
-                            if (params.SKIP_TESTS) {
-                                echo "⏭️ SKIP_TESTS is enabled — skipping Backend Lint"
-                            } else {
-                                echo "🔍 Running Backend ESLint..."
-                                if (isUnix()) {
-                                    sh 'cd backend && npm run lint || echo "⚠️ ESLint warnings detected"'
-                                } else {
-                                    bat 'cd backend && npm run lint || echo ⚠️ ESLint warnings detected'
+                        echo '🔎 Running backend static analysis...'
+                        dir('backend') {
+                            // npm audit — advisory only, don't fail the build
+                            sh '''
+                                echo "  📋 npm audit (advisory)..."
+                                npm audit --audit-level=high || echo "  ⚠️  Audit found vulnerabilities (advisory — non-blocking)"
+                            '''
+                            // ESLint
+                            sh '''
+                                echo "  📋 ESLint..."
+                                npx eslint src/**/*.ts --max-warnings=0 || {
+                                    echo "  ⚠️  Lint warnings found — review recommended"
+                                    exit 0
                                 }
-                                echo "  ✅ Backend lint check complete"
-                            }
+                                echo "  ✅ Backend lint passed"
+                            '''
                         }
                     }
                 }
-
                 stage('Frontend Lint') {
-                    agent { label 'windows-agent' }
                     steps {
-                        script {
-                            if (params.SKIP_TESTS) {
-                                echo "⏭️ SKIP_TESTS is enabled — skipping Frontend Lint"
-                            } else {
-                                echo "🔍 Running Frontend ESLint..."
-                                if (isUnix()) {
-                                    sh 'cd frontend && npm run lint || echo "⚠️ ESLint warnings detected"'
-                                } else {
-                                    bat 'cd frontend && npm run lint || echo ⚠️ ESLint warnings detected'
+                        echo '🔎 Running frontend static analysis...'
+                        dir('frontend') {
+                            sh '''
+                                echo "  📋 npm audit (advisory)..."
+                                npm audit --audit-level=high || echo "  ⚠️  Audit found vulnerabilities (advisory — non-blocking)"
+                            '''
+                            // Prettier format check
+                            sh '''
+                                echo "  📋 Prettier format check..."
+                                npx prettier --check "src/**/*.{ts,html,scss}" || {
+                                    echo "  ⚠️  Formatting issues found — review recommended"
+                                    exit 0
                                 }
-                                echo "  ✅ Frontend lint check complete"
-                            }
+                                echo "  ✅ Frontend format check passed"
+                            '''
                         }
                     }
                 }
@@ -423,191 +380,292 @@ EOF
         stage('Build Application') {
             parallel {
                 stage('Build Backend') {
-                    agent { label 'windows-agent' }
                     steps {
-                        echo "🔨 Building Backend application..."
-                        script {
-                            if (isUnix()) {
-                                sh 'cd backend && npm run build'
-                            } else {
-                                bat 'cd backend && npm run build'
-                            }
+                        echo '🔨 Building backend (TypeScript → JavaScript)...'
+                        dir('backend') {
+                            sh '''
+                                npm run build
+                                echo "  ✅ Backend build complete"
+                                echo "  📁 Output: backend/dist/"
+                                ls -la dist/ | head -20
+                            '''
                         }
-                        echo "  ✅ Backend build complete"
                     }
                 }
-
                 stage('Build Frontend') {
-                    agent { label 'windows-agent' }
                     steps {
-                        echo "🔨 Building Frontend application (production)..."
-                        script {
-                            if (isUnix()) {
-                                sh 'cd frontend && npm run build -- --configuration production'
-                            } else {
-                                bat 'cd frontend && npm run build -- --configuration production'
-                            }
+                        echo '🔨 Building frontend (Angular production build)...'
+                        dir('frontend') {
+                            sh '''
+                                npm run build -- --configuration production
+                                echo "  ✅ Frontend build complete"
+                                echo "  📁 Output: frontend/dist/"
+                                du -sh dist/ 2>/dev/null || echo "  ℹ️  dist directory created"
+                            '''
                         }
-                        echo "  ✅ Frontend production build complete"
                     }
+                }
+            }
+            post {
+                success {
+                    // Archive build artifacts for Jenkins build history
+                    archiveArtifacts artifacts: 'backend/dist/**/*', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'frontend/dist/**/*', fingerprint: true, allowEmptyArchive: true
+                    echo '📦 Build artifacts archived'
                 }
             }
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 6 — Unit Tests & Code Coverage
+        // STAGE 5.5 — Unit Tests & Code Coverage
         // ══════════════════════════════════════════════════════════════════════
         stage('Unit Tests & Code Coverage') {
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
             parallel {
                 stage('Backend Unit Tests') {
-                    agent { label 'windows-agent' }
                     steps {
-                        script {
-                            if (params.SKIP_TESTS) {
-                                echo "⏭️ SKIP_TESTS is enabled — skipping Backend Unit Tests"
-                            } else {
-                                echo "🧪 Running Backend Unit Tests on windows-agent..."
+                        echo '🧪 Running backend unit tests & generating LCOV coverage...'
+                        dir('backend') {
+                            script {
                                 if (isUnix()) {
                                     sh '''
-                                        echo "Starting temporary MongoDB container for tests..."
-                                        docker rm -f civicpulse-ci-mongodb 2>/dev/null || true
-                                        docker run -d --name civicpulse-ci-mongodb -p 27017:27017 mongo:8.0
-                                        sleep 5
+                                        echo "════════════════════════════════════════"
+                                        echo "  🍃 MongoDB CI Test Database"
+                                        echo "════════════════════════════════════════"
+                                        echo ""
+                                        
+                                        check_port() {
+                                            if command -v nc &>/dev/null; then
+                                                nc -z 127.0.0.1 27017 2>/dev/null
+                                            else
+                                                (exec 3<>/dev/tcp/127.0.0.1/27017) 2>/dev/null
+                                            fi
+                                        }
 
-                                        cd backend
-                                        npm test || echo "⚠️ Tests completed with non-zero exit code"
+                                        echo "Checking MongoDB connectivity on 127.0.0.1:27017..."
+                                        if check_port; then
+                                            echo "  ℹ️  MongoDB is already listening on 127.0.0.1:27017"
+                                        else
+                                            echo "Starting MongoDB..."
+                                            docker rm -f civicpulse-ci-mongodb 2>/dev/null || true
+                                            docker run -d \
+                                                --name civicpulse-ci-mongodb \
+                                                -p 27017:27017 \
+                                                mongo:8.0 || {
+                                                    echo "  ⚠️ mongo:8.0 launch failed, trying civicpulse/mongodb:v1..."
+                                                    docker run -d --name civicpulse-ci-mongodb -p 27017:27017 civicpulse/mongodb:v1
+                                                }
+                                        fi
 
-                                        echo "Cleaning up temporary MongoDB container..."
-                                        docker rm -f civicpulse-ci-mongodb 2>/dev/null || true
+                                        echo "Waiting for MongoDB..."
+                                        MAX_RETRIES=30
+                                        RETRY_COUNT=0
+                                        READY=0
+
+                                        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                                            if check_port; then
+                                                if docker ps --format '{{.Names}}' | grep -q "^civicpulse-ci-mongodb$"; then
+                                                    PING_RES=$(docker exec civicpulse-ci-mongodb mongosh --quiet --eval "db.adminCommand('ping').ok" 2>/dev/null || true)
+                                                    if [ "$PING_RES" = "1" ] || echo "$PING_RES" | grep -q "1"; then
+                                                        READY=1
+                                                        break
+                                                    fi
+                                                else
+                                                    READY=1
+                                                    break
+                                                fi
+                                            fi
+                                            RETRY_COUNT=$((RETRY_COUNT + 1))
+                                            echo "  ⏳ Waiting for MongoDB... ($RETRY_COUNT/$MAX_RETRIES)"
+                                            sleep 1
+                                        done
+
+                                        if [ $READY -eq 1 ]; then
+                                            echo "MongoDB is ready."
+                                            echo "MongoDB listening on 127.0.0.1:27017"
+                                            echo "Starting backend integration tests..."
+                                            echo ""
+                                        else
+                                            echo "❌ FATAL: MongoDB did not become ready on 127.0.0.1:27017"
+                                            docker logs civicpulse-ci-mongodb 2>&1 || true
+                                            docker rm -f civicpulse-ci-mongodb 2>/dev/null || true
+                                            exit 1
+                                        fi
+
+                                        export TEST_MONGODB_URI="mongodb://127.0.0.1:27017/civicpulse_test"
+                                        export MONGODB_URI="mongodb://127.0.0.1:27017/civicpulse_test"
+                                        npm test
+                                        echo "  ✅ Backend tests completed"
+                                        if [ -f "coverage/lcov.info" ]; then
+                                            echo "  ✅ backend/coverage/lcov.info successfully generated"
+                                        else
+                                            echo "  ❌ FATAL: backend/coverage/lcov.info missing!"
+                                            exit 1
+                                        fi
                                     '''
                                 } else {
                                     bat '''
-                                        @echo off
-                                        echo Starting temporary MongoDB container for tests on Windows Docker Desktop...
-                                        docker rm -f civicpulse-ci-mongodb 2>nul || rem
+                                        echo ════════════════════════════════════════
+                                        echo   🍃 MongoDB CI Test Database
+                                        echo ════════════════════════════════════════
+                                        echo Starting MongoDB...
+                                        docker rm -f civicpulse-ci-mongodb 2>NUL
                                         docker run -d --name civicpulse-ci-mongodb -p 27017:27017 mongo:8.0
-                                        powershell -Command "Start-Sleep -Seconds 5"
-
-                                        cd backend
-                                        call npm test || echo ⚠️ Tests completed with non-zero exit code
-
-                                        echo Cleaning up temporary MongoDB container...
-                                        docker rm -f civicpulse-ci-mongodb 2>nul || rem
+                                        echo Waiting for MongoDB...
+                                        docker exec civicpulse-ci-mongodb mongosh --quiet --eval "db.adminCommand('ping').ok"
+                                        echo MongoDB is ready.
+                                        echo MongoDB listening on 127.0.0.1:27017
+                                        echo Starting backend integration tests...
+                                        set TEST_MONGODB_URI=mongodb://127.0.0.1:27017/civicpulse_test
+                                        set MONGODB_URI=mongodb://127.0.0.1:27017/civicpulse_test
+                                        npm test
+                                        if exist coverage\\lcov.info (
+                                            echo ✅ backend\\coverage\\lcov.info successfully generated
+                                        ) else (
+                                            echo ❌ FATAL: backend\\coverage\\lcov.info missing!
+                                            exit 1
+                                        )
                                     '''
                                 }
-
-                                // Archive coverage reports if available
-                                archiveArtifacts artifacts: 'backend/coverage/**/*', fingerprint: true, allowEmptyArchive: true
-                                echo "  ✅ Backend unit tests complete"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                if (isUnix()) {
+                                    sh 'docker rm -f civicpulse-ci-mongodb 2>/dev/null || true'
+                                } else {
+                                    bat 'docker rm -f civicpulse-ci-mongodb 2>NUL || exit 0'
+                                }
                             }
                         }
                     }
                 }
-
                 stage('Frontend Unit Tests') {
-                    agent { label 'windows-agent' }
                     steps {
-                        script {
-                            if (params.SKIP_TESTS) {
-                                echo "⏭️ SKIP_TESTS is enabled — skipping Frontend Unit Tests"
-                            } else {
-                                echo "🧪 Running Frontend Unit Tests (headless browser)..."
-                                script {
-                                    try {
-                                        if (isUnix()) {
-                                            sh 'cd frontend && npm test -- --watch=false --browsers=ChromeHeadless'
-                                        } else {
-                                            bat 'cd frontend && npm test -- --watch=false --browsers=ChromeHeadless'
-                                        }
-                                    } catch (Exception e) {
-                                        echo "⚠️ Frontend tests skipped or finished with warning: ${e.message}"
-                                    }
+                        echo '🧪 Running frontend unit tests & generating LCOV coverage...'
+                        dir('frontend') {
+                            script {
+                                if (isUnix()) {
+                                    sh '''
+                                        npm test
+                                        echo "  ✅ Frontend tests completed"
+                                        if [ -f "coverage/lcov.info" ]; then
+                                            echo "  ✅ frontend/coverage/lcov.info successfully generated"
+                                        else
+                                            echo "  ❌ FATAL: frontend/coverage/lcov.info missing!"
+                                            exit 1
+                                        fi
+                                    '''
+                                } else {
+                                    bat '''
+                                        npm test
+                                        if exist coverage\\lcov.info (
+                                            echo ✅ frontend\\coverage\\lcov.info successfully generated
+                                        ) else (
+                                            echo ❌ FATAL: frontend\\coverage\\lcov.info missing!
+                                            exit 1
+                                        )
+                                    '''
                                 }
-                                archiveArtifacts artifacts: 'frontend/coverage/**/*', fingerprint: true, allowEmptyArchive: true
-                                echo "  ✅ Frontend unit tests complete"
                             }
                         }
                     }
                 }
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'backend/coverage/**/*', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'frontend/coverage/**/*', fingerprint: true, allowEmptyArchive: true
+                    echo '📦 Unit test coverage reports archived'
+                }
+            }
         }
-
+            
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 7 — SonarQube Analysis
+        // STAGE 6 — SonarQube Analysis (Using manually installed system sonar-scanner)
         // ══════════════════════════════════════════════════════════════════════
         stage('SonarQube Analysis') {
-            agent { label 'windows-agent' }
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
             steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 6 — SonarQube Analysis\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
                 script {
-                    if (params.SKIP_TESTS) {
-                        echo "⏭️ SKIP_TESTS is enabled — skipping SonarQube Analysis"
+                    echo "🔍 Executing pre-scan coverage diagnostics..."
+                    if (isUnix()) {
+                        sh '''
+                            echo "📍 Current working directory:"
+                            pwd
+                            echo "📂 Workspace contents:"
+                            ls -la
+                            echo "🔎 Searching for lcov.info files in workspace:"
+                            find . -name "lcov.info" || true
+                            echo "📁 backend/coverage contents:"
+                            ls -R backend/coverage 2>/dev/null || echo "  (backend/coverage directory missing)"
+                            echo "📁 frontend/coverage contents:"
+                            ls -R frontend/coverage 2>/dev/null || echo "  (frontend/coverage directory missing)"
+                        '''
                     } else {
-                        echo "📊 Executing SonarQube Code Quality Analysis..."
+                        bat '''
+                            echo Current working directory:
+                            cd
+                            echo Workspace contents:
+                            dir
+                            echo Searching for lcov.info files in workspace:
+                            dir /s /b lcov.info
+                            echo backend/coverage contents:
+                            dir /s backend\\coverage
+                            echo frontend/coverage contents:
+                            dir /s frontend\\coverage
+                        '''
+                    }
 
-                        // Locate SonarQube Scanner executable
-                        def sonarScannerCmd = "sonar-scanner"
-                        if (!isUnix()) {
-                            sonarScannerCmd = "sonar-scanner.bat"
-                        }
+                    echo "🔍 Executing SonarQube analysis using system-installed sonar-scanner CLI..."
 
-                        withSonarQubeEnv(SONAR_SERVER) {
-                            if (isUnix()) {
-                                sh """
-                                    ${sonarScannerCmd} \
-                                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                        -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
-                                        -Dsonar.sources=backend/src,frontend/src \
-                                        -Dsonar.tests=backend/tests,frontend/src \
-                                        -Dsonar.test.inclusions="**/*.spec.ts,**/*.test.ts" \
-                                        -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**" \
-                                        -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info \
-                                        -Dsonar.sourceEncoding=UTF-8 \
-                                        || echo "⚠️ SonarQube analysis completed with warnings (continuing pipeline)"
-                                """
-                            } else {
-                                bat """
-                                    ${sonarScannerCmd} ^
-                                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} ^
-                                        -Dsonar.projectName="${SONAR_PROJECT_NAME}" ^
-                                        -Dsonar.sources=backend/src,frontend/src ^
-                                        -Dsonar.tests=backend/tests,frontend/src ^
-                                        -Dsonar.test.inclusions="**/*.spec.ts,**/*.test.ts" ^
-                                        -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**" ^
-                                        -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info ^
-                                        -Dsonar.sourceEncoding=UTF-8 ^
-                                        || echo ⚠️ SonarQube analysis completed with warnings
-                                """
-                            }
+                    // Execute SonarQube analysis against configured server ('SonarQube') using system PATH
+                    withSonarQubeEnv('SonarQube') {
+                        // Export SONAR_TOKEN for SonarScanner CLI and SonarQube 10.x environment inheritance
+                        env.SONAR_TOKEN = env.SONAR_TOKEN ?: env.SONAR_AUTH_TOKEN
+                        if (isUnix()) {
+                            // Execution on Linux / Unix agents
+                            sh '/opt/sonar-scanner/bin/sonar-scanner'
+                        } else {
+                            // Execution on Windows agents
+                            bat 'sonar-scanner'
                         }
-                        echo "  ✅ SonarQube analysis submitted successfully"
                     }
                 }
             }
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 8 — SonarQube Quality Gate
+        // STAGE 7 — SonarQube Quality Gate
         // ══════════════════════════════════════════════════════════════════════
         stage('SonarQube Quality Gate') {
-            agent { label 'windows-agent' }
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
             steps {
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 7 — SonarQube Quality Gate\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+
                 script {
-                    if (params.SKIP_TESTS) {
-                        echo "⏭️ SKIP_TESTS is enabled — skipping Quality Gate check"
-                    } else {
-                        echo "⏳ Waiting for SonarQube Quality Gate result (timeout: 5 minutes)..."
-                        try {
-                            timeout(time: 5, unit: 'MINUTES') {
-                                def qg = waitForQualityGate()
-                                if (qg.status != 'OK') {
-                                    echo "⚠️ Quality Gate status: ${qg.status} — Review SonarQube dashboard"
-                                } else {
-                                    echo "  ✅ Quality Gate PASSED successfully"
-                                }
-                            }
-                        } catch (Exception e) {
-                            echo "⚠️ Quality Gate check bypassed due to timeout or missing SonarQube Webhook: ${e.message}"
-                            echo "   Pipeline will continue. Ensure SonarQube webhook points to: http://<jenkins-url>/sonarqube-webhook/"
+                    // Pause execution and wait for SonarQube server webhook to evaluate Quality Gate status
+                    // Timeout set to 5 minutes to prevent build agent hanging indefinitely
+                    timeout(time: 45, unit: 'MINUTES') {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "❌ SonarQube Quality Gate FAILED with status '${qg.status}'. Pipeline execution aborted before Docker Build."
+                        } else {
+                            echo "✅ SonarQube Quality Gate PASSED with status '${qg.status}'."
                         }
                     }
                 }
@@ -615,69 +673,77 @@ EOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 9 — Trivy Filesystem Scan
+        // STAGE 8 — Trivy Filesystem Scan
         // ══════════════════════════════════════════════════════════════════════
         stage('Trivy Filesystem Scan') {
-            agent { label 'windows-agent' }
+            when {
+                expression { return !params.SKIP_TESTS }
+            }
             steps {
-                script {
-                    echo "🔒 Scanning codebase for known vulnerabilities with Trivy..."
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 8 — Trivy Filesystem Scan\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
+                script {
+                    // Create Trivy reports directory (OS agnostic)
                     if (isUnix()) {
-                        sh "mkdir -p ${TRIVY_REPORTS_DIR}"
-                        sh """
-                            if command -v trivy &>/dev/null; then
-                                trivy fs . \
-                                    --severity ${TRIVY_SEVERITY} \
-                                    --format table \
-                                    --output ${TRIVY_REPORTS_DIR}/fs-scan.txt \
-                                    --skip-dirs node_modules,dist,coverage \
-                                    || echo "⚠️ Trivy detected filesystem vulnerabilities"
-                                echo "  ✅ Filesystem vulnerability scan complete"
-                            else
-                                echo "⚠️ Trivy binary not installed on node — skipping filesystem scan"
-                                echo "   Install Trivy: https://aquasecurity.github.io/trivy/"
-                            fi
-                        """
+                        sh 'mkdir -p jenkins/reports/trivy'
                     } else {
-                        bat """
-                            @echo off
-                            if not exist ${TRIVY_REPORTS_DIR} mkdir ${TRIVY_REPORTS_DIR}
-                            where trivy >nul 2>&1
-                            if %errorlevel%==0 (
-                                trivy fs . --severity ${TRIVY_SEVERITY} --format table --output ${TRIVY_REPORTS_DIR}/fs-scan.txt --skip-dirs node_modules,dist,coverage || echo ⚠️ Trivy detected vulnerabilities
-                                echo ✅ Filesystem vulnerability scan complete
-                            ) else (
-                                echo ⚠️ Trivy binary not installed on Windows node — skipping filesystem scan
-                            )
-                        """
+                        bat 'if not exist jenkins\\reports\\trivy mkdir jenkins\\reports\\trivy'
                     }
 
-                    archiveArtifacts artifacts: "${TRIVY_REPORTS_DIR}/**/*", fingerprint: true, allowEmptyArchive: true
+                    echo '🔎 Running Trivy filesystem vulnerability scan...'
+
+                    if (isUnix()) {
+                        // Generate JSON, SARIF, and HTML reports for filesystem scan
+                        sh '''
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || true
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || true
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || true
+                        '''
+                        // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
+                        sh "trivy fs --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ."
+                    } else {
+                        // Windows agent execution
+                        bat '''
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
+                        '''
+                        // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
+                        bat "trivy fs --severity %TRIVY_SEVERITY% --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ."
+                    }
+                }
+            }
+            post {
+                always {
+                    // Archive filesystem vulnerability scan reports as Jenkins build artifacts
+                    archiveArtifacts artifacts: 'jenkins/reports/trivy/trivy-fs-report.*', fingerprint: true, allowEmptyArchive: true
+                    echo '📦 Trivy Filesystem vulnerability reports archived'
                 }
             }
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 10 — Docker Build
+        // STAGE 9 — Docker Build
         // ══════════════════════════════════════════════════════════════════════
         stage('Docker Build') {
-            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 10 — Docker Build (windows-agent)\033[0m'
+                echo '\033[1;36m  STAGE 9 — Docker Build\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
+                    // Prune dangling images if enabled
                     if (params.DOCKER_PRUNE) {
-                        echo "🧹 Pruning dangling Docker images..."
-                        if (isUnix()) {
-                            sh 'docker image prune -f || true'
-                        } else {
-                            bat 'docker image prune -f 2>nul || rem'
-                        }
+                        sh '''
+                            echo "🧹 Pruning dangling Docker images..."
+                            docker image prune -f || true
+                            echo "  ✅ Prune complete"
+                        '''
                     }
 
+                    // Build Docker images (statically tagged as v1 in docker-compose.yml)
                     def buildFlags = params.FORCE_REBUILD ? '--no-cache --pull' : '--pull'
                     if (isUnix()) {
                         sh """
@@ -702,43 +768,41 @@ EOF
                         """
                     }
 
-                    script {
-                        if (isUnix()) {
-                            sh '''
-                                echo "🧹 Cleaning up old overwritten/dangling images..."
-                                docker image prune -f 2>/dev/null || true
-                                echo "  ✅ Cleanup complete"
+                    // Prune old overwritten build images immediately to free disk space
+                    sh '''
+                        echo "🧹 Cleaning up old overwritten/dangling images..."
+                        docker image prune -f 2>/dev/null || true
+                        echo "  ✅ Cleanup complete"
+                    '''
 
-                                echo ""
-                                echo "📋 Docker images:"
-                                docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}\\t{{.CreatedSince}}" | grep -E "civicpulse|REPOSITORY" || true
-                            '''
-                        } else {
-                            bat '''
-                                @echo off
-                                echo 🧹 Cleaning up old overwritten/dangling images...
-                                docker image prune -f 2>nul || rem
-                                echo   ✅ Cleanup complete
-
-                                echo.
-                                echo 📋 Docker images:
-                                docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
-                            '''
-                        }
-                    }
+                    // Display built images
+                    sh '''
+                        echo ""
+                        echo "📋 Docker images:"
+                        docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}\\t{{.CreatedSince}}" | grep -E "civicpulse|REPOSITORY" || true
+                    '''
                 }
             }
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 10.1 — Trivy Image Scan
+        // STAGE 10 — Trivy Image Scan
         // ══════════════════════════════════════════════════════════════════════
         stage('Trivy Image Scan') {
-            agent { label 'windows-agent' }
             steps {
-                script {
-                    echo "🔒 Scanning built container images for vulnerabilities..."
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;36m  STAGE 10 — Trivy Image Scan\033[0m'
+                echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
+                script {
+
+                    // Create Trivy reports directory
+                    if (isUnix()) {
+                        sh 'mkdir -p jenkins/reports/trivy'
+                    } else {
+                        bat 'if not exist jenkins\\reports\\trivy mkdir jenkins\\reports\\trivy'
+                    }
+                    // Container images generated by Docker Compose build
                     def imagesToScan = [
                         'civicpulse/backend:v1',
                         'civicpulse/frontend:v1',
@@ -746,80 +810,72 @@ EOF
                         'civicpulse/mongodb:v1'
                     ]
 
-                    if (isUnix()) {
-                        sh "mkdir -p ${TRIVY_REPORTS_DIR}"
-                        for (img in imagesToScan) {
-                            def safeName = img.replace('/', '-').replace(':', '-')
-                            sh """
-                                if command -v trivy &>/dev/null; then
-                                    echo "  Scanning image: ${img}..."
-                                    trivy image ${img} \
-                                        --severity ${TRIVY_SEVERITY} \
-                                        --format table \
-                                        --output ${TRIVY_REPORTS_DIR}/${safeName}.txt \
-                                        || echo "⚠️ Trivy detected image vulnerabilities in ${img}"
-                                else
-                                    echo "⚠️ Trivy binary not installed — skipping scan for ${img}"
-                                fi
-                            """
-                        }
-                    } else {
-                        bat """
-                            @echo off
-                            if not exist ${TRIVY_REPORTS_DIR} mkdir ${TRIVY_REPORTS_DIR}
-                            where trivy >nul 2>&1
-                            if %errorlevel%==0 (
-                                echo Scanning container images...
-                                trivy image civicpulse/backend:v1 --severity ${TRIVY_SEVERITY} --format table --output ${TRIVY_REPORTS_DIR}/backend-v1.txt || echo ⚠️ Vulnerabilities found
-                                trivy image civicpulse/frontend:v1 --severity ${TRIVY_SEVERITY} --format table --output ${TRIVY_REPORTS_DIR}/frontend-v1.txt || echo ⚠️ Vulnerabilities found
-                                trivy image civicpulse/nginx:v1 --severity ${TRIVY_SEVERITY} --format table --output ${TRIVY_REPORTS_DIR}/nginx-v1.txt || echo ⚠️ Vulnerabilities found
-                                trivy image civicpulse/mongodb:v1 --severity ${TRIVY_SEVERITY} --format table --output ${TRIVY_REPORTS_DIR}/mongodb-v1.txt || echo ⚠️ Vulnerabilities found
-                            ) else (
-                                echo ⚠️ Trivy binary not installed on Windows node — skipping image scans
-                            )
-                        """
-                    }
+                    imagesToScan.each { img ->
+                        def cleanName = img.replace('/', '-').replace(':', '-')
+                        echo "🛡️ Scanning image: ${img}..."
 
-                    archiveArtifacts artifacts: "${TRIVY_REPORTS_DIR}/**/*", fingerprint: true, allowEmptyArchive: true
-                    echo "  ✅ Container image vulnerability scans complete"
+                        if (isUnix()) {
+                            // Generate JSON, SARIF, and HTML reports for each container image
+                            sh """
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || true
+                            """
+                            // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
+                            sh "trivy image --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ${img}"
+                        } else {
+                            // Windows agent execution
+                            bat """
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
+                            """
+                            bat "trivy image --severity %TRIVY_SEVERITY% --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ${img}"
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    // Archive all container image vulnerability reports as Jenkins artifacts
+                    archiveArtifacts artifacts: 'jenkins/reports/trivy/**/*', fingerprint: true, allowEmptyArchive: true
+                    echo '📦 All Trivy Container Image vulnerability reports archived'
                 }
             }
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════════
         // STAGE 10.5 — Push Images to GHCR
         // ══════════════════════════════════════════════════════════════════════
         stage('Push Images to GHCR') {
-            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 10.5 — Push Images to GHCR (windows-agent)\033[0m'
+                echo '\033[1;36m  STAGE 10.5 — Push Images to GHCR\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    withCredentials([
-                        usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')
-                    ]) {
-                        def backendLocal     = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
-                        def backendGhcrTag   = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}"
-                        def backendGhcrLatest= "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:latest"
+                    withCredentials([usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')]) {
+                        def backendLocal       = "${env.DOCKER_IMAGE_PREFIX}/backend:v1"
+                        def frontendLocal      = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
+                        def nginxLocal         = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
+                        def mongodbLocal       = "${env.DOCKER_IMAGE_PREFIX}/mongodb:v1"
 
-                        def frontendLocal    = "${env.DOCKER_IMAGE_PREFIX}/frontend:v1"
-                        def frontendGhcrTag  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}"
-                        def frontendGhcrLatest= "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:latest"
+                        def backendGhcrTag     = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}"
+                        def frontendGhcrTag    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}"
+                        def nginxGhcrTag       = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
+                        def mongodbGhcrTag     = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}"
 
-                        def nginxLocal       = "${env.DOCKER_IMAGE_PREFIX}/nginx:v1"
-                        def nginxGhcrTag     = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}"
-                        def nginxGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:latest"
-
-                        def mongodbLocal     = "${env.DOCKER_IMAGE_PREFIX}/mongodb:v1"
-                        def mongodbGhcrTag   = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}"
-                        def mongodbGhcrLatest= "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:latest"
+                        def backendGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:latest"
+                        def frontendGhcrLatest = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:latest"
+                        def nginxGhcrLatest    = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:latest"
+                        def mongodbGhcrLatest  = "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:latest"
 
                         if (isUnix()) {
                             sh """
+                                set +x
                                 echo "🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})..."
-                                echo "${GHCR_TOKEN}" | docker login ${env.GHCR_REGISTRY} -u ${GHCR_USERNAME} --password-stdin
+                                echo "\${GHCR_TOKEN}" | docker login "${env.GHCR_REGISTRY}" -u "\${GHCR_USERNAME}" --password-stdin
                                 echo "  ✅ Logged in to GHCR successfully"
 
                                 echo ""
@@ -900,10 +956,9 @@ EOF
         // STAGE 10.6 — Pre-Deployment Image Verification
         // ══════════════════════════════════════════════════════════════════════
         stage('Pre-Deployment Image Verification') {
-            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 10.6 — Pre-Deployment Image Verification (windows-agent)\033[0m'
+                echo '\033[1;36m  STAGE 10.6 — Pre-Deployment Image Verification\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
@@ -970,32 +1025,16 @@ EOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 10.7 — Stash Deployment Assets
-        // ══════════════════════════════════════════════════════════════════════
-        stage('Stash Deployment Assets') {
-            agent { label 'windows-agent' }
-            steps {
-                echo "📦 Stashing deployment assets for ubuntu-agent..."
-                stash name: 'deploy-assets', includes: 'helm/**, jenkins/scripts/**, jenkins/config/**'
-                echo "  ✅ Deployment assets stashed successfully"
-            }
-        }
-
-        // ══════════════════════════════════════════════════════════════════════
         // STAGE 11 — Helm Kubernetes Deployment
         // ══════════════════════════════════════════════════════════════════════
         stage('Helm Kubernetes Deployment') {
-            agent { label 'ubuntu-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 11 — Helm Kubernetes Deployment (ubuntu-agent)\033[0m'
+                echo '\033[1;36m  STAGE 11 — Helm Kubernetes Deployment (K3s)\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
                     env.KUBERNETES_STAGE_REACHED = 'true'
-                    echo "📥 Unstashing deployment assets on ubuntu-agent..."
-                    unstash 'deploy-assets'
-
                     withCredentials([
                         usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')
                     ]) {
@@ -1006,10 +1045,10 @@ EOF
                             if [ -z "${KUBECONFIG:-}" ]; then
                                 if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
                                     export KUBECONFIG="${HOME}/.kube/config"
-                                elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
-                                    export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
                                 elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
                                     export KUBECONFIG="/home/jenkins/.kube/config"
+                                elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
+                                    export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
                                 else
                                     export KUBECONFIG="${HOME}/.kube/config"
                                 fi
@@ -1055,28 +1094,24 @@ EOF
         // STAGE 12 — Health Verification
         // ══════════════════════════════════════════════════════════════════════
         stage('Health Verification') {
-            agent { label 'ubuntu-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 12 — Health Verification (ubuntu-agent)\033[0m'
+                echo '\033[1;36m  STAGE 12 — Health Verification\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
-                script {
-                    echo "📥 Unstashing deployment assets..."
-                    unstash 'deploy-assets'
+                // Wait for containers to initialize
+                echo "⏳ Waiting ${STARTUP_WAIT}s for services to initialize..."
+                sleep(time: Integer.parseInt(env.STARTUP_WAIT), unit: 'SECONDS')
 
-                    echo "⏳ Waiting ${STARTUP_WAIT}s for services to initialize..."
-                    sleep(time: Integer.parseInt(env.STARTUP_WAIT), unit: 'SECONDS')
-
-                    sh 'chmod +x jenkins/scripts/health-check.sh'
-                    sh """
-                        ./jenkins/scripts/health-check.sh \
-                            --retries ${HEALTH_RETRIES} \
-                            --interval ${HEALTH_INTERVAL} \
-                            --backend-url "${BACKEND_URL}" \
-                            --app-url "${APP_URL}"
-                    """
-                }
+                // Run health checks
+                sh 'chmod +x jenkins/scripts/health-check.sh'
+                sh """
+                    ./jenkins/scripts/health-check.sh \
+                        --retries ${HEALTH_RETRIES} \
+                        --interval ${HEALTH_INTERVAL} \
+                        --backend-url "${BACKEND_URL}" \
+                        --app-url "${APP_URL}"
+                """
             }
         }
 
@@ -1084,28 +1119,23 @@ EOF
         // STAGE 13 — Deployment Report
         // ══════════════════════════════════════════════════════════════════════
         stage('Deployment Report') {
-            agent { label 'ubuntu-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 13 — Deployment Report (ubuntu-agent)\033[0m'
+                echo '\033[1;36m  STAGE 13 — Deployment Report\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
-                script {
-                    echo "📥 Unstashing deployment assets..."
-                    unstash 'deploy-assets'
+                sh 'chmod +x jenkins/scripts/generate-report.sh'
+                sh """
+                    ./jenkins/scripts/generate-report.sh \
+                        --build-number "${BUILD_NUMBER}" \
+                        --commit "${env.GIT_COMMIT_SHORT}" \
+                        --branch "${env.GIT_BRANCH_NAME}" \
+                        --app-url "${APP_URL}" \
+                        --env "${params.DEPLOY_ENV}"
+                """
 
-                    sh 'chmod +x jenkins/scripts/generate-report.sh'
-                    sh """
-                        ./jenkins/scripts/generate-report.sh \
-                            --build-number "${BUILD_NUMBER}" \
-                            --commit "${env.GIT_COMMIT_SHORT}" \
-                            --branch "${env.GIT_BRANCH_NAME}" \
-                            --app-url "${APP_URL}" \
-                            --env "${params.DEPLOY_ENV}"
-                    """
-
-                    archiveArtifacts artifacts: 'jenkins/reports/**/*', fingerprint: true, allowEmptyArchive: true
-                }
+                // Archive the deployment report
+                archiveArtifacts artifacts: 'jenkins/reports/**/*', fingerprint: true, allowEmptyArchive: true
             }
         }
     }
@@ -1124,6 +1154,13 @@ EOF
   📦 Commit   : ${env.GIT_COMMIT_SHORT ?: 'N/A'}
   🕐 Time     : ${currentBuild.durationString}
             """
+
+            // Display container information
+            sh '''
+                echo "📋 Running Containers:"
+                docker compose ps --format "table {{.Name}}\\t{{.Status}}\\t{{.Ports}}" 2>/dev/null || \
+                docker compose ps 2>/dev/null || true
+            '''
         }
 
         failure {
@@ -1140,40 +1177,31 @@ EOF
 
             script {
                 if (env.KUBERNETES_STAGE_REACHED == 'true') {
-                    node('ubuntu-agent') {
-                        script {
-                            try {
-                                unstash 'deploy-assets'
-                            } catch (Exception e) {
-                                echo "⚠️ Unstash deploy-assets failed or skipped in post failure: ${e.message}"
-                            }
-                        }
-                        sh '''
-                            if [ -z "${KUBECONFIG:-}" ]; then
-                                if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
-                                    export KUBECONFIG="${HOME}/.kube/config"
-                                elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
-                                    export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
-                                elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
-                                    export KUBECONFIG="/home/jenkins/.kube/config"
-                                else
-                                    export KUBECONFIG="${HOME}/.kube/config"
-                                fi
-                            fi
-                            if [ -f "$KUBECONFIG" ] && [ -r "$KUBECONFIG" ]; then
-                                echo ""
-                                echo "════════════════════════════════════════"
-                                echo "  📋 Kubernetes Deployment Diagnostics (KUBECONFIG=${KUBECONFIG})"
-                                echo "════════════════════════════════════════"
-                                kubectl get pods -n civicpulse -o wide 2>/dev/null || true
-                                kubectl get deployments -n civicpulse 2>/dev/null || true
-                                kubectl get services -n civicpulse 2>/dev/null || true
-                                kubectl get events -n civicpulse --sort-by='.lastTimestamp' 2>/dev/null || true
+                    sh '''
+                        if [ -z "${KUBECONFIG:-}" ]; then
+                            if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
+                                export KUBECONFIG="${HOME}/.kube/config"
+                            elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
+                                export KUBECONFIG="/home/jenkins/.kube/config"
+                            elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
+                                export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
                             else
-                                echo "ℹ️  Kubernetes stage was reached, but no readable kubeconfig found at ${KUBECONFIG} for diagnostics."
+                                export KUBECONFIG="${HOME}/.kube/config"
                             fi
-                        '''
-                    }
+                        fi
+                        if [ -f "$KUBECONFIG" ] && [ -r "$KUBECONFIG" ]; then
+                            echo ""
+                            echo "════════════════════════════════════════"
+                            echo "  📋 Kubernetes Deployment Diagnostics (KUBECONFIG=${KUBECONFIG})"
+                            echo "════════════════════════════════════════"
+                            kubectl get pods -n civicpulse -o wide 2>/dev/null || true
+                            kubectl get deployments -n civicpulse 2>/dev/null || true
+                            kubectl get services -n civicpulse 2>/dev/null || true
+                            kubectl get events -n civicpulse --sort-by='.lastTimestamp' 2>/dev/null || true
+                        else
+                            echo "ℹ️  Kubernetes stage was reached, but no readable kubeconfig found at ${KUBECONFIG} for diagnostics."
+                        fi
+                    '''
                 } else {
                     echo "ℹ️  Pipeline failed prior to Kubernetes deployment stage. Skipping Kubernetes diagnostics."
                 }
@@ -1181,34 +1209,26 @@ EOF
         }
 
         always {
-            node('windows-agent') {
-                echo '🧹 Running Docker post-pipeline cleanup on windows-agent...'
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            chmod +x jenkins/scripts/cleanup.sh 2>/dev/null || true
-                            if [ -x jenkins/scripts/cleanup.sh ]; then
-                                ./jenkins/scripts/cleanup.sh
-                            else
-                                docker image prune -f 2>/dev/null || true
-                                rm -rf /tmp/civicpulse-* 2>/dev/null || true
-                            fi
-                        '''
-                    } else {
-                        bat '''
-                            @echo off
-                            docker image prune -f 2>nul
-                        '''
-                    }
-                }
-                cleanWs(
-                    cleanWhenNotBuilt: false,
-                    deleteDirs: true,
-                    disableDeferredWipeout: true,
-                    notFailBuild: true
-                )
-                echo '✅ Post-pipeline cleanup complete'
-            }
+            echo '🧹 Running post-pipeline cleanup...'
+            sh '''
+                # Run centralized post-build cleanup script
+                chmod +x jenkins/scripts/cleanup.sh 2>/dev/null || true
+                if [ -x jenkins/scripts/cleanup.sh ]; then
+                    ./jenkins/scripts/cleanup.sh
+                else
+                    # Fallback inline cleanup
+                    docker image prune -f 2>/dev/null || true
+                    rm -rf /tmp/civicpulse-* 2>/dev/null || true
+                fi
+            '''
+            // Clean Jenkins workspace
+            cleanWs(
+                cleanWhenNotBuilt: false,
+                deleteDirs: true,
+                disableDeferredWipeout: true,
+                notFailBuild: true
+            )
+            echo '✅ Post-pipeline cleanup complete'
         }
     }
 }
