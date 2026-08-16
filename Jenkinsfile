@@ -2,7 +2,7 @@
 // CivicPulseAI — Declarative Jenkins CI/CD Pipeline (Two-Node Architecture)
 // ============================================================================
 // Nodes:
-//   1. Built-In Node : Build, Docker Desktop, MongoDB CI, SonarQube, Scans, GHCR Push
+//   1. windows-agent : Build, Docker Desktop, MongoDB CI, SonarQube, Scans, GHCR Push
 //   2. ubuntu-agent  : K3s, kubectl, Helm Deployment, Health Check, Diagnostics
 // ============================================================================
 
@@ -92,28 +92,28 @@ pipeline {
         stage('Infrastructure Validation') {
             parallel {
                 stage('Validate Windows Docker Node') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                        echo '\033[1;36m  NODE: Built-In Node Validation\033[0m'
+                        echo '\033[1;36m  NODE: windows-agent Validation\033[0m'
                         echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
                         script {
                             if (isUnix()) {
                                 sh '''
                                     echo "Checking Windows/Docker environment..."
-                                    which docker || { echo "❌ FATAL: docker executable not found on Built-In Node"; exit 1; }
+                                    which docker || { echo "❌ FATAL: docker executable not found on windows-agent"; exit 1; }
                                     docker version || { echo "❌ FATAL: Docker daemon not responding"; exit 1; }
                                     docker info || { echo "❌ FATAL: Docker info failed"; exit 1; }
-                                    echo "✅ Windows Docker Built-In Node validated successfully"
+                                    echo "✅ Windows Docker windows-agent validated successfully"
                                 '''
                             } else {
                                 bat '''
                                     @echo off
                                     echo Checking Windows Docker environment...
-                                    where docker >nul 2>&1 || (echo ❌ FATAL: docker executable not found on Built-In Node & exit /b 1)
+                                    where docker >nul 2>&1 || (echo ❌ FATAL: docker executable not found on windows-agent & exit /b 1)
                                     docker version || (echo ❌ FATAL: Docker daemon not responding & exit /b 1)
                                     docker info || (echo ❌ FATAL: Docker info failed & exit /b 1)
-                                    echo ✅ Windows Docker Built-In Node validated successfully
+                                    echo ✅ Windows Docker windows-agent validated successfully
                                 '''
                             }
                         }
@@ -154,10 +154,10 @@ pipeline {
         // STAGE 1 — Checkout Source Code
         // ══════════════════════════════════════════════════════════════════════
         stage('Checkout Source Code') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 1 — Checkout Source Code (Built-In Node)\033[0m'
+                echo '\033[1;36m  STAGE 1 — Checkout Source Code (windows-agent)\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 cleanWs()
@@ -219,10 +219,10 @@ pipeline {
         // STAGE 2 — Environment Validation & Generation
         // ══════════════════════════════════════════════════════════════════════
         stage('Environment Validation') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 2 — Environment Validation (Built-In Node)\033[0m'
+                echo '\033[1;36m  STAGE 2 — Environment Validation (windows-agent)\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
@@ -269,7 +269,7 @@ pipeline {
                             fi
 
                             if [ "$ERRORS" -gt 0 ]; then
-                                echo "❌ FATAL: $ERRORS required tool(s) missing on Built-In Node node."
+                                echo "❌ FATAL: $ERRORS required tool(s) missing on windows-agent node."
                                 exit 1
                             fi
                             echo "✅ All required build tools available"
@@ -277,7 +277,7 @@ pipeline {
                     } else {
                         bat '''
                             @echo off
-                            echo 🔍 Checking required tools on Built-In Node...
+                            echo 🔍 Checking required tools on windows-agent...
                             docker --version || exit /b 1
                             docker compose version || exit /b 1
                             git --version || exit /b 1
@@ -341,7 +341,7 @@ EOF
         stage('Install Dependencies') {
             parallel {
                 stage('Backend Dependencies') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         echo "📦 Installing backend dependencies..."
                         script {
@@ -356,7 +356,7 @@ EOF
                 }
 
                 stage('Frontend Dependencies') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         echo "📦 Installing frontend dependencies..."
                         script {
@@ -378,7 +378,7 @@ EOF
         stage('Static Code Validation') {
             parallel {
                 stage('Backend Lint') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         script {
                             if (params.SKIP_TESTS) {
@@ -397,7 +397,7 @@ EOF
                 }
 
                 stage('Frontend Lint') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         script {
                             if (params.SKIP_TESTS) {
@@ -423,7 +423,7 @@ EOF
         stage('Build Application') {
             parallel {
                 stage('Build Backend') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         echo "🔨 Building Backend application..."
                         script {
@@ -438,7 +438,7 @@ EOF
                 }
 
                 stage('Build Frontend') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         echo "🔨 Building Frontend application (production)..."
                         script {
@@ -460,13 +460,13 @@ EOF
         stage('Unit Tests & Code Coverage') {
             parallel {
                 stage('Backend Unit Tests') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         script {
                             if (params.SKIP_TESTS) {
                                 echo "⏭️ SKIP_TESTS is enabled — skipping Backend Unit Tests"
                             } else {
-                                echo "🧪 Running Backend Unit Tests on Built-In Node..."
+                                echo "🧪 Running Backend Unit Tests on windows-agent..."
                                 if (isUnix()) {
                                     sh '''
                                         echo "Starting temporary MongoDB container for tests..."
@@ -505,7 +505,7 @@ EOF
                 }
 
                 stage('Frontend Unit Tests') {
-                    agent { label 'Built-In Node' }
+                    agent { label 'windows-agent' }
                     steps {
                         script {
                             if (params.SKIP_TESTS) {
@@ -536,7 +536,7 @@ EOF
         // STAGE 7 — SonarQube Analysis
         // ══════════════════════════════════════════════════════════════════════
         stage('SonarQube Analysis') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 script {
                     if (params.SKIP_TESTS) {
@@ -589,7 +589,7 @@ EOF
         // STAGE 8 — SonarQube Quality Gate
         // ══════════════════════════════════════════════════════════════════════
         stage('SonarQube Quality Gate') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 script {
                     if (params.SKIP_TESTS) {
@@ -618,7 +618,7 @@ EOF
         // STAGE 9 — Trivy Filesystem Scan
         // ══════════════════════════════════════════════════════════════════════
         stage('Trivy Filesystem Scan') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 script {
                     echo "🔒 Scanning codebase for known vulnerabilities with Trivy..."
@@ -662,10 +662,10 @@ EOF
         // STAGE 10 — Docker Build
         // ══════════════════════════════════════════════════════════════════════
         stage('Docker Build') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 10 — Docker Build (Built-In Node)\033[0m'
+                echo '\033[1;36m  STAGE 10 — Docker Build (windows-agent)\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
@@ -734,7 +734,7 @@ EOF
         // STAGE 10.1 — Trivy Image Scan
         // ══════════════════════════════════════════════════════════════════════
         stage('Trivy Image Scan') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 script {
                     echo "🔒 Scanning built container images for vulnerabilities..."
@@ -790,10 +790,10 @@ EOF
         // STAGE 10.5 — Push Images to GHCR
         // ══════════════════════════════════════════════════════════════════════
         stage('Push Images to GHCR') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 10.5 — Push Images to GHCR (Built-In Node)\033[0m'
+                echo '\033[1;36m  STAGE 10.5 — Push Images to GHCR (windows-agent)\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
@@ -900,10 +900,10 @@ EOF
         // STAGE 10.6 — Pre-Deployment Image Verification
         // ══════════════════════════════════════════════════════════════════════
         stage('Pre-Deployment Image Verification') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 10.6 — Pre-Deployment Image Verification (Built-In Node)\033[0m'
+                echo '\033[1;36m  STAGE 10.6 — Pre-Deployment Image Verification (windows-agent)\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
@@ -973,7 +973,7 @@ EOF
         // STAGE 10.7 — Stash Deployment Assets
         // ══════════════════════════════════════════════════════════════════════
         stage('Stash Deployment Assets') {
-            agent { label 'Built-In Node' }
+            agent { label 'windows-agent' }
             steps {
                 echo "📦 Stashing deployment assets for ubuntu-agent..."
                 stash name: 'deploy-assets', includes: 'helm/**, jenkins/scripts/**, jenkins/config/**'
@@ -1181,8 +1181,8 @@ EOF
         }
 
         always {
-            node('Built-In Node') {
-                echo '🧹 Running Docker post-pipeline cleanup on Built-In Node...'
+            node('windows-agent') {
+                echo '🧹 Running Docker post-pipeline cleanup on windows-agent...'
                 script {
                     if (isUnix()) {
                         sh '''
