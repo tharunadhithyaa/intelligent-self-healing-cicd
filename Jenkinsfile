@@ -1099,19 +1099,22 @@ ENVEOF
                 echo '\033[1;36m  STAGE 12 — Health Verification\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
-                // Wait for containers to initialize
-                echo "⏳ Waiting ${STARTUP_WAIT}s for services to initialize..."
-                sleep(time: Integer.parseInt(env.STARTUP_WAIT), unit: 'SECONDS')
+                script {
+                    def deployMethod = env.DEPLOY_METHOD ?: 'helm'
+                    echo "📋 Health Verification Mode: ${deployMethod}"
+                    echo "⏳ Waiting ${STARTUP_WAIT}s for services to initialize..."
+                    sleep(time: Integer.parseInt(env.STARTUP_WAIT), unit: 'SECONDS')
 
-                // Run health checks
-                sh 'chmod +x jenkins/scripts/health-check.sh'
-                sh """
-                    ./jenkins/scripts/health-check.sh \
-                        --retries ${HEALTH_RETRIES} \
-                        --interval ${HEALTH_INTERVAL} \
-                        --backend-url "${BACKEND_URL}" \
-                        --app-url "${APP_URL}"
-                """
+                    sh 'chmod +x jenkins/scripts/health-check.sh'
+                    sh """
+                        ./jenkins/scripts/health-check.sh \
+                            --deploy-method "${deployMethod}" \
+                            --retries ${HEALTH_RETRIES} \
+                            --interval ${HEALTH_INTERVAL} \
+                            --backend-url "${BACKEND_URL}" \
+                            --app-url "${APP_URL}"
+                    """
+                }
             }
         }
 
