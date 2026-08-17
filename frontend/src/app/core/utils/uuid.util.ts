@@ -1,21 +1,28 @@
 /**
- * Generates a random UUID (v4 format) compatible with all browser environments,
- * including non-secure HTTP contexts where crypto.randomUUID is restricted or fails.
+ * Generates a standard UUID (v4 format) for non-security-sensitive UI and component identifiers.
+ *
+ * Primary: Uses `crypto.randomUUID()` in Secure Contexts (HTTPS / localhost).
+ * Secondary: Uses `crypto.getRandomValues()` for non-secure HTTP contexts.
+ * Fallback: Uses `Math.trunc(Math.random() * 16)` for legacy or restricted environments.
+ *
+ * @security Intended ONLY for client-side UI correlation, DOM IDs, chart gradient IDs, and component identifiers.
+ *           Do NOT use for cryptographic key generation, authentication tokens, or security decisions.
+ *
+ * @returns A 36-character RFC4122 v4 compliant UUID string.
  */
 export function generateUUID(): string {
-  // Check if we are in a Secure Context (HTTPS or localhost).
-  // Browsers restrict crypto.randomUUID to Secure Contexts only.
+  // Check if running in a Secure Context (HTTPS/localhost)
   const isSecure = typeof window !== 'undefined' && Boolean(window.isSecureContext);
 
   if (isSecure && typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     try {
       return crypto.randomUUID();
     } catch {
-      // Fallback if crypto.randomUUID throws
+      // Fallback if crypto.randomUUID fails
     }
   }
 
-  // crypto.getRandomValues IS available in non-secure contexts in Web browsers
+  // Web Crypto API getRandomValues is available in non-secure HTTP contexts in modern browsers
   if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
     try {
       const bytes = new Uint8Array(16);
@@ -29,10 +36,9 @@ export function generateUUID(): string {
     }
   }
 
-  // Pure Math.random fallback for legacy/unsupported environments
+  // Non-security pseudorandom fallback using Math.trunc (eliminates bitwise operators)
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
+    const randomVal = c === 'x' ? Math.random() * 16 : Math.random() * 4 + 8;
+    return Math.trunc(randomVal).toString(16);
   });
 }
