@@ -1,4 +1,4 @@
-FROM nginx:alpine
+FROM nginx:alpine3.21
 
 # Install libcap and set directory permissions for non-root user 'nginx'
 RUN apk add --no-cache libcap && \
