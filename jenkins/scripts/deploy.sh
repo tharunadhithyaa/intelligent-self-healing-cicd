@@ -114,7 +114,11 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     fi
     log_ok "K3s cluster accessible"
 
-    IMAGE_TAG="${IMAGE_TAG:-latest}"
+    IMAGE_TAG="${IMAGE_TAG:-${BUILD_NUMBER:-}}"
+    if [ -z "$IMAGE_TAG" ]; then
+        log_error "No IMAGE_TAG or BUILD_NUMBER provided for deployment!"
+        exit 1
+    fi
     HELM_CHART_DIR="${SCRIPT_DIR}/../../helm/civicpulse"
 
     if [ ! -d "$HELM_CHART_DIR" ]; then

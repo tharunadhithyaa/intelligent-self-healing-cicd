@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================================
-# CivicPulseAI — Post-Build Cleanup Script
+# CivicPulseAI — Conservative Post-Build Cleanup Script
 # ============================================================================
-# Cleans up temporary Docker resources and build artifacts.
+# Safely cleans up temporary files, exited containers, and dangling images.
+# Intentionally PRESERVES Docker BuildKit cache and required images.
 # Called by Jenkinsfile post-actions.
 # ============================================================================
 set -euo pipefail
@@ -30,12 +31,22 @@ log_warn()  { echo -e "${YELLOW}[CLEANUP]${NC} ⚠️  $*"; }
 
 echo ""
 echo "════════════════════════════════════════"
-echo "  🧹 Post-Build Cleanup"
+echo "  🧹 Conservative Post-Build Cleanup"
 echo "════════════════════════════════════════"
 echo ""
 
-# ── Step 1: Remove Dangling Docker Images ─────────────────────────────────────
-log_info "Removing dangling Docker images..."
+# ── Display Initial Disk Usage ────────────────────────────────────────────────
+log_info "Docker disk usage BEFORE cleanup:"
+docker system df 2>/dev/null || log_warn "Could not query Docker disk usage"
+echo ""
+
+# ── Step 1: Remove Exited Temporary Containers ────────────────────────────────
+log_info "Removing exited temporary containers..."
+docker container prune -f --filter "until=1h" 2>/dev/null || true
+log_ok "Exited container cleanup complete"
+
+# ── Step 2: Remove Dangling Untagged Images ───────────────────────────────────
+log_info "Removing dangling untagged Docker images (<none>:<none>)..."
 DANGLING=$(docker images -f "dangling=true" -q 2>/dev/null || true)
 if [ -n "$DANGLING" ]; then
     echo "$DANGLING" | xargs docker rmi -f 2>/dev/null || true
@@ -44,16 +55,10 @@ else
     log_info "No dangling images found"
 fi
 
-# ── Step 2: Remove Unused Docker Networks ─────────────────────────────────────
-log_info "Pruning unused Docker networks..."
+# ── Step 3: Remove Unused Docker Networks ─────────────────────────────────────
+log_info "Pruning unused temporary Docker networks..."
 docker network prune -f 2>/dev/null || true
 log_ok "Network cleanup complete"
-
-# ── Step 3: Remove Unused Docker Volumes ──────────────────────────────────────
-log_info "Pruning unused Docker volumes (excluding named volumes)..."
-# Only prune anonymous volumes — named volumes are preserved
-docker volume prune -f 2>/dev/null || true
-log_ok "Volume cleanup complete"
 
 # ── Step 4: Remove Temporary Files ────────────────────────────────────────────
 log_info "Removing temporary files..."
@@ -61,20 +66,15 @@ rm -rf /tmp/civicpulse-* 2>/dev/null || true
 rm -rf /tmp/npm-* 2>/dev/null || true
 log_ok "Temporary files cleaned"
 
-# ── Step 5: Prune Untagged Images & Builder Cache ─────────────────────────────
-log_info "Pruning untagged Docker images and BuildKit build cache..."
-# When static v1 images are rebuilt and overwritten, the previous builds
-# become dangling (<none>:<none>) images. Pruning them recovers the disk space.
-docker image prune -f 2>/dev/null || true
-docker builder prune -f 2>/dev/null || true
-log_ok "Pruned untagged images and build cache"
+# ── Step 5: Preserve BuildKit Cache Notice ─────────────────────────────────────
+log_info "BuildKit layer cache is intentionally PRESERVED for fast incremental builds."
 
-# ── Summary ───────────────────────────────────────────────────────────────────
+# ── Summary & Final Disk Usage ────────────────────────────────────────────────
 echo ""
-log_info "Docker disk usage after cleanup:"
+log_info "Docker disk usage AFTER cleanup:"
 docker system df 2>/dev/null || log_warn "Could not query Docker disk usage"
 
 echo ""
 log_ok "═══════════════════════════════════════════════════"
-log_ok "  Cleanup complete"
+log_ok "  Conservative cleanup complete"
 log_ok "═══════════════════════════════════════════════════"

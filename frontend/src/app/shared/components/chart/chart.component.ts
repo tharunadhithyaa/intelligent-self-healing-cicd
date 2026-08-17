@@ -1,5 +1,6 @@
 import { Component, Input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { generateUUID } from '../../../core/utils/uuid.util';
 
 export interface ChartDataPoint {
   label: string;
@@ -339,7 +340,7 @@ export class ChartComponent {
   @Input() color = 'var(--primary-color)';
   @Input() height = 220;
 
-  gradientId = `grad_${crypto.randomUUID()}`;
+  gradientId = `grad_${generateUUID()}`;
 
   // Signal wrapper
   dataSignal = computed(() => this.data || []);

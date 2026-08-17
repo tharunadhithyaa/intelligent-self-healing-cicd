@@ -18,46 +18,14 @@ import notificationRoutes from "./modules/notifications/notification.routes";
 
 const app: Application = express();
 
+// Trust reverse proxy (Nginx) for accurate IP rate limiting and X-Forwarded-For handling
+app.set("trust proxy", true);
+
 // Security middleware
 app.use(helmet());
 app.use(cors(corsOptions));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: "Too many requests from this IP, please try again later.",
-  },
-});
-app.use("/api/", limiter);
-
-// Auth-specific stricter rate limit
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: "Too many authentication attempts, please try again later.",
-  },
-});
-app.use("/api/auth/login", authLimiter);
-app.use("/api/auth/register", authLimiter);
-
-// Body parsing
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(securitySanitizer);
-
-// Request logging
-app.use(requestLogger);
-
-// Health check
+// Health check (placed BEFORE rate limiters so K8s probes never fail with 429)
 app.get("/api/health", (_req: Request, res: Response) => {
   const dbState = mongoose.connection.readyState;
   const isDbConnected = dbState === 1;
@@ -75,6 +43,44 @@ app.get("/api/health", (_req: Request, res: Response) => {
     },
   });
 });
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
+  skip: (req: Request) => req.path === "/health" || req.path === "/api/health",
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again later.",
+  },
+});
+app.use("/api/", limiter);
+
+// Auth-specific stricter rate limit
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
+  message: {
+    success: false,
+    message: "Too many authentication attempts, please try again later.",
+  },
+});
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+
+// Body parsing
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(securitySanitizer);
+
+// Request logging
+app.use(requestLogger);
 
 // API routes
 app.use("/api/auth", authRoutes);

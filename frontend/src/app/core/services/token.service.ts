@@ -7,11 +7,19 @@ export class TokenService {
   private readonly isRemembered = signal<boolean>(this.getRememberMe());
 
   getAccessToken(): string | null {
-    return this.getStorage().getItem(APP_CONSTANTS.tokenKey);
+    return (
+      this.getStorage().getItem(APP_CONSTANTS.tokenKey) ||
+      sessionStorage.getItem(APP_CONSTANTS.tokenKey) ||
+      localStorage.getItem(APP_CONSTANTS.tokenKey)
+    );
   }
 
   getRefreshToken(): string | null {
-    return this.getStorage().getItem(APP_CONSTANTS.refreshTokenKey);
+    return (
+      this.getStorage().getItem(APP_CONSTANTS.refreshTokenKey) ||
+      sessionStorage.getItem(APP_CONSTANTS.refreshTokenKey) ||
+      localStorage.getItem(APP_CONSTANTS.refreshTokenKey)
+    );
   }
 
   setTokens(tokens: AuthTokens, rememberMe = false): void {

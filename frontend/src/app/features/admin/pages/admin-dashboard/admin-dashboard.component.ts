@@ -39,13 +39,21 @@ import {
       @if (loading()) {
         <div class="loader-overlay">
           <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+          <p class="loader-text">Loading dashboard data...</p>
         </div>
       } @else if (error()) {
         <div class="error-panel">
           <mat-icon>error_outline</mat-icon>
-          <h3>Failed to Load Dashboard Data</h3>
+          <h3>Unable to load dashboard data</h3>
           <p>{{ error() }}</p>
           <button mat-flat-button color="primary" (click)="loadData()">Retry Connection</button>
+        </div>
+      } @else if (!stats()) {
+        <div class="empty-panel">
+          <mat-icon>inbox</mat-icon>
+          <h3>No dashboard data available yet.</h3>
+          <p>System metrics will populate automatically as data is registered.</p>
+          <button mat-stroked-button color="primary" (click)="loadData()">Refresh Dashboard</button>
         </div>
       } @else {
         <!-- Grid Statistics Cards -->
@@ -162,22 +170,30 @@ import {
 
       .loader-overlay {
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
+        gap: 16px;
         min-height: 350px;
+        .loader-text {
+          font-size: 14px;
+          color: var(--text-secondary);
+          margin: 0;
+        }
       }
 
+      .empty-panel,
       .error-panel {
         text-align: center;
         padding: 48px;
-        background: rgba(244, 67, 54, 0.05);
+        background: rgba(255, 255, 255, 0.02);
         border-radius: 12px;
-        border: 1px solid rgba(244, 67, 54, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         mat-icon {
           font-size: 48px;
           width: 48px;
           height: 48px;
-          color: var(--warn-color);
+          color: var(--primary-color);
           margin-bottom: 12px;
         }
         h3 {
@@ -187,6 +203,14 @@ import {
         p {
           color: var(--text-secondary);
           margin: 0 0 16px 0;
+        }
+      }
+
+      .error-panel {
+        background: rgba(244, 67, 54, 0.05);
+        border: 1px solid rgba(244, 67, 54, 0.15);
+        mat-icon {
+          color: var(--warn-color);
         }
       }
 
