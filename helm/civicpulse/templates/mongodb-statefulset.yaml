@@ -38,6 +38,16 @@ spec:
               mountPath: /data/db
           resources:
             {{- toYaml .Values.mongodb.resources | nindent 12 }}
+          startupProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             exec:
               command:
@@ -47,7 +57,7 @@ spec:
                 - "db.adminCommand('ping')"
             initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 5
+            timeoutSeconds: 10
             failureThreshold: 3
           livenessProbe:
             exec:
@@ -58,7 +68,7 @@ spec:
                 - "db.adminCommand('ping')"
             initialDelaySeconds: 15
             periodSeconds: 20
-            timeoutSeconds: 5
+            timeoutSeconds: 10
             failureThreshold: 3
   {{- if .Values.mongodb.persistence.enabled }}
   volumeClaimTemplates:

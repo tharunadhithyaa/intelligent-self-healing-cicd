@@ -212,6 +212,10 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
         log_error "Kubernetes deployment rollout failed! Workloads are not ready."
         log_info "Current Pod status:"
         kubectl get pods -n civicpulse -o wide 2>/dev/null || true
+        log_info "Kubernetes Deployments:"
+        kubectl get deployments -n civicpulse 2>/dev/null || true
+        log_info "Kubernetes StatefulSets:"
+        kubectl get statefulsets -n civicpulse 2>/dev/null || true
         log_info "Describing non-ready pods:"
         for pod in $(kubectl get pods -n civicpulse --no-headers 2>/dev/null | grep -v "Running" | awk '{print $1}'); do
             log_info "--- Describe pod ${pod} ---"
@@ -225,6 +229,8 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
     fi
 
     log_ok "All Kubernetes workloads successfully rolled out and are Ready!"
+    log_info "Active running container images in 'civicpulse' namespace:"
+    kubectl get pods -n civicpulse -o jsonpath='{range .items[*]}{.metadata.name}{" -> "}{.spec.containers[0].image}{"\n"}{end}' 2>/dev/null || true
 else
     log_info "Step 4/5 — Starting fresh application deployment via Docker Compose..."
     if ! docker compose up -d --build --force-recreate mongodb backend frontend nginx; then

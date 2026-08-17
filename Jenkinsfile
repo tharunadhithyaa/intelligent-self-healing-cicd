@@ -861,6 +861,7 @@ ENVEOF
 
                         if (isUnix()) {
                             sh """
+                                set -e
                                 set +x
                                 echo "🔐 Logging in to GitHub Container Registry (${env.GHCR_REGISTRY})..."
                                 echo "\${GHCR_TOKEN}" | docker login "${env.GHCR_REGISTRY}" -u "\${GHCR_USERNAME}" --password-stdin
@@ -992,45 +993,74 @@ ENVEOF
                         if (isUnix()) {
                             sh """
                                 set -e
+                                set +x
+                                echo "🔐 Authenticating with GHCR before inspecting image manifests..."
+                                echo "\${GHCR_TOKEN}" | docker login "${env.GHCR_REGISTRY}" -u "\${GHCR_USERNAME}" --password-stdin
+                                echo "  ✅ GHCR authentication successful"
+
+                                echo ""
                                 echo "🔍 Verifying images exist in GHCR before deployment..."
-                                for img in \
-                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}" \
-                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}" \
-                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}" \
-                                    "${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}"; do
+
+                                declare -A service_names=(
+                                    ["civicpulse-backend"]="backend"
+                                    ["civicpulse-frontend"]="frontend"
+                                    ["civicpulse-mongodb"]="mongodb"
+                                    ["civicpulse-nginx"]="nginx"
+                                )
+
+                                for repo_name in "civicpulse-backend" "civicpulse-frontend" "civicpulse-mongodb" "civicpulse-nginx"; do
+                                    img="${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/\${repo_name}:${env.IMAGE_TAG}"
+                                    short_name="\${service_names[\$repo_name]}"
                                     echo "  Verifying image: \${img}..."
                                     if ! docker manifest inspect "\${img}" >/dev/null 2>&1; then
                                         echo "  ❌ FATAL: Image manifest not found in GHCR: \${img}"
                                         exit 1
                                     fi
-                                    echo "  ✅ Verified image in GHCR: \${img}"
+                                    echo "[IMAGE VERIFY] \${short_name}:${env.IMAGE_TAG} FOUND"
                                 done
+                                echo ""
                                 echo "✅ All required container images verified in GHCR"
                             """
                         } else {
                             bat """
                                 @echo off
+                                echo 🔐 Authenticating with GHCR before inspecting image manifests...
+                                echo %GHCR_TOKEN% | docker login %GHCR_REGISTRY% -u %GHCR_USERNAME% --password-stdin
+                                if errorlevel 1 exit /b 1
+                                echo   ✅ GHCR authentication successful
+
+                                echo.
                                 echo 🔍 Verifying images exist in GHCR before deployment...
+
                                 docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG} >nul 2>&1
                                 if errorlevel 1 (
                                     echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-backend:${env.IMAGE_TAG}
                                     exit /b 1
                                 )
+                                echo [IMAGE VERIFY] backend:${env.IMAGE_TAG} FOUND
+
                                 docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG} >nul 2>&1
                                 if errorlevel 1 (
                                     echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-frontend:${env.IMAGE_TAG}
                                     exit /b 1
                                 )
-                                docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG} >nul 2>&1
-                                if errorlevel 1 (
-                                    echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}
-                                    exit /b 1
-                                )
+                                echo [IMAGE VERIFY] frontend:${env.IMAGE_TAG} FOUND
+
                                 docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG} >nul 2>&1
                                 if errorlevel 1 (
                                     echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-mongodb:${env.IMAGE_TAG}
                                     exit /b 1
                                 )
+                                echo [IMAGE VERIFY] mongodb:${env.IMAGE_TAG} FOUND
+
+                                docker manifest inspect ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG} >nul 2>&1
+                                if errorlevel 1 (
+                                    echo ❌ FATAL: Image manifest not found in GHCR: ${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/civicpulse-nginx:${env.IMAGE_TAG}
+                                    exit /b 1
+                                )
+                                echo [IMAGE VERIFY] nginx:${env.IMAGE_TAG} FOUND
+
+                                echo.
                                 echo ✅ All required container images verified in GHCR
                             """
                         }
