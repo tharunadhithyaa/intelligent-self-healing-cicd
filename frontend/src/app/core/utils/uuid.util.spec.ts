@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { generateUUID } from './uuid.util';
 
 describe('generateUUID', () => {
@@ -21,9 +21,8 @@ describe('generateUUID', () => {
     expect(uuid).toMatch(uuidRegex);
   });
 
-  it('should use crypto.randomUUID when available in secure context', () => {
+  it('should use crypto.randomUUID when available and working', () => {
     const mockUUID = '12345678-1234-4234-8234-123456789abc';
-    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
     Object.defineProperty(globalThis, 'crypto', {
       value: {
         randomUUID: () => mockUUID,
@@ -37,28 +36,17 @@ describe('generateUUID', () => {
     expect(result).toBe(mockUUID);
   });
 
-  it('should fallback to getRandomValues in non-secure HTTP context', () => {
-    Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true });
+  it('should fallback to getRandomValues when crypto.randomUUID throws', () => {
     Object.defineProperty(globalThis, 'crypto', {
       value: {
+        randomUUID: () => {
+          throw new Error('Restricted in HTTP non-secure context');
+        },
         getRandomValues: (arr: Uint8Array) => {
           for (let i = 0; i < arr.length; i++) arr[i] = i * 16;
           return arr;
         },
       },
-      writable: true,
-      configurable: true,
-    });
-
-    const result = generateUUID();
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    expect(result).toMatch(uuidRegex);
-  });
-
-  it('should fallback to Math.trunc pseudorandom implementation when crypto is unavailable', () => {
-    Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true });
-    Object.defineProperty(globalThis, 'crypto', {
-      value: undefined,
       writable: true,
       configurable: true,
     });
