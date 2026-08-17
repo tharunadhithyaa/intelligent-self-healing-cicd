@@ -40,6 +40,13 @@
     "typescript": "~6.0.2",
     "vitest": "^4.1.10"
   },
+  "overrides": {
+    "tar": "^7.5.19",
+    "ip-address": "^10.3.1",
+    "picomatch": "^4.0.4",
+    "sigstore": "^4.1.1",
+    "brace-expansion": "^2.1.4"
+  },
   "allowScripts": {
     "esbuild@0.28.1": true,
     "esbuild@0.27.7": true,
