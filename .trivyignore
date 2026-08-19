@@ -44,3 +44,30 @@ CVE-2026-56852
 CVE-2026-59869
 GHSA-5p4m-2wfm-xmqj
 
+# ============================================================================
+# Node.js Package Dependency Accepted Vulnerabilities
+# ============================================================================
+
+# brace-expansion
+CVE-2026-13149
+CVE-2026-14257
+CVE-2026-69152
+
+# ip-address
+CVE-2026-69192
+
+# picomatch
+CVE-2026-33671
+
+# sigstore
+CVE-2026-48815
+
+# tar / node-tar
+CVE-2026-59873
+CVE-2026-59874
+
+# image-size
+CVE-2025-71329
+CVE-2025-71330
+
+
