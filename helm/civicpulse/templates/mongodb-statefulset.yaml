@@ -25,7 +25,7 @@ spec:
       {{- end }}
       containers:
         - name: mongodb
-          image: "{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}"
+          image: '{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag | default "229" }}'
           imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.mongodb.port }}

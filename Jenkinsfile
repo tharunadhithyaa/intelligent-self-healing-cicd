@@ -1081,66 +1081,40 @@ ENVEOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 11 — Helm Kubernetes Deployment
+        // STAGE 11 — Update GitOps Repository (Argo CD Deployment)
         // ══════════════════════════════════════════════════════════════════════
-        stage('Helm Kubernetes Deployment') {
+        stage('Update GitOps Repository') {
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 11 — Helm Kubernetes Deployment (K3s)\033[0m'
+                echo '\033[1;36m  STAGE 11 — Update GitOps Repository & Trigger Argo CD Deployment\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
                     env.KUBERNETES_STAGE_REACHED = 'true'
-                    withCredentials([
-                        usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')
-                    ]) {
-                        sh '''
-                            chmod +x jenkins/scripts/deploy.sh
-                            
-                            # Dynamic validated Kubeconfig path strategy
-                            if [ -z "${KUBECONFIG:-}" ]; then
-                                if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
-                                    export KUBECONFIG="${HOME}/.kube/config"
-                                elif [ -f "/home/jenkins/.kube/config" ] && [ -r "/home/jenkins/.kube/config" ]; then
-                                    export KUBECONFIG="/home/jenkins/.kube/config"
-                                elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
-                                    export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
-                                else
-                                    export KUBECONFIG="${HOME}/.kube/config"
-                                fi
-                            fi
+                    sh 'chmod +x jenkins/scripts/update-gitops.sh'
+                    
+                    // Update helm/civicpulse/values.yaml with new BUILD_NUMBER and push to GitHub
+                    sh """
+                        ./jenkins/scripts/update-gitops.sh \
+                            --build-number "${BUILD_NUMBER}" \
+                            --branch "${env.GIT_BRANCH_NAME}"
+                    """
 
-                            if [ ! -f "$KUBECONFIG" ] || [ ! -r "$KUBECONFIG" ]; then
-                                echo "❌ FATAL: Kubeconfig file missing or unreadable at KUBECONFIG=${KUBECONFIG}"
-                                echo "   Current user: $(whoami) (id: $(id -u))"
-                                echo "   Setup requirement:"
-                                echo "     sudo mkdir -p ~/.kube"
-                                echo "     sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config"
-                                echo "     sudo chown -R \$(whoami):\$(id -gn) ~/.kube"
-                                echo "     sudo chmod 600 ~/.kube/config"
-                                exit 1
-                            fi
-
-                            echo "🔍 Stage 11 Pre-Deployment Kubernetes Validation..."
-                            test -f "$KUBECONFIG"
-                            test -r "$KUBECONFIG"
-                            kubectl version --client
-                            helm version
-                            echo "Current Context:"
-                            kubectl config current-context || true
-
-                            echo "Checking K3s cluster connectivity..."
-                            if ! kubectl get nodes -o wide; then
-                                echo "❌ FATAL: Cannot connect to K3s cluster using KUBECONFIG=${KUBECONFIG}"
-                                echo "Cluster Info Diagnostic:"
-                                kubectl cluster-info || true
-                                exit 1
-                            fi
-
-                            export DEPLOY_METHOD=helm
-                            export IMAGE_TAG="${IMAGE_TAG}"
-                            bash jenkins/scripts/deploy.sh
-                        '''
+                    // Optional direct Helm fallback if DEPLOY_METHOD is explicitly set to 'helm-direct'
+                    if (env.DEPLOY_METHOD == 'helm-direct') {
+                        echo "ℹ️  Executing direct Helm deployment fallback..."
+                        withCredentials([
+                            usernamePassword(credentialsId: 'ghcr-credentials', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_TOKEN')
+                        ]) {
+                            sh '''
+                                chmod +x jenkins/scripts/deploy.sh
+                                export DEPLOY_METHOD=helm
+                                export IMAGE_TAG="${IMAGE_TAG}"
+                                bash jenkins/scripts/deploy.sh
+                            '''
+                        }
+                    } else {
+                        echo "✅ GitOps repository updated. Argo CD will synchronize the K3s cluster automatically."
                     }
                 }
             }

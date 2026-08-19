@@ -24,7 +24,7 @@ spec:
       {{- end }}
       containers:
         - name: nginx
-          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          image: '{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag | default "229" }}'
           imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.nginx.service.port }}

@@ -7,7 +7,7 @@ imagePullSecrets:
 frontend:
   image:
     repository: ghcr.io/tharunadhithyaa/civicpulse-frontend
-    tag: ""
+    tag: "229"
     pullPolicy: Always
   replicaCount: 1
   port: 80
@@ -22,7 +22,7 @@ frontend:
 backend:
   image:
     repository: ghcr.io/tharunadhithyaa/civicpulse-backend
-    tag: ""
+    tag: "229"
     pullPolicy: Always
   replicaCount: 1
   port: 3000
@@ -43,7 +43,7 @@ backend:
 mongodb:
   image:
     repository: ghcr.io/tharunadhithyaa/civicpulse-mongodb
-    tag: ""
+    tag: "229"
     pullPolicy: Always
   port: 27017
   database: civicpulse
@@ -63,7 +63,7 @@ mongodb:
 nginx:
   image:
     repository: ghcr.io/tharunadhithyaa/civicpulse-nginx
-    tag: ""
+    tag: "229"
     pullPolicy: Always
   replicaCount: 1
   service:
