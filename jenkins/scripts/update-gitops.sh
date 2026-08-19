@@ -7,7 +7,7 @@
 # Called by Jenkinsfile Stage 11 (Update GitOps Repository).
 #
 # Usage:
-#   ./update-gitops.sh --build-number 229 --branch main
+#   ./update-gitops.sh --build-number 230 --branch main
 # ============================================================================
 set -euo pipefail
 
@@ -52,21 +52,32 @@ fi
 
 log_info "Updating GitOps image tags in '${VALUES_FILE}' to build '${BUILD_NUMBER}'..."
 
-# Update image tags in values.yaml using sed
-sed -i -E "s/(repository: ghcr.io\/tharunadhithyaa\/civicpulse-frontend\s*\n\s*tag:\s*)\"[^\"]*\"/\1\"${BUILD_NUMBER}\"/" "${VALUES_FILE}" 2>/dev/null || \
-python3 -c "
+# Reliable YAML tag update using Python3 heredoc (handles string & int tags safely)
+python3 - "${VALUES_FILE}" "${BUILD_NUMBER}" << 'EOF'
+import sys
 import re
-with open('${VALUES_FILE}', 'r') as f:
+
+values_file = sys.argv[1]
+build_number = sys.argv[2]
+
+with open(values_file, 'r') as f:
     content = f.read()
-for app in ['frontend', 'backend', 'mongodb', 'nginx']:
-    content = re.sub(
-        r'(repository:\s*ghcr\.io/tharunadhithyaa/civicpulse-' + app + r'\s*\n\s*tag:\s*)\"[^\"]*\"',
-        r'\1\"${BUILD_NUMBER}\"',
-        content
-    )
-with open('${VALUES_FILE}', 'w') as f:
-    f.write(content)
-"
+
+# Update tag: "..." under all service sections (frontend, backend, mongodb, nginx)
+updated_content = re.sub(
+    r'(tag:\s*)"[^"]*"',
+    f'tag: "{build_number}"',
+    content
+)
+
+with open(values_file, 'w') as f:
+    f.write(updated_content)
+EOF
+
+EXPECTED_BACKEND="ghcr.io/tharunadhithyaa/civicpulse-backend:${BUILD_NUMBER}"
+EXPECTED_FRONTEND="ghcr.io/tharunadhithyaa/civicpulse-frontend:${BUILD_NUMBER}"
+EXPECTED_MONGODB="ghcr.io/tharunadhithyaa/civicpulse-mongodb:${BUILD_NUMBER}"
+EXPECTED_NGINX="ghcr.io/tharunadhithyaa/civicpulse-nginx:${BUILD_NUMBER}"
 
 log_info "Validating updated Helm chart..."
 helm lint "${REPO_ROOT}/helm/civicpulse" >/dev/null
@@ -74,12 +85,49 @@ helm lint "${REPO_ROOT}/helm/civicpulse" >/dev/null
 log_info "Verifying rendered Helm manifest for build '${BUILD_NUMBER}'..."
 RENDERED=$(helm template civicpulse "${REPO_ROOT}/helm/civicpulse" --namespace civicpulse)
 
-if ! echo "${RENDERED}" | grep -q "civicpulse-backend:${BUILD_NUMBER}"; then
-    log_error "Rendered manifest failed verification for backend tag '${BUILD_NUMBER}'"
+# Extract rendered image lines for diagnostics
+RENDERED_BACKEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-backend:" | head -1 | awk '{print $2}' | tr -d "'\"")
+RENDERED_FRONTEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-frontend:" | head -1 | awk '{print $2}' | tr -d "'\"")
+RENDERED_MONGODB=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-mongodb:" | head -1 | awk '{print $2}' | tr -d "'\"")
+RENDERED_NGINX=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-nginx:" | head -1 | awk '{print $2}' | tr -d "'\"")
+
+log_info "Expected backend image  : ${EXPECTED_BACKEND}"
+log_info "Rendered backend image  : ${RENDERED_BACKEND}"
+log_info "Expected frontend image : ${EXPECTED_FRONTEND}"
+log_info "Rendered frontend image : ${RENDERED_FRONTEND}"
+log_info "Expected mongodb image  : ${EXPECTED_MONGODB}"
+log_info "Rendered mongodb image  : ${RENDERED_MONGODB}"
+log_info "Expected nginx image    : ${EXPECTED_NGINX}"
+log_info "Rendered nginx image    : ${RENDERED_NGINX}"
+
+VERIFY_FAILED=0
+
+if [ "${RENDERED_BACKEND}" != "${EXPECTED_BACKEND}" ]; then
+    log_error "Backend image verification FAILED! Expected '${EXPECTED_BACKEND}', got '${RENDERED_BACKEND}'"
+    VERIFY_FAILED=1
+fi
+
+if [ "${RENDERED_FRONTEND}" != "${EXPECTED_FRONTEND}" ]; then
+    log_error "Frontend image verification FAILED! Expected '${EXPECTED_FRONTEND}', got '${RENDERED_FRONTEND}'"
+    VERIFY_FAILED=1
+fi
+
+if [ "${RENDERED_MONGODB}" != "${EXPECTED_MONGODB}" ]; then
+    log_error "MongoDB image verification FAILED! Expected '${EXPECTED_MONGODB}', got '${RENDERED_MONGODB}'"
+    VERIFY_FAILED=1
+fi
+
+if [ "${RENDERED_NGINX}" != "${EXPECTED_NGINX}" ]; then
+    log_error "Nginx image verification FAILED! Expected '${EXPECTED_NGINX}', got '${RENDERED_NGINX}'"
+    VERIFY_FAILED=1
+fi
+
+if [ $VERIFY_FAILED -ne 0 ]; then
+    log_error "Helm manifest verification FAILED for build '${BUILD_NUMBER}'"
     exit 1
 fi
 
-log_ok "Helm values.yaml successfully updated and verified for build '${BUILD_NUMBER}'"
+log_ok "Helm manifest verification passed for build '${BUILD_NUMBER}'"
 
 cd "${REPO_ROOT}"
 
