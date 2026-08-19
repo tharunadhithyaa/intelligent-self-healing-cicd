@@ -697,21 +697,21 @@ ENVEOF
                     if (isUnix()) {
                         // Generate JSON, SARIF, and HTML reports for filesystem scan
                         sh '''
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || true
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || true
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || true
+                            trivy fs --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || true
+                            trivy fs --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || true
+                            trivy fs --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || true
                         '''
                         // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
-                        sh "trivy fs --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ."
+                        sh "trivy fs --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignorefile .trivyignore --exit-code 1 ."
                     } else {
                         // Windows agent execution
                         bat '''
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || exit 0
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || exit 0
-                            trivy fs --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || exit 0
+                            trivy fs --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
                         '''
                         // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
-                        bat "trivy fs --severity %TRIVY_SEVERITY% --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ."
+                        bat "trivy fs --severity %TRIVY_SEVERITY% --ignorefile .trivyignore --exit-code 1 ."
                     }
                 }
             }
@@ -811,20 +811,20 @@ ENVEOF
                         if (isUnix()) {
                             // Generate JSON, SARIF, and HTML reports for each container image
                             sh """
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || true
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || true
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || true
+                                trivy image --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || true
                             """
                             // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
-                            sh "trivy image --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ${img}"
+                            sh "trivy image --severity ${env.TRIVY_SEVERITY ?: 'HIGH,CRITICAL'} --ignorefile .trivyignore --exit-code 1 ${img}"
                         } else {
                             // Windows agent execution
                             bat """
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || exit 0
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || exit 0
-                                trivy image --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || exit 0
+                                trivy image --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
                             """
-                            bat "trivy image --severity %TRIVY_SEVERITY% --ignore-unfixed --ignorefile .trivyignore --exit-code 1 ${img}"
+                            bat "trivy image --severity %TRIVY_SEVERITY% --ignorefile .trivyignore --exit-code 1 ${img}"
                         }
                     }
                 }
