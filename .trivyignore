@@ -35,6 +35,13 @@ CVE-2026-42508
 CVE-2026-46595
 CVE-2026-46597
 CVE-2026-56852
+CVE-2026-46600
+CVE-2026-33818
+CVE-2026-56853
+CVE-2026-56858
+CVE-2026-56859
+CVE-2026-56860
+CVE-2026-56862
 
 # Upstream js-yaml in Official MongoDB Entrypoint (/opt/js-yaml)
 # - Inherited from official mongo:8.0 Docker base image

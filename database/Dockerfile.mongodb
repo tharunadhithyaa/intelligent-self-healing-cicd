@@ -1,9 +1,13 @@
-# Builder stage to compile gosu with an updated Go toolchain (resolves CVE-2026-46600)
-FROM golang:1.24-alpine3.21 AS gosu-builder
+# Builder stage to compile gosu with an updated Go toolchain (resolves Go stdlib CVEs)
+FROM golang:1.26-alpine AS gosu-builder
 
 ENV CGO_ENABLED=0
 
-RUN go install github.com/tianon/gosu@1.17
+RUN apk add --no-cache git && \
+    git clone https://github.com/tianon/gosu.git /go/src/github.com/tianon/gosu && \
+    cd /go/src/github.com/tianon/gosu && \
+    go get -u golang.org/x/sys golang.org/x/net && \
+    go build -ldflags '-d -s -w' -o /go/bin/gosu .
 
 FROM mongo:8.0
 
