@@ -1002,16 +1002,9 @@ ENVEOF
                                 echo ""
                                 echo "🔍 Verifying images exist in GHCR before deployment..."
 
-                                declare -A service_names=(
-                                    ["civicpulse-backend"]="backend"
-                                    ["civicpulse-frontend"]="frontend"
-                                    ["civicpulse-mongodb"]="mongodb"
-                                    ["civicpulse-nginx"]="nginx"
-                                )
-
                                 for repo_name in "civicpulse-backend" "civicpulse-frontend" "civicpulse-mongodb" "civicpulse-nginx"; do
                                     img="${env.GHCR_REGISTRY}/${env.GHCR_OWNER}/\${repo_name}:${env.IMAGE_TAG}"
-                                    short_name="\${service_names[\$repo_name]}"
+                                    short_name="\${repo_name#civicpulse-}"
                                     echo "  Verifying image: \${img}..."
                                     if ! docker manifest inspect "\${img}" >/dev/null 2>&1; then
                                         echo "  ❌ FATAL: Image manifest not found in GHCR: \${img}"
