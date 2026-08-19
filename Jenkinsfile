@@ -63,9 +63,10 @@ pipeline {
         // Single pipeline image tag (set to BUILD_NUMBER)
         IMAGE_TAG           = "${env.BUILD_NUMBER}"
 
-        // Application URLs (single-server deployment)
-        APP_URL             = 'http://localhost:4200'
-        BACKEND_URL         = 'http://localhost:8000'
+        // Application URLs (Kubernetes NodePort deployment)
+        K3S_NODE_IP         = '172.17.184.54'
+        APP_URL             = 'http://172.17.184.54:30080/'
+        BACKEND_URL         = 'http://172.17.184.54:30080'
         HEALTH_ENDPOINT     = '/api/health'
         NGINX_HEALTH        = '/health'
 
@@ -109,6 +110,13 @@ pipeline {
                         env.GIT_MESSAGE      = sh(script: 'git log -1 --pretty=format:"%s" 2>/dev/null || echo "build"', returnStdout: true).trim()
                         env.GIT_BRANCH_NAME  = env.BRANCH_NAME ?: env.GIT_BRANCH ?: params.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main"', returnStdout: true).trim()
                         env.BUILD_TIMESTAMP  = sh(script: 'date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown"', returnStdout: true).trim()
+
+                        def detectedIp = sh(script: 'kubectl get nodes -o wide 2>/dev/null | awk \'NR==2 {print $6}\'', returnStdout: true).trim()
+                        if (detectedIp && detectedIp != '<none>' && detectedIp != 'NAME' && detectedIp.contains('.')) {
+                            env.K3S_NODE_IP = detectedIp
+                        } else {
+                            env.K3S_NODE_IP = '172.17.184.54'
+                        }
                     } else {
                         env.GIT_COMMIT_SHORT = bat(script: '@git rev-parse --short HEAD 2>nul || echo b%BUILD_NUMBER%', returnStdout: true).trim()
                         env.GIT_COMMIT_FULL  = bat(script: '@git rev-parse HEAD 2>nul || echo unknown', returnStdout: true).trim()
@@ -116,8 +124,17 @@ pipeline {
                         env.GIT_MESSAGE      = bat(script: '@git log -1 --pretty=format:"%%s" 2>nul || echo build', returnStdout: true).trim()
                         env.GIT_BRANCH_NAME  = env.BRANCH_NAME ?: env.GIT_BRANCH ?: params.BRANCH_NAME ?: bat(script: '@git rev-parse --abbrev-ref HEAD 2>nul || echo main', returnStdout: true).trim()
                         env.BUILD_TIMESTAMP  = bat(script: '@powershell -Command "Get-Date -Format yyyy-MM-ddTHH:mm:ssZ"', returnStdout: true).trim()
+
+                        def detectedIp = bat(script: '@powershell -Command "$ip = (wsl kubectl get nodes -o wide --no-headers 2>nul) -split \'\\s+\' | Select-Object -Index 5; if ($ip) { Write-Output $ip }"', returnStdout: true).trim()
+                        if (detectedIp && detectedIp != '<none>' && detectedIp.contains('.')) {
+                            env.K3S_NODE_IP = detectedIp
+                        } else {
+                            env.K3S_NODE_IP = '172.17.184.54'
+                        }
                     }
-                    env.IMAGE_TAG = "${env.BUILD_NUMBER}"
+                    env.IMAGE_TAG   = "${env.BUILD_NUMBER}"
+                    env.APP_URL     = "http://${env.K3S_NODE_IP}:30080/"
+                    env.BACKEND_URL = "http://${env.K3S_NODE_IP}:30080"
                 }
 
                 echo "✅ Repository cloned successfully"
@@ -1185,17 +1202,25 @@ ENVEOF
     // ── Post Actions ─────────────────────────────────────────────────────────
     post {
         success {
-            echo '\033[1;32m══════════════════════════════════════════════════════════\033[0m'
-            echo '\033[1;32m  ✅ PIPELINE SUCCEEDED\033[0m'
-            echo '\033[1;32m══════════════════════════════════════════════════════════\033[0m'
-            echo """
+            script {
+                def nodeIp = env.K3S_NODE_IP ?: '172.17.184.54'
+                def appUrl = env.APP_URL ?: "http://${nodeIp}:30080/"
+                def apiUrl = "${env.BACKEND_URL ?: ('http://' + nodeIp + ':30080')}${env.HEALTH_ENDPOINT ?: '/api/health'}"
+
+                currentBuild.description = "<a href='${appUrl}' target='_blank'>🌐 Open Application (${appUrl})</a>"
+
+                echo '\033[1;32m══════════════════════════════════════════════════════════\033[0m'
+                echo '\033[1;32m  ✅ PIPELINE SUCCEEDED\033[0m'
+                echo '\033[1;32m══════════════════════════════════════════════════════════\033[0m'
+                echo """
   ✅ Build    : #${BUILD_NUMBER} SUCCESSFUL
   ✅ Deploy   : ${params.DEPLOY_ENV} environment
-  🌐 App URL  : ${APP_URL}
-  🔧 API URL  : ${BACKEND_URL}${HEALTH_ENDPOINT}
+  🌐 App URL  : ${appUrl}
+  🔧 API URL  : ${apiUrl}
   📦 Commit   : ${env.GIT_COMMIT_SHORT ?: 'N/A'}
   🕐 Time     : ${currentBuild.durationString}
-            """
+                """
+            }
 
             // Display container information
             sh '''

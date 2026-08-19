@@ -84,11 +84,14 @@ for container in civicpulse-mongodb civicpulse-backend civicpulse-frontend civic
 done
 echo ""
 
+# Ensure APP_URL ends with trailing slash
+[[ "${APP_URL}" != */ ]] && APP_URL="${APP_URL}/"
+API_HEALTH_URL="${APP_URL}api/health"
+
 echo "─── Running Services ────────────────────────────────────────"
-echo "  • MongoDB    : mongodb://localhost:27017"
-echo "  • Backend API: http://localhost:8000/api/health"
-echo "  • Frontend   : http://localhost:4200"
-echo "  • Nginx Proxy: ${APP_URL}"
+echo "  • Application URL       : ${APP_URL}"
+echo "  • API Health URL        : ${API_HEALTH_URL}"
+echo "  • Nginx / Kubernetes App: ${APP_URL}"
 echo ""
 
 echo "─── Network Information ───────────────────────────────────────"

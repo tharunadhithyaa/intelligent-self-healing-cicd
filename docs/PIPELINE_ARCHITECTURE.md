@@ -186,7 +186,7 @@ Generates and archives a comprehensive deployment report including:
 | `PROJECT_NAME`        | CivicPulseAI         | Project identifier           |
 | `COMPOSE_PROJECT_NAME`| civicpulse           | Docker Compose project name  |
 | `DOCKER_IMAGE_PREFIX` | civicpulse           | Image naming prefix          |
-| `APP_URL`             | http://localhost:4200| Application URL              |
+| `APP_URL`             | http://<K3S_NODE_IP>:30080/| Application URL (NodePort)  |
 | `BACKEND_URL`         | http://localhost:8000| Backend API URL              |
 | `HEALTH_ENDPOINT`     | /api/health          | Backend health path          |
 | `HEALTH_RETRIES`      | 10                   | Max health check retries     |
