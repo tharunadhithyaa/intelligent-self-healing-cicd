@@ -87,36 +87,52 @@ const seedDefaultAdmin = async (): Promise<void> => {
   }
 };
 
-export const connectDatabase = async (): Promise<void> => {
-  try {
-    mongoose.set("strictQuery", true);
+export const connectDatabase = async (
+  maxRetries = 10,
+  retryDelayMs = 3000,
+): Promise<void> => {
+  mongoose.set("strictQuery", true);
 
-    mongoose.connection.on("connected", () => {
-      logger.info("MongoDB connected successfully");
-    });
+  mongoose.connection.on("connected", () => {
+    logger.info("MongoDB connected successfully");
+  });
 
-    mongoose.connection.on("error", (error: Error) => {
-      logger.error("MongoDB connection error:", error);
-    });
+  mongoose.connection.on("error", (error: Error) => {
+    logger.error("MongoDB connection error:", error);
+  });
 
-    mongoose.connection.on("disconnected", () => {
-      logger.warn("MongoDB disconnected");
-    });
+  mongoose.connection.on("disconnected", () => {
+    logger.warn("MongoDB disconnected");
+  });
 
-    await mongoose.connect(config.mongodbUri, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      logger.info(`Connecting to MongoDB (attempt ${attempt}/${maxRetries})...`);
+      await mongoose.connect(config.mongodbUri, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
 
-    // Seed default roles & permissions
-    await seedDefaultRoles();
+      // Seed default roles & permissions
+      await seedDefaultRoles();
 
-    // Seed default admin
-    await seedDefaultAdmin();
-  } catch (error) {
-    logger.error("Failed to connect to MongoDB:", error);
-    process.exit(1);
+      // Seed default admin
+      await seedDefaultAdmin();
+
+      return;
+    } catch (error) {
+      logger.warn(
+        `Failed to connect to MongoDB on attempt ${attempt}/${maxRetries}: ${(error as Error).message}`,
+      );
+      if (attempt === maxRetries) {
+        logger.error(
+          `Max MongoDB connection retries (${maxRetries}) exceeded. Exiting...`,
+        );
+        process.exit(1);
+      }
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
   }
 };
 
