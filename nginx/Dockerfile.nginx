@@ -1,7 +1,8 @@
-FROM nginx:alpine3.21
+FROM nginx:1.27-alpine
 
-# Install libcap and set directory permissions for non-root user 'nginx'
-RUN apk add --no-cache libcap && \
+# Perform security updates and install libcap for non-root user 'nginx'
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache libcap && \
     setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx && \
     touch /var/run/nginx.pid && \
     chown -R nginx:nginx /var/run/nginx.pid /var/cache/nginx /var/log/nginx
