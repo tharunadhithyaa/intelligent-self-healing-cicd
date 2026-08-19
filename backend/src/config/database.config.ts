@@ -1,9 +1,14 @@
 import mongoose from "mongoose";
+// @ts-ignore
+import bcrypt from "bcrypt";
 import config from "./index";
 import { logger } from "../utils/logger.util";
 import Role from "../models/role.model";
 import User from "../models/user.model";
 import { Permissions } from "../constants/permissions.constants";
+
+declare const process: any;
+declare const setTimeout: any;
 
 const seedDefaultRoles = async (): Promise<void> => {
   try {
@@ -61,8 +66,6 @@ const seedDefaultRoles = async (): Promise<void> => {
   }
 };
 
-import bcrypt from "bcrypt";
-
 const seedDefaultAdmin = async (): Promise<void> => {
   try {
     const adminExists = await User.findOne({ role: "admin" });
@@ -93,26 +96,30 @@ export const connectDatabase = async (
 ): Promise<void> => {
   mongoose.set("strictQuery", true);
 
-  mongoose.connection.on("connected", () => {
+  const connection = mongoose.connection as any;
+
+  connection.on("connected", () => {
     logger.info("MongoDB connected successfully");
   });
 
-  mongoose.connection.on("error", (error: Error) => {
+  connection.on("error", (error: Error) => {
     logger.error("MongoDB connection error:", error);
   });
 
-  mongoose.connection.on("disconnected", () => {
+  connection.on("disconnected", () => {
     logger.warn("MongoDB disconnected");
   });
+
+  const connectOptions = {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  } as any;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       logger.info(`Connecting to MongoDB (attempt ${attempt}/${maxRetries})...`);
-      await mongoose.connect(config.mongodbUri, {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-      });
+      await mongoose.connect(config.mongodbUri, connectOptions);
 
       // Seed default roles & permissions
       await seedDefaultRoles();
