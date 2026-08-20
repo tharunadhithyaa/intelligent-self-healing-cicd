@@ -716,7 +716,7 @@ ENVEOF
                     } else {
                         bat 'if not exist jenkins\\reports\\trivy mkdir jenkins\\reports\\trivy'
                         bat 'if not exist .trivy-cache mkdir .trivy-cache'
-                        bat "set HTTP2_DISABLE=true && set GODEBUG=http2client=0 && trivy fs --cache-dir \"%WORKSPACE%\\.trivy-cache\" --download-db-only --db-repository \"mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2\" ."
+                        bat "set HTTP2_DISABLE=true && set GODEBUG=http2client=0 && trivy fs --cache-dir \"%WORKSPACE%\\.trivy-cache\" --download-db-only --timeout 15m --db-repository \"mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2\" ."
                     }
 
                     echo '[TRIVY] Starting filesystem vulnerability scan...'
