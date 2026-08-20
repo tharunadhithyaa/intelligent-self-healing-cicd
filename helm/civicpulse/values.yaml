@@ -79,7 +79,11 @@ nginx:
       memory: 128Mi
 
 secret:
-  existingSecret: civicpulse-secrets
+  create: true
+  existingSecret: civicpulse-secret
+  jwtAccessSecret: "civicpulse-ci-access-secret"
+  jwtRefreshSecret: "civicpulse-ci-refresh-secret"
+  defaultPassword: "CivicPulse@2026"
 
 ingress:
   enabled: false

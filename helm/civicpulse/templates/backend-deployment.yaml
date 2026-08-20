@@ -47,17 +47,17 @@ spec:
             - name: JWT_ACCESS_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.secret.existingSecret | default "civicpulse-secrets" }}
+                  name: {{ .Values.secret.existingSecret | default "civicpulse-secret" }}
                   key: JWT_ACCESS_SECRET
             - name: JWT_REFRESH_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.secret.existingSecret | default "civicpulse-secrets" }}
+                  name: {{ .Values.secret.existingSecret | default "civicpulse-secret" }}
                   key: JWT_REFRESH_SECRET
             - name: DEFAULT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.secret.existingSecret | default "civicpulse-secrets" }}
+                  name: {{ .Values.secret.existingSecret | default "civicpulse-secret" }}
                   key: DEFAULT_PASSWORD
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}

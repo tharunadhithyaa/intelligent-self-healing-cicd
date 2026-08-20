@@ -177,18 +177,24 @@ if [ "$DEPLOY_METHOD" = "helm" ] && command -v helm &>/dev/null; then
         fi
     fi
 
-    log_info "Ensuring Kubernetes secret 'civicpulse-secrets' exists in namespace 'civicpulse'..."
+    log_info "Ensuring Kubernetes secrets 'civicpulse-secret' exist in namespace 'civicpulse'..."
     kubectl create namespace civicpulse --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true
     JWT_ACCESS_SECRET_VAL="${JWT_ACCESS_SECRET:-civicpulse-ci-access-secret}"
     JWT_REFRESH_SECRET_VAL="${JWT_REFRESH_SECRET:-civicpulse-ci-refresh-secret}"
     DEFAULT_PASSWORD_VAL="${DEFAULT_PASSWORD:-CivicPulse@2026}"
+    kubectl create secret generic civicpulse-secret \
+        --namespace civicpulse \
+        --from-literal=JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET_VAL}" \
+        --from-literal=JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET_VAL}" \
+        --from-literal=DEFAULT_PASSWORD="${DEFAULT_PASSWORD_VAL}" \
+        --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1
     kubectl create secret generic civicpulse-secrets \
         --namespace civicpulse \
         --from-literal=JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET_VAL}" \
         --from-literal=JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET_VAL}" \
         --from-literal=DEFAULT_PASSWORD="${DEFAULT_PASSWORD_VAL}" \
         --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1
-    log_ok "civicpulse-secrets ready"
+    log_ok "civicpulse-secret ready"
 
     log_info "Deploying CivicPulse with Helm..."
     log_info "Executing Helm upgrade/install for release 'civicpulse' (tag: ${IMAGE_TAG})..."
