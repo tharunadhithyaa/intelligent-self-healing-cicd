@@ -54,7 +54,8 @@ if [ ! -f "${VALUES_FILE}" ]; then
     exit 1
 fi
 
-log_info "Updating GitOps image tags in '${VALUES_FILE}' to build '${BUILD_NUMBER}'..."
+log_info "Starting GitOps update for build '${BUILD_NUMBER}'..."
+log_info "Updating Helm image tags in '${VALUES_FILE}'..."
 
 # Reliable YAML tag update using Python3 heredoc (handles string & int tags safely)
 python3 - "${VALUES_FILE}" "${BUILD_NUMBER}" << 'EOF'
@@ -90,10 +91,10 @@ log_info "Verifying rendered Helm manifest for build '${BUILD_NUMBER}'..."
 RENDERED=$(helm template civicpulse "${REPO_ROOT}/helm/civicpulse" --namespace civicpulse)
 
 # Extract rendered image lines for diagnostics
-RENDERED_BACKEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-backend:" | head -1 | awk '{print $2}' | tr -d "'\"")
-RENDERED_FRONTEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-frontend:" | head -1 | awk '{print $2}' | tr -d "'\"")
-RENDERED_MONGODB=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-mongodb:" | head -1 | awk '{print $2}' | tr -d "'\"")
-RENDERED_NGINX=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-nginx:" | head -1 | awk '{print $2}' | tr -d "'\"")
+RENDERED_BACKEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-backend:" | head -1 | awk '{print $2}' | tr -d "'\"\r")
+RENDERED_FRONTEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-frontend:" | head -1 | awk '{print $2}' | tr -d "'\"\r")
+RENDERED_MONGODB=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-mongodb:" | head -1 | awk '{print $2}' | tr -d "'\"\r")
+RENDERED_NGINX=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-nginx:" | head -1 | awk '{print $2}' | tr -d "'\"\r")
 
 log_info "Expected backend image  : ${EXPECTED_BACKEND}"
 log_info "Rendered backend image  : ${RENDERED_BACKEND}"
@@ -142,7 +143,7 @@ git config user.email >/dev/null 2>&1 || git config user.email "jenkins-ci@civic
 if git diff --quiet helm/civicpulse/values.yaml argocd/ 2>/dev/null; then
     log_info "No changes detected in GitOps files. Skipping commit."
 else
-    log_info "Committing GitOps desired state change..."
+    log_info "Committing values.yaml..."
     git add helm/civicpulse/values.yaml argocd/
     git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER}"
     
@@ -152,7 +153,8 @@ else
     log_info "Verifying Git remote configuration..."
     git remote -v
     
-    log_info "Pushing GitOps commit ${COMMIT_SHA:0:7} to origin/${GIT_BRANCH}..."
+    log_info "Authenticating to GitOps repository..."
+    log_info "Pushing GitOps change to origin/${GIT_BRANCH}..."
 
     # Ensure Git never prompts interactively for credentials
     export GIT_TERMINAL_PROMPT=0
@@ -194,10 +196,11 @@ ASKPASS_EOF
     if [ ${PUSH_SUCCESS} -eq 1 ]; then
         log_ok "GitOps changes pushed successfully (commit: ${COMMIT_SHA})"
     else
-        log_error "GitHub authentication failed."
-        log_info "Verify Jenkins credential 'github-gitops-credentials' has write access to the repository."
+        log_error "ERROR: GitOps update failed"
+        log_info "Check GitHub credentials, repository URL, branch, and authentication method."
         exit 1
     fi
 fi
 
+log_info "Triggering Argo CD synchronization..."
 log_ok "GitOps update complete. Argo CD will synchronize the K3s cluster automatically."
