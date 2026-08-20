@@ -83,7 +83,7 @@ pipeline {
         // Trivy vulnerability scanner settings
         TRIVY_SEVERITY      = 'HIGH,CRITICAL'
         TRIVY_REPORTS_DIR   = 'jenkins/reports/trivy'
-        TRIVY_CACHE_DIR     = "${WORKSPACE}/.trivy-cache"
+        TRIVY_CACHE_DIR     = "${env.HOME ? env.HOME + '/.cache/trivy' : env.USERPROFILE + '/.cache/trivy'}"
         HTTP2_DISABLE       = 'true'
         GODEBUG             = 'http2client=0'
         DISABLE_HTTP2       = 'true'
@@ -99,8 +99,8 @@ pipeline {
                 echo '\033[1;36m  STAGE 1 — Checkout Source Code\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
-                // Clean workspace before checkout, preserving persistent Trivy DB cache
-                cleanWs(patterns: [[pattern: '.trivy-cache/**', type: 'EXCLUDE']])
+                // Clean workspace before checkout
+                cleanWs()
 
                 // Checkout from SCM (configured in Jenkins job)
                 checkout scm
@@ -706,7 +706,7 @@ ENVEOF
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
-                    def trivyCache = "${WORKSPACE}/.trivy-cache"
+                    def trivyCache = env.TRIVY_CACHE_DIR
                     // Create Trivy reports and cache directories (OS agnostic)
                     if (isUnix()) {
                         sh 'mkdir -p jenkins/reports/trivy'
@@ -715,11 +715,12 @@ ENVEOF
                         sh './jenkins/scripts/trivy-init-db.sh'
                     } else {
                         bat 'if not exist jenkins\\reports\\trivy mkdir jenkins\\reports\\trivy'
-                        bat 'if not exist .trivy-cache mkdir .trivy-cache'
-                        bat "set HTTP2_DISABLE=true && set GODEBUG=http2client=0 && trivy fs --cache-dir \"%WORKSPACE%\\.trivy-cache\" --download-db-only --timeout 15m --db-repository \"mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2\" ."
+                        bat "if not exist \"%TRIVY_CACHE_DIR%\" mkdir \"%TRIVY_CACHE_DIR%\""
+                        bat "set HTTP2_DISABLE=true && set GODEBUG=http2client=0 && trivy fs --cache-dir \"%TRIVY_CACHE_DIR%\" --download-db-only --timeout 15m --db-repository \"mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2\" ."
                     }
 
                     echo '[TRIVY] Starting filesystem vulnerability scan...'
+                    echo '[TRIVY] Using cached vulnerability database.'
 
                     if (isUnix()) {
                         // Generate JSON, SARIF, and HTML reports for filesystem scan using cached DB
@@ -733,12 +734,12 @@ ENVEOF
                     } else {
                         // Windows agent execution using cached DB
                         bat """
-                            trivy fs --cache-dir "%WORKSPACE%\\.trivy-cache" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || exit 0
-                            trivy fs --cache-dir "%WORKSPACE%\\.trivy-cache" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || exit 0
-                            trivy fs --cache-dir "%WORKSPACE%\\.trivy-cache" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
+                            trivy fs --cache-dir "%TRIVY_CACHE_DIR%" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-fs-report.json . || exit 0
+                            trivy fs --cache-dir "%TRIVY_CACHE_DIR%" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-fs-report.sarif . || exit 0
+                            trivy fs --cache-dir "%TRIVY_CACHE_DIR%" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-fs-report.html . || exit 0
                         """
                         // Quality Gate enforcement: Fail pipeline if HIGH or CRITICAL vulnerabilities are found
-                        bat "trivy fs --cache-dir \"%WORKSPACE%\\.trivy-cache\" --skip-db-update --severity %TRIVY_SEVERITY% --ignorefile .trivyignore --exit-code 1 ."
+                        bat "trivy fs --cache-dir \"%TRIVY_CACHE_DIR%\" --skip-db-update --severity %TRIVY_SEVERITY% --ignorefile .trivyignore --exit-code 1 ."
                     }
                 }
             }
@@ -848,11 +849,11 @@ ENVEOF
                         } else {
                             // Windows agent execution using cached DB
                             bat """
-                                trivy image --cache-dir "%WORKSPACE%\\.trivy-cache" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || exit 0
-                                trivy image --cache-dir "%WORKSPACE%\\.trivy-cache" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || exit 0
-                                trivy image --cache-dir "%WORKSPACE%\\.trivy-cache" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
+                                trivy image --cache-dir "%TRIVY_CACHE_DIR%" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format json --output jenkins/reports/trivy/trivy-${cleanName}-report.json ${img} || exit 0
+                                trivy image --cache-dir "%TRIVY_CACHE_DIR%" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format sarif --output jenkins/reports/trivy/trivy-${cleanName}-report.sarif ${img} || exit 0
+                                trivy image --cache-dir "%TRIVY_CACHE_DIR%" --skip-db-update --severity HIGH,CRITICAL --ignorefile .trivyignore --format template --template "@jenkins/templates/html.tpl" --output jenkins/reports/trivy/trivy-${cleanName}-report.html ${img} || exit 0
                             """
-                            bat "trivy image --cache-dir \"%WORKSPACE%\\.trivy-cache\" --skip-db-update --severity %TRIVY_SEVERITY% --ignorefile .trivyignore --exit-code 1 ${img}"
+                            bat "trivy image --cache-dir \"%TRIVY_CACHE_DIR%\" --skip-db-update --severity %TRIVY_SEVERITY% --ignorefile .trivyignore --exit-code 1 ${img}"
                         }
                     }
                 }
