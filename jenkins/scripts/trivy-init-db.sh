@@ -98,7 +98,7 @@ for i in $(seq 1 ${MAX_ATTEMPTS}); do
             --cache-dir "${CACHE_DIR}" \
             --download-db-only \
             --db-repository "${repo}" \
-            --timeout 15m \
+            --timeout 30m \
             "${REPO_ROOT}"; then
             
             if check_db_validity; then

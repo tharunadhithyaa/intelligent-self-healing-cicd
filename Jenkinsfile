@@ -10,7 +10,7 @@ pipeline {
 
     // ── Pipeline Options ─────────────────────────────────────────────────────
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         timestamps()
         ansiColor('xterm')
         buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '5'))
