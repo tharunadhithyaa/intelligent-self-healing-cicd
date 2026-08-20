@@ -3,9 +3,9 @@
 # CivicPulseAI — Trivy Vulnerability Database Initialization & Retry Script
 # ============================================================================
 # Ensures the Trivy vulnerability database is downloaded and cached reliably.
-# Prevents HTTP/2 stream errors (PROTOCOL_ERROR), prioritizes OCI mirrors,
-# retries failed downloads with backoff, and preserves persistent cache outside
-# the Jenkins workspace (~/.cache/trivy).
+# Prevents HTTP/2 stream errors (PROTOCOL_ERROR), iterates individual OCI mirror
+# candidate repositories for Trivy 0.52.2 compatibility, retries with backoff,
+# and preserves persistent cache outside the Jenkins workspace (~/.cache/trivy).
 # Called by Jenkinsfile before running Trivy scans.
 # ============================================================================
 set -euo pipefail
@@ -71,10 +71,18 @@ else
     log_info "No valid existing vulnerability database found in persistent cache."
 fi
 
-log_info "Configured DB repositories: mirror.gcr.io/aquasec/trivy-db:2, ghcr.io/aquasecurity/trivy-db:2"
+# Candidate OCI repositories tested individually for Trivy 0.52.2 compatibility
+REPOS=(
+    "mirror.gcr.io/aquasec/trivy-db:2"
+    "ghcr.io/aquasecurity/trivy-db:2"
+)
+
+log_info "Configured DB repositories:"
+for repo in "${REPOS[@]}"; do
+    log_info "  - ${repo}"
+done
 log_info "Updating vulnerability database..."
 
-# Delays in seconds between retries
 DELAYS=(10 20 30)
 
 for i in $(seq 1 ${MAX_ATTEMPTS}); do
@@ -83,24 +91,28 @@ for i in $(seq 1 ${MAX_ATTEMPTS}); do
     
     log_info "DB update attempt ${attempt}/${MAX_ATTEMPTS}"
 
-    # Priority OCI repositories: Google Container Registry mirror followed by GHCR
-    if trivy fs \
-        --cache-dir "${CACHE_DIR}" \
-        --download-db-only \
-        --db-repository "mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2" \
-        --timeout 15m \
-        "${REPO_ROOT}" >/dev/null 2>&1; then
+    for repo in "${REPOS[@]}"; do
+        log_info "Downloading vulnerability DB from repository: ${repo}..."
         
-        if check_db_validity; then
-            DB_SUCCESS=1
-            log_ok "Vulnerability database successfully initialized."
-            log_ok "Persistent cache is ready."
-            break
+        if trivy fs \
+            --cache-dir "${CACHE_DIR}" \
+            --download-db-only \
+            --db-repository "${repo}" \
+            --timeout 15m \
+            "${REPO_ROOT}"; then
+            
+            if check_db_validity; then
+                DB_SUCCESS=1
+                log_ok "Vulnerability database successfully initialized from '${repo}'."
+                log_ok "Persistent cache is ready."
+                break 2
+            fi
         fi
-    fi
+        
+        log_warn "Failed to download DB from '${repo}'."
+    done
 
     log_warn "DB update attempt ${attempt}/${MAX_ATTEMPTS} failed."
-    log_warn "Retrying with configured fallback repositories..."
 
     if [ ${attempt} -lt ${MAX_ATTEMPTS} ]; then
         log_info "Waiting ${delay} seconds before retry..."
@@ -116,23 +128,44 @@ if [ ${DB_SUCCESS} -ne 1 ]; then
         exit 0
     fi
 
-    # Database genuinely unavailable - purge bad cache & print network diagnostics
+    # Database genuinely unavailable - purge bad cache & print diagnostic breakdown
     clean_corrupted_cache
     log_error "ERROR: Failed to download vulnerability database after ${MAX_ATTEMPTS} attempts and no valid cached database exists."
-    log_error "Executing network diagnostic checks..."
+    log_error "Executing diagnostic checks..."
 
-    log_info "1. Host resolution (ghcr.io):"
-    getent hosts ghcr.io || echo "getent failed for ghcr.io"
+    log_info "--- Diagnostics Breakdown ---"
+    
+    if getent hosts ghcr.io >/dev/null 2>&1; then
+        log_info "[TRIVY] DNS resolution (ghcr.io): OK ($(getent hosts ghcr.io | awk '{print $1}' | head -1))"
+    else
+        log_error "[TRIVY] DNS resolution (ghcr.io): FAILED"
+    fi
 
-    log_info "2. Host resolution (mirror.gcr.io):"
-    getent hosts mirror.gcr.io || echo "getent failed for mirror.gcr.io"
+    if getent hosts mirror.gcr.io >/dev/null 2>&1; then
+        log_info "[TRIVY] DNS resolution (mirror.gcr.io): OK ($(getent hosts mirror.gcr.io | awk '{print $1}' | head -1))"
+    else
+        log_error "[TRIVY] DNS resolution (mirror.gcr.io): FAILED"
+    fi
 
-    log_info "3. HTTPS connectivity (ghcr.io):"
-    curl -Is --connect-timeout 5 https://ghcr.io 2>&1 | head -n 5 || echo "curl failed for ghcr.io"
+    if curl -4 -Is --connect-timeout 5 https://ghcr.io >/dev/null 2>&1; then
+        log_info "[TRIVY] IPv4 HTTPS connectivity (ghcr.io): OK"
+    else
+        log_warn "[TRIVY] IPv4 HTTPS connectivity (ghcr.io): FAILED"
+    fi
 
-    log_info "4. HTTPS connectivity (mirror.gcr.io):"
-    curl -Is --connect-timeout 5 https://mirror.gcr.io 2>&1 | head -n 5 || echo "curl failed for mirror.gcr.io"
+    if curl -6 -Is --connect-timeout 5 https://ghcr.io >/dev/null 2>&1; then
+        log_info "[TRIVY] IPv6 HTTPS connectivity (ghcr.io): OK"
+    else
+        log_warn "[TRIVY] IPv6 HTTPS connectivity (ghcr.io): FAILED / NAT64 issue"
+    fi
 
+    if curl -4 -Is --connect-timeout 5 https://mirror.gcr.io >/dev/null 2>&1; then
+        log_info "[TRIVY] IPv4 HTTPS connectivity (mirror.gcr.io): OK"
+    else
+        log_warn "[TRIVY] IPv4 HTTPS connectivity (mirror.gcr.io): FAILED"
+    fi
+
+    log_error "[TRIVY] OCI vulnerability DB download: FAILED"
     log_error "Vulnerability database is unavailable. Aborting scan."
     exit 1
 fi
