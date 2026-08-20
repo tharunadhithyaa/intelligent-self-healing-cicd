@@ -1094,11 +1094,21 @@ ENVEOF
                     sh 'chmod +x jenkins/scripts/update-gitops.sh'
                     
                     // Update helm/civicpulse/values.yaml with new BUILD_NUMBER and push to GitHub
-                    sh """
-                        ./jenkins/scripts/update-gitops.sh \
-                            --build-number "${BUILD_NUMBER}" \
-                            --branch "${env.GIT_BRANCH_NAME}"
-                    """
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'github-gitops-credentials',
+                            usernameVariable: 'GITOPS_USERNAME',
+                            passwordVariable: 'GITOPS_TOKEN'
+                        )
+                    ]) {
+                        sh """
+                            ./jenkins/scripts/update-gitops.sh \
+                                --build-number "${BUILD_NUMBER}" \
+                                --branch "${env.GIT_BRANCH_NAME}" \
+                                --username "\${GITOPS_USERNAME}" \
+                                --token "\${GITOPS_TOKEN}"
+                        """
+                    }
 
                     // Optional direct Helm fallback if DEPLOY_METHOD is explicitly set to 'helm-direct'
                     if (env.DEPLOY_METHOD == 'helm-direct') {

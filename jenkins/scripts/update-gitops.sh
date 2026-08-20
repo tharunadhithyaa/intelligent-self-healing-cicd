@@ -26,6 +26,8 @@ log_error() { echo -e "${RED}[GITOPS]${NC} ❌ $*"; }
 # ── Defaults ──────────────────────────────────────────────────────────────────
 BUILD_NUMBER="${BUILD_NUMBER:-}"
 GIT_BRANCH="${GIT_BRANCH_NAME:-${BRANCH_NAME:-main}}"
+GITOPS_USERNAME="${GITOPS_USERNAME:-}"
+GITOPS_TOKEN="${GITOPS_TOKEN:-${GITHUB_TOKEN:-${GIT_TOKEN:-}}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
@@ -34,6 +36,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --build-number) BUILD_NUMBER="$2"; shift 2 ;;
         --branch)       GIT_BRANCH="$2";   shift 2 ;;
+        --username)     GITOPS_USERNAME="$2"; shift 2 ;;
+        --token)        GITOPS_TOKEN="$2";    shift 2 ;;
         *) shift ;;
     esac
 done
@@ -142,16 +146,57 @@ else
     git add helm/civicpulse/values.yaml argocd/
     git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER}"
     
-    log_info "Pushing GitOps commit to branch '${GIT_BRANCH}'..."
-    if git push origin "${GIT_BRANCH}" 2>/dev/null; then
-        log_ok "GitOps desired state pushed to GitHub repository!"
+    COMMIT_SHA=$(git rev-parse HEAD)
+    log_info "Created GitOps commit: ${COMMIT_SHA:0:7} (${COMMIT_SHA})"
+    
+    log_info "Verifying Git remote configuration..."
+    git remote -v
+    
+    log_info "Pushing GitOps commit ${COMMIT_SHA:0:7} to origin/${GIT_BRANCH}..."
+
+    # Ensure Git never prompts interactively for credentials
+    export GIT_TERMINAL_PROMPT=0
+
+    PUSH_SUCCESS=0
+    if [ -n "${GITOPS_TOKEN}" ]; then
+        # Secure non-interactive authentication via GIT_ASKPASS helper
+        ASKPASS_TMP=$(mktemp /tmp/git-askpass-XXXXXX.sh 2>/dev/null || mktemp "${REPO_ROOT}/.git-askpass-XXXXXX.sh")
+        cat << ASKPASS_EOF > "${ASKPASS_TMP}"
+#!/usr/bin/env bash
+prompt="\$1"
+if echo "\${prompt}" | grep -qi "username"; then
+    echo "${GITOPS_USERNAME:-x-access-token}"
+else
+    echo "${GITOPS_TOKEN}"
+fi
+ASKPASS_EOF
+        chmod 700 "${ASKPASS_TMP}"
+
+        # Clean up temporary askpass script on exit
+        trap 'rm -f "${ASKPASS_TMP}" 2>/dev/null || true' EXIT
+
+        PUSH_USER="${GITOPS_USERNAME:-x-access-token}"
+        AUTH_BASIC=$(echo -n "${PUSH_USER}:${GITOPS_TOKEN}" | base64 | tr -d '\r\n')
+
+        if GIT_ASKPASS="${ASKPASS_TMP}" git -c "http.extraHeader=Authorization: Basic ${AUTH_BASIC}" push origin HEAD:"${GIT_BRANCH}" 2>/dev/null; then
+            PUSH_SUCCESS=1
+        fi
+        
+        rm -f "${ASKPASS_TMP}" 2>/dev/null || true
+        trap - EXIT
     else
-        log_warn "Git push via default remote failed. Attempting authenticated push..."
-        git push origin HEAD:"${GIT_BRANCH}" || {
-            log_error "Failed to push GitOps changes to GitHub branch '${GIT_BRANCH}'."
-            log_info "Ensure Jenkins git credentials (e.g. github-gitops-credentials) are configured with write permissions."
-            exit 1
-        }
+        # Unauthenticated / SSH push fallback
+        if git push origin HEAD:"${GIT_BRANCH}" 2>/dev/null; then
+            PUSH_SUCCESS=1
+        fi
+    fi
+
+    if [ ${PUSH_SUCCESS} -eq 1 ]; then
+        log_ok "GitOps changes pushed successfully (commit: ${COMMIT_SHA})"
+    else
+        log_error "GitHub authentication failed."
+        log_info "Verify Jenkins credential 'github-gitops-credentials' has write access to the repository."
+        exit 1
     fi
 fi
 
