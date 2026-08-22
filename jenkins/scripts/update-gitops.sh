@@ -63,8 +63,6 @@ if [ -d "${HELM_DIR}" ] && command -v helm &>/dev/null; then
 fi
 
 # ── 2. Update Argo CD Application Parameter Overrides (Zero Commit on Main) ──
-KUBECTL_APPLIED=0
-
 if [ -z "${KUBECONFIG:-}" ]; then
     if [ -f "${HOME}/.kube/config" ] && [ -r "${HOME}/.kube/config" ]; then
         export KUBECONFIG="${HOME}/.kube/config"
@@ -72,36 +70,50 @@ if [ -z "${KUBECONFIG:-}" ]; then
         export KUBECONFIG="/home/jenkins/.kube/config"
     elif [ -f "/home/tharun_adhithyaa/.kube/config" ] && [ -r "/home/tharun_adhithyaa/.kube/config" ]; then
         export KUBECONFIG="/home/tharun_adhithyaa/.kube/config"
+    elif [ -f "/etc/rancher/k3s/k3s.yaml" ] && [ -r "/etc/rancher/k3s/k3s.yaml" ]; then
+        export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
     fi
 fi
 
-if command -v kubectl &>/dev/null; then
-    if kubectl get application civicpulse -n argocd >/dev/null 2>&1; then
-        log_info "Applying Argo CD Application parameter overrides for build '${BUILD_NUMBER}'..."
-        kubectl patch application civicpulse -n argocd --type merge -p "{
-          \"spec\": {
-            \"source\": {
-              \"helm\": {
-                \"parameters\": [
-                  {\"name\": \"frontend.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
-                  {\"name\": \"backend.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
-                  {\"name\": \"mongodb.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
-                  {\"name\": \"nginx.image.tag\", \"value\": \"${BUILD_NUMBER}\"}
-                ]
-              }
-            }
-          }
-        }" >/dev/null 2>&1 && KUBECTL_APPLIED=1 || log_warn "kubectl patch application encountered non-blocking warning"
-
-        if [ ${KUBECTL_APPLIED} -eq 1 ]; then
-            log_ok "Argo CD Application parameter overrides applied successfully (zero Git commits)"
-        fi
-    else
-        log_warn "Argo CD Application 'civicpulse' not accessible in namespace 'argocd'."
-    fi
-else
-    log_warn "kubectl binary not found on PATH."
+if ! command -v kubectl &>/dev/null; then
+    log_error "kubectl binary not found on PATH."
+    exit 1
 fi
+
+log_info "Using KUBECONFIG=${KUBECONFIG:-unset}"
+
+if ! kubectl get nodes >/dev/null 2>&1; then
+    log_error "Cannot connect to Kubernetes cluster using KUBECONFIG=${KUBECONFIG:-unset}."
+    exit 1
+fi
+log_ok "K3s cluster accessible"
+
+if ! kubectl get application civicpulse -n argocd >/dev/null 2>&1; then
+    log_error "Argo CD Application 'civicpulse' not accessible in namespace 'argocd'."
+    exit 1
+fi
+log_ok "Argo CD Application 'civicpulse' found in namespace 'argocd'"
+
+log_info "Applying Argo CD Application parameter overrides for build '${BUILD_NUMBER}'..."
+if ! kubectl patch application civicpulse -n argocd --type merge -p "{
+  \"spec\": {
+    \"source\": {
+      \"helm\": {
+        \"parameters\": [
+          {\"name\": \"frontend.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
+          {\"name\": \"backend.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
+          {\"name\": \"mongodb.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
+          {\"name\": \"nginx.image.tag\", \"value\": \"${BUILD_NUMBER}\"}
+        ]
+      }
+    }
+  }
+}"; then
+    log_error "Failed to patch Argo CD Application parameter overrides for build '${BUILD_NUMBER}'"
+    exit 1
+fi
+
+log_ok "Argo CD Application parameter overrides applied successfully (zero Git commits)"
 
 # ── 3. Optional Argo CD Sync Trigger ──────────────────────────────────────────
 if command -v argocd &>/dev/null; then
