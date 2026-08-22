@@ -1111,103 +1111,23 @@ ENVEOF
                     
                     echo '[GITOPS] Starting GitOps update stage...'
 
-                    def gitopsUser = ''
-                    def gitopsPass = ''
-                    def credsFound = false
-
-                    // Candidate 1: 'github-gitops-credentials' (usernamePassword)
                     try {
                         withCredentials([
                             usernamePassword(
                                 credentialsId: 'github-gitops-credentials',
-                                usernameVariable: 'GITOPS_USER_TMP',
-                                passwordVariable: 'GITOPS_PASS_TMP'
+                                usernameVariable: 'GITOPS_USERNAME',
+                                passwordVariable: 'GITOPS_TOKEN'
                             )
                         ]) {
-                            gitopsUser = env.GITOPS_USER_TMP
-                            gitopsPass = env.GITOPS_PASS_TMP
-                            credsFound = true
                             echo '[GITOPS] Authenticated using Jenkins credential ID: github-gitops-credentials'
+                            sh """
+                                ./jenkins/scripts/update-gitops.sh \
+                                    --build-number "${BUILD_NUMBER}" \
+                                    --branch "gitops"
+                            """
                         }
-                    } catch (Exception e1) {
-                        echo "  ℹ️  Credential 'github-gitops-credentials' not available: ${e1.message}"
-                    }
-
-                    // Candidate 2: 'ghcr-credentials' (usernamePassword - verified active in Stage 10.5)
-                    if (!credsFound) {
-                        try {
-                            withCredentials([
-                                usernamePassword(
-                                    credentialsId: 'ghcr-credentials',
-                                    usernameVariable: 'GITOPS_USER_TMP',
-                                    passwordVariable: 'GITOPS_PASS_TMP'
-                                )
-                            ]) {
-                                gitopsUser = env.GITOPS_USER_TMP
-                                gitopsPass = env.GITOPS_PASS_TMP
-                                credsFound = true
-                                echo '[GITOPS] Authenticated using Jenkins credential ID: ghcr-credentials'
-                            }
-                        } catch (Exception e2) {
-                            echo "  ℹ️  Credential 'ghcr-credentials' fallback check: ${e2.message}"
-                        }
-                    }
-
-                    // Candidate 3: 'github-credentials' (usernamePassword)
-                    if (!credsFound) {
-                        try {
-                            withCredentials([
-                                usernamePassword(
-                                    credentialsId: 'github-credentials',
-                                    usernameVariable: 'GITOPS_USER_TMP',
-                                    passwordVariable: 'GITOPS_PASS_TMP'
-                                )
-                            ]) {
-                                gitopsUser = env.GITOPS_USER_TMP
-                                gitopsPass = env.GITOPS_PASS_TMP
-                                credsFound = true
-                                echo '[GITOPS] Authenticated using Jenkins credential ID: github-credentials'
-                            }
-                        } catch (Exception e3) {
-                            echo "  ℹ️  Credential 'github-credentials' fallback check: ${e3.message}"
-                        }
-                    }
-
-                    // Candidate 4: 'github-token' (string / secret text)
-                    if (!credsFound) {
-                        try {
-                            withCredentials([
-                                string(
-                                    credentialsId: 'github-token',
-                                    variable: 'GITOPS_PASS_TMP'
-                                )
-                            ]) {
-                                gitopsUser = 'x-access-token'
-                                gitopsPass = env.GITOPS_PASS_TMP
-                                credsFound = true
-                                echo '[GITOPS] Authenticated using Jenkins secret text credential ID: github-token'
-                            }
-                        } catch (Exception e4) {
-                            echo "  ℹ️  Secret text credential 'github-token' fallback check: ${e4.message}"
-                        }
-                    }
-
-                    if (!credsFound) {
-                        echo '⚠️  No matching Jenkins GitOps credentials found in credential store. Proceeding with environment defaults...'
-                    }
-
-                    // Execute update-gitops.sh securely with loaded credentials
-                    withEnv([
-                        "GITOPS_USERNAME=${gitopsUser}",
-                        "GITOPS_TOKEN=${gitopsPass}"
-                    ]) {
-                        sh """
-                            ./jenkins/scripts/update-gitops.sh \
-                                --build-number "${BUILD_NUMBER}" \
-                                --branch "gitops" \
-                                --username "\${GITOPS_USERNAME}" \
-                                --token "\${GITOPS_TOKEN}"
-                        """
+                    } catch (Exception e) {
+                        error("❌ FATAL: GitHub GitOps credential 'github-gitops-credentials' is not configured. Configure it in Jenkins before running the GitOps stage. Details: ${e.message}")
                     }
 
                     // Optional direct Helm fallback if DEPLOY_METHOD is explicitly set to 'helm-direct'

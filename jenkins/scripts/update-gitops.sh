@@ -3,11 +3,8 @@
 # CivicPulseAI — GitOps Repository Update Script
 # ============================================================================
 # Updates helm/civicpulse/values.yaml with the new build tag and pushes
-# the desired state change to GitHub to trigger Argo CD automated sync.
-# Called by Jenkinsfile Stage 11 (Update GitOps Repository).
-#
-# Usage:
-#   ./update-gitops.sh --build-number 230 --branch main
+# the desired state change to GitHub on the 'gitops' branch to trigger Argo CD.
+# Executed by Jenkinsfile Stage 11 (Update GitOps Repository).
 # ============================================================================
 set -euo pipefail
 
@@ -47,17 +44,45 @@ if [ -z "${BUILD_NUMBER}" ]; then
     exit 1
 fi
 
-VALUES_FILE="${REPO_ROOT}/helm/civicpulse/values.yaml"
+log_info "Starting GitOps update for build '${BUILD_NUMBER}'"
+
+# Ensure we are in the repository root
+cd "${REPO_ROOT}"
+
+# Configure git committer details in main repo if not set
+git config user.name >/dev/null 2>&1 || git config user.name "jenkins-bot"
+git config user.email >/dev/null 2>&1 || git config user.email "jenkins-ci@civicpulse.local"
+
+log_info "Synchronizing target branch '${GIT_BRANCH}'"
+git fetch origin "${GIT_BRANCH}" 2>/dev/null || true
+
+# ── Create Temporary Worktree for GitOps Branch Isolation ─────────────────────
+WORKTREE_DIR=$(mktemp -d /tmp/gitops-worktree-XXXXXX 2>/dev/null || mktemp -d "${REPO_ROOT}/.gitops-worktree-XXXXXX")
+
+cleanup_worktree() {
+    git worktree remove --force "${WORKTREE_DIR}" 2>/dev/null || rm -rf "${WORKTREE_DIR}" 2>/dev/null || true
+}
+trap cleanup_worktree EXIT INT TERM
+
+if git rev-parse --verify "origin/${GIT_BRANCH}" >/dev/null 2>&1; then
+    git worktree add -B "${GIT_BRANCH}" "${WORKTREE_DIR}" "origin/${GIT_BRANCH}" >/dev/null 2>&1
+elif git rev-parse --verify "${GIT_BRANCH}" >/dev/null 2>&1; then
+    git worktree add "${WORKTREE_DIR}" "${GIT_BRANCH}" >/dev/null 2>&1
+else
+    git worktree add -b "${GIT_BRANCH}" "${WORKTREE_DIR}" >/dev/null 2>&1
+fi
+
+VALUES_FILE="${WORKTREE_DIR}/helm/civicpulse/values.yaml"
+HELM_DIR="${WORKTREE_DIR}/helm/civicpulse"
 
 if [ ! -f "${VALUES_FILE}" ]; then
     log_error "Helm values.yaml file not found at: ${VALUES_FILE}"
     exit 1
 fi
 
-log_info "Starting GitOps update for build '${BUILD_NUMBER}'..."
-log_info "Updating Helm image tags in '${VALUES_FILE}'..."
+log_info "Updating Helm image tags to '${BUILD_NUMBER}'"
 
-# Reliable YAML tag update using Python3 heredoc (handles string & int tags safely)
+# Update YAML image tags safely via Python heredoc
 python3 - "${VALUES_FILE}" "${BUILD_NUMBER}" << 'EOF'
 import sys
 import re
@@ -84,11 +109,11 @@ EXPECTED_FRONTEND="ghcr.io/tharunadhithyaa/civicpulse-frontend:${BUILD_NUMBER}"
 EXPECTED_MONGODB="ghcr.io/tharunadhithyaa/civicpulse-mongodb:${BUILD_NUMBER}"
 EXPECTED_NGINX="ghcr.io/tharunadhithyaa/civicpulse-nginx:${BUILD_NUMBER}"
 
-log_info "Validating updated Helm chart..."
-helm lint "${REPO_ROOT}/helm/civicpulse" >/dev/null
+log_info "Validating Helm chart"
+helm lint "${HELM_DIR}" >/dev/null
 
-log_info "Verifying rendered Helm manifest for build '${BUILD_NUMBER}'..."
-RENDERED=$(helm template civicpulse "${REPO_ROOT}/helm/civicpulse" --namespace civicpulse)
+log_info "Verifying rendered manifest"
+RENDERED=$(helm template civicpulse "${HELM_DIR}" --namespace civicpulse)
 
 # Extract rendered image lines for diagnostics
 RENDERED_BACKEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-backend:" | head -1 | awk '{print $2}' | tr -d "'\"\r")
@@ -96,14 +121,10 @@ RENDERED_FRONTEND=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadh
 RENDERED_MONGODB=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-mongodb:" | head -1 | awk '{print $2}' | tr -d "'\"\r")
 RENDERED_NGINX=$(echo "${RENDERED}" | grep -E "image: ['\"]?ghcr.io/tharunadhithyaa/civicpulse-nginx:" | head -1 | awk '{print $2}' | tr -d "'\"\r")
 
-log_info "Expected backend image  : ${EXPECTED_BACKEND}"
-log_info "Rendered backend image  : ${RENDERED_BACKEND}"
-log_info "Expected frontend image : ${EXPECTED_FRONTEND}"
-log_info "Rendered frontend image : ${RENDERED_FRONTEND}"
-log_info "Expected mongodb image  : ${EXPECTED_MONGODB}"
-log_info "Rendered mongodb image  : ${RENDERED_MONGODB}"
-log_info "Expected nginx image    : ${EXPECTED_NGINX}"
-log_info "Rendered nginx image    : ${RENDERED_NGINX}"
+log_info "Backend image: ${RENDERED_BACKEND}"
+log_info "Frontend image: ${RENDERED_FRONTEND}"
+log_info "MongoDB image: ${RENDERED_MONGODB}"
+log_info "Nginx image: ${RENDERED_NGINX}"
 
 VERIFY_FAILED=0
 
@@ -132,69 +153,45 @@ if [ $VERIFY_FAILED -ne 0 ]; then
     exit 1
 fi
 
-log_ok "Helm manifest verification passed for build '${BUILD_NUMBER}'"
+log_ok "Helm manifest verification passed"
 
-cd "${REPO_ROOT}"
+# Check if there are uncommitted changes in worktree
+cd "${WORKTREE_DIR}"
 
-# Configure git committer details if not present
-git config user.name >/dev/null 2>&1 || git config user.name "jenkins-bot"
-git config user.email >/dev/null 2>&1 || git config user.email "jenkins-ci@civicpulse.local"
+if git diff --quiet helm/civicpulse/values.yaml 2>/dev/null && [ -z "$(git status --porcelain)" ]; then
+    log_info "No GitOps changes required. Image tags already match build '${BUILD_NUMBER}'."
+    log_ok "GitOps update completed successfully"
+    exit 0
+fi
 
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+log_info "Committing GitOps changes"
+git add helm/civicpulse/values.yaml
+if [ -d "argocd" ]; then
+    git add argocd/ 2>/dev/null || true
+fi
 
-log_info "Synchronizing GitOps update to target branch '${GIT_BRANCH}'..."
+git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER} [skip ci]" >/dev/null
+
+COMMIT_SHA=$(git rev-parse HEAD)
+
+# Sync check before pushing to handle concurrent commits
 git fetch origin "${GIT_BRANCH}" 2>/dev/null || true
 
 if git rev-parse --verify "origin/${GIT_BRANCH}" >/dev/null 2>&1; then
-    git checkout -B "${GIT_BRANCH}" "origin/${GIT_BRANCH}"
-else
-    git checkout -B "${GIT_BRANCH}"
+    # Rebase onto latest remote branch to prevent force-pushing
+    git rebase "origin/${GIT_BRANCH}" >/dev/null 2>&1 || {
+        git rebase --abort >/dev/null 2>&1 || true
+    }
 fi
 
-# Re-apply the Helm values.yaml tag update for BUILD_NUMBER on the gitops branch
-python3 - "${VALUES_FILE}" "${BUILD_NUMBER}" << 'EOF'
-import sys
-import re
+log_info "Pushing commit to origin/${GIT_BRANCH}"
 
-values_file = sys.argv[1]
-build_number = sys.argv[2]
+export GIT_TERMINAL_PROMPT=0
+PUSH_SUCCESS=0
 
-with open(values_file, 'r') as f:
-    content = f.read()
-
-updated_content = re.sub(
-    r'(tag:\s*)"[^"]*"',
-    f'tag: "{build_number}"',
-    content
-)
-
-with open(values_file, 'w') as f:
-    f.write(updated_content)
-EOF
-
-if git diff --quiet helm/civicpulse/values.yaml argocd/ 2>/dev/null; then
-    log_info "No changes detected in GitOps files on branch '${GIT_BRANCH}'. Skipping commit."
-    git checkout "${CURRENT_BRANCH}" 2>/dev/null || true
-else
-    log_info "Committing values.yaml to branch '${GIT_BRANCH}'..."
-    git add helm/civicpulse/values.yaml argocd/
-    git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER} [skip ci]"
-
-    COMMIT_SHA=$(git rev-parse HEAD)
-    log_info "Created GitOps commit on branch '${GIT_BRANCH}': ${COMMIT_SHA:0:7} (${COMMIT_SHA})"
-
-    log_info "Verifying Git remote configuration..."
-    git remote -v
-
-    log_info "Authenticating to GitOps repository..."
-    log_info "Pushing GitOps change to origin/${GIT_BRANCH}..."
-
-    export GIT_TERMINAL_PROMPT=0
-
-    PUSH_SUCCESS=0
-    if [ -n "${GITOPS_TOKEN}" ]; then
-        ASKPASS_TMP=$(mktemp /tmp/git-askpass-XXXXXX.sh 2>/dev/null || mktemp "${REPO_ROOT}/.git-askpass-XXXXXX.sh")
-        cat << ASKPASS_EOF > "${ASKPASS_TMP}"
+if [ -n "${GITOPS_TOKEN}" ]; then
+    ASKPASS_TMP=$(mktemp /tmp/git-askpass-XXXXXX.sh 2>/dev/null || mktemp "${WORKTREE_DIR}/.git-askpass-XXXXXX.sh")
+    cat << ASKPASS_EOF > "${ASKPASS_TMP}"
 #!/usr/bin/env bash
 prompt="\$1"
 if echo "\${prompt}" | grep -qi "username"; then
@@ -203,33 +200,26 @@ else
     echo "${GITOPS_TOKEN}"
 fi
 ASKPASS_EOF
-        chmod 700 "${ASKPASS_TMP}"
-        trap 'rm -f "${ASKPASS_TMP}" 2>/dev/null || true' EXIT
+    chmod 700 "${ASKPASS_TMP}"
 
-        PUSH_USER="${GITOPS_USERNAME:-x-access-token}"
-        AUTH_BASIC=$(echo -n "${PUSH_USER}:${GITOPS_TOKEN}" | base64 | tr -d '\r\n')
+    PUSH_USER="${GITOPS_USERNAME:-x-access-token}"
+    AUTH_BASIC=$(echo -n "${PUSH_USER}:${GITOPS_TOKEN}" | base64 | tr -d '\r\n')
 
-        if GIT_ASKPASS="${ASKPASS_TMP}" git -c "http.extraHeader=Authorization: Basic ${AUTH_BASIC}" push origin "${GIT_BRANCH}" 2>/dev/null; then
-            PUSH_SUCCESS=1
-        fi
-
-        rm -f "${ASKPASS_TMP}" 2>/dev/null || true
-        trap - EXIT
-    else
-        if git push origin "${GIT_BRANCH}" 2>/dev/null; then
-            PUSH_SUCCESS=1
-        fi
+    if GIT_ASKPASS="${ASKPASS_TMP}" git -c "http.extraHeader=Authorization: Basic ${AUTH_BASIC}" push origin "${GIT_BRANCH}" >/dev/null 2>&1; then
+        PUSH_SUCCESS=1
     fi
 
-    git checkout "${CURRENT_BRANCH}" 2>/dev/null || true
-
-    if [ ${PUSH_SUCCESS} -eq 1 ]; then
-        log_ok "GitOps changes pushed successfully to origin/${GIT_BRANCH} (commit: ${COMMIT_SHA})"
-    else
-        log_error "ERROR: GitOps update failed for branch '${GIT_BRANCH}'"
-        exit 1
+    rm -f "${ASKPASS_TMP}" 2>/dev/null || true
+else
+    if git push origin "${GIT_BRANCH}" >/dev/null 2>&1; then
+        PUSH_SUCCESS=1
     fi
 fi
 
-log_info "Triggering Argo CD synchronization..."
-log_ok "GitOps update complete. Argo CD will synchronize the K3s cluster automatically."
+if [ ${PUSH_SUCCESS} -eq 1 ]; then
+    log_ok "GitOps update completed successfully"
+else
+    log_error "ERROR: Failed to push GitOps commit to origin/${GIT_BRANCH}"
+    exit 1
+fi
+
