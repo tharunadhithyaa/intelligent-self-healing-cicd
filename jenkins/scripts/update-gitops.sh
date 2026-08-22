@@ -155,11 +155,31 @@ fi
 
 log_ok "Helm manifest verification passed"
 
+# ── Update Argo CD Application Parameter Overrides (Zero Commit on Main) ──────
+if command -v kubectl &>/dev/null && kubectl get application civicpulse -n argocd >/dev/null 2>&1; then
+    log_info "Applying Argo CD Application parameter overrides for build '${BUILD_NUMBER}'..."
+    kubectl patch application civicpulse -n argocd --type merge -p "{
+      \"spec\": {
+        \"source\": {
+          \"helm\": {
+            \"parameters\": [
+              {\"name\": \"frontend.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
+              {\"name\": \"backend.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
+              {\"name\": \"mongodb.image.tag\", \"value\": \"${BUILD_NUMBER}\"},
+              {\"name\": \"nginx.image.tag\", \"value\": \"${BUILD_NUMBER}\"}
+            ]
+          }
+        }
+      }
+    }" >/dev/null 2>&1 || true
+    log_ok "Argo CD Application parameter overrides applied successfully"
+fi
+
 # Check if there are uncommitted changes in worktree
 cd "${WORKTREE_DIR}"
 
 if git diff --quiet helm/civicpulse/values.yaml 2>/dev/null && [ -z "$(git status --porcelain)" ]; then
-    log_info "No GitOps changes required. Image tags already match build '${BUILD_NUMBER}'."
+    log_info "No GitOps branch changes required. Image tags already match build '${BUILD_NUMBER}'."
     log_ok "GitOps update completed successfully"
     exit 0
 fi
