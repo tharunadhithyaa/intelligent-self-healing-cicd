@@ -107,23 +107,8 @@ pipeline {
                 // Clean workspace before checkout
                 cleanWs()
 
-                // Checkout from SCM with polling exclusion filters for GitOps paths & [skip ci]
-                script {
-                    if (scm && scm.userRemoteConfigs) {
-                        checkout([
-                            $class: 'GitSCM',
-                            branches: scm.branches,
-                            doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-                            extensions: (scm.extensions ?: []) + [
-                                [$class: 'PathRestriction', excludedRegions: 'helm/.*\nargocd/.*', includedRegions: ''],
-                                [$class: 'MessageExclusion', excludedMessage: '(?s).*\\[(skip ci|ci skip)\\].*']
-                            ],
-                            userRemoteConfigs: scm.userRemoteConfigs
-                        ])
-                    } else {
-                        checkout scm
-                    }
-                }
+                // Checkout from SCM (main branch)
+                checkout scm
 
                 // Display commit information for traceability
                 script {
@@ -1219,7 +1204,7 @@ ENVEOF
                         sh """
                             ./jenkins/scripts/update-gitops.sh \
                                 --build-number "${BUILD_NUMBER}" \
-                                --branch "${env.GIT_BRANCH_NAME}" \
+                                --branch "gitops" \
                                 --username "\${GITOPS_USERNAME}" \
                                 --token "\${GITOPS_TOKEN}"
                         """

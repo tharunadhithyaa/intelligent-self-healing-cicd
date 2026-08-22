@@ -25,7 +25,7 @@ log_error() { echo -e "${RED}[GITOPS]${NC} ❌ $*"; }
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 BUILD_NUMBER="${BUILD_NUMBER:-}"
-GIT_BRANCH="${GIT_BRANCH_NAME:-${BRANCH_NAME:-main}}"
+GIT_BRANCH="${GITOPS_TARGET_BRANCH:-gitops}"
 GITOPS_USERNAME="${GITOPS_USERNAME:-}"
 GITOPS_TOKEN="${GITOPS_TOKEN:-${GITHUB_TOKEN:-${GIT_TOKEN:-}}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -140,35 +140,59 @@ cd "${REPO_ROOT}"
 git config user.name >/dev/null 2>&1 || git config user.name "jenkins-bot"
 git config user.email >/dev/null 2>&1 || git config user.email "jenkins-ci@civicpulse.local"
 
-if git diff --quiet helm/civicpulse/values.yaml argocd/ 2>/dev/null; then
-    log_info "No changes detected in GitOps files. Skipping commit."
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+
+log_info "Synchronizing GitOps update to target branch '${GIT_BRANCH}'..."
+git fetch origin "${GIT_BRANCH}" 2>/dev/null || true
+
+if git rev-parse --verify "origin/${GIT_BRANCH}" >/dev/null 2>&1; then
+    git checkout -B "${GIT_BRANCH}" "origin/${GIT_BRANCH}"
 else
-    # Fetch latest remote changes to avoid non-fast-forward push rejections
-    log_info "Fetching latest remote changes from origin/${GIT_BRANCH}..."
-    git fetch origin "${GIT_BRANCH}" 2>/dev/null || true
+    git checkout -B "${GIT_BRANCH}"
+fi
 
-    log_info "Rebasing uncommitted GitOps values change on origin/${GIT_BRANCH}..."
-    git rebase "origin/${GIT_BRANCH}" 2>/dev/null || true
+# Re-apply the Helm values.yaml tag update for BUILD_NUMBER on the gitops branch
+python3 - "${VALUES_FILE}" "${BUILD_NUMBER}" << 'EOF'
+import sys
+import re
 
-    log_info "Committing values.yaml..."
+values_file = sys.argv[1]
+build_number = sys.argv[2]
+
+with open(values_file, 'r') as f:
+    content = f.read()
+
+updated_content = re.sub(
+    r'(tag:\s*)"[^"]*"',
+    f'tag: "{build_number}"',
+    content
+)
+
+with open(values_file, 'w') as f:
+    f.write(updated_content)
+EOF
+
+if git diff --quiet helm/civicpulse/values.yaml argocd/ 2>/dev/null; then
+    log_info "No changes detected in GitOps files on branch '${GIT_BRANCH}'. Skipping commit."
+    git checkout "${CURRENT_BRANCH}" 2>/dev/null || true
+else
+    log_info "Committing values.yaml to branch '${GIT_BRANCH}'..."
     git add helm/civicpulse/values.yaml argocd/
     git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER} [skip ci]"
-    
+
     COMMIT_SHA=$(git rev-parse HEAD)
-    log_info "Created GitOps commit: ${COMMIT_SHA:0:7} (${COMMIT_SHA})"
-    
+    log_info "Created GitOps commit on branch '${GIT_BRANCH}': ${COMMIT_SHA:0:7} (${COMMIT_SHA})"
+
     log_info "Verifying Git remote configuration..."
     git remote -v
-    
+
     log_info "Authenticating to GitOps repository..."
     log_info "Pushing GitOps change to origin/${GIT_BRANCH}..."
 
-    # Ensure Git never prompts interactively for credentials
     export GIT_TERMINAL_PROMPT=0
 
     PUSH_SUCCESS=0
     if [ -n "${GITOPS_TOKEN}" ]; then
-        # Secure non-interactive authentication via GIT_ASKPASS helper
         ASKPASS_TMP=$(mktemp /tmp/git-askpass-XXXXXX.sh 2>/dev/null || mktemp "${REPO_ROOT}/.git-askpass-XXXXXX.sh")
         cat << ASKPASS_EOF > "${ASKPASS_TMP}"
 #!/usr/bin/env bash
@@ -180,31 +204,29 @@ else
 fi
 ASKPASS_EOF
         chmod 700 "${ASKPASS_TMP}"
-
-        # Clean up temporary askpass script on exit
         trap 'rm -f "${ASKPASS_TMP}" 2>/dev/null || true' EXIT
 
         PUSH_USER="${GITOPS_USERNAME:-x-access-token}"
         AUTH_BASIC=$(echo -n "${PUSH_USER}:${GITOPS_TOKEN}" | base64 | tr -d '\r\n')
 
-        if GIT_ASKPASS="${ASKPASS_TMP}" git -c "http.extraHeader=Authorization: Basic ${AUTH_BASIC}" push origin HEAD:"${GIT_BRANCH}" 2>/dev/null; then
+        if GIT_ASKPASS="${ASKPASS_TMP}" git -c "http.extraHeader=Authorization: Basic ${AUTH_BASIC}" push origin "${GIT_BRANCH}" 2>/dev/null; then
             PUSH_SUCCESS=1
         fi
-        
+
         rm -f "${ASKPASS_TMP}" 2>/dev/null || true
         trap - EXIT
     else
-        # Unauthenticated / SSH push fallback
-        if git push origin HEAD:"${GIT_BRANCH}" 2>/dev/null; then
+        if git push origin "${GIT_BRANCH}" 2>/dev/null; then
             PUSH_SUCCESS=1
         fi
     fi
 
+    git checkout "${CURRENT_BRANCH}" 2>/dev/null || true
+
     if [ ${PUSH_SUCCESS} -eq 1 ]; then
-        log_ok "GitOps changes pushed successfully (commit: ${COMMIT_SHA})"
+        log_ok "GitOps changes pushed successfully to origin/${GIT_BRANCH} (commit: ${COMMIT_SHA})"
     else
-        log_error "ERROR: GitOps update failed"
-        log_info "Check GitHub credentials, repository URL, branch, and authentication method."
+        log_error "ERROR: GitOps update failed for branch '${GIT_BRANCH}'"
         exit 1
     fi
 fi

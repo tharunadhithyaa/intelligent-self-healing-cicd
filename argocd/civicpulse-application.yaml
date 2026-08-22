@@ -12,7 +12,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/tharunadhithyaa/intelligent-self-healing-cicd.git
-    targetRevision: main
+    targetRevision: gitops
     path: helm/civicpulse
     helm:
       valueFiles:
