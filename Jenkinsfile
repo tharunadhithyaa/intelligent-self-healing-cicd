@@ -1111,23 +1111,60 @@ ENVEOF
                     
                     echo '[GITOPS] Starting GitOps update stage...'
 
+                    def gitopsUser = ''
+                    def gitopsPass = ''
+                    def credsLoaded = false
+
+                    // Bind dedicated Jenkins credential 'github-gitops-credentials'
+                    // Primary binding: usernamePassword
                     try {
                         withCredentials([
                             usernamePassword(
                                 credentialsId: 'github-gitops-credentials',
-                                usernameVariable: 'GITOPS_USERNAME',
-                                passwordVariable: 'GITOPS_TOKEN'
+                                usernameVariable: 'GITOPS_USER_TMP',
+                                passwordVariable: 'GITOPS_PASS_TMP'
                             )
                         ]) {
-                            echo '[GITOPS] Authenticated using Jenkins credential ID: github-gitops-credentials'
-                            sh """
-                                ./jenkins/scripts/update-gitops.sh \
-                                    --build-number "${BUILD_NUMBER}" \
-                                    --branch "gitops"
-                            """
+                            gitopsUser = env.GITOPS_USER_TMP
+                            gitopsPass = env.GITOPS_PASS_TMP
+                            credsLoaded = true
+                            echo '[GITOPS] GitHub GitOps credentials loaded successfully'
                         }
-                    } catch (Exception e) {
-                        error("❌ FATAL: GitHub GitOps credential 'github-gitops-credentials' is not configured. Configure it in Jenkins before running the GitOps stage. Details: ${e.message}")
+                    } catch (Exception e1) {
+                        // Fallback binding for ID 'github-gitops-credentials' if configured as secret text (string)
+                        try {
+                            withCredentials([
+                                string(
+                                    credentialsId: 'github-gitops-credentials',
+                                    variable: 'GITOPS_PASS_TMP'
+                                )
+                            ]) {
+                                gitopsUser = 'x-access-token'
+                                gitopsPass = env.GITOPS_PASS_TMP
+                                credsLoaded = true
+                                echo '[GITOPS] GitHub GitOps credentials loaded successfully'
+                            }
+                        } catch (Exception e2) {
+                            // Neither credential type succeeded for credential ID 'github-gitops-credentials'
+                        }
+                    }
+
+                    if (!credsLoaded) {
+                        echo "[GITOPS] ERROR: Jenkins credential 'github-gitops-credentials' is unavailable or has the wrong credential type."
+                        echo "[GITOPS] Configure the credential in Jenkins (Username with Password or Secret Text) before running the GitOps stage."
+                        error("Jenkins credential 'github-gitops-credentials' is not configured.")
+                    }
+
+                    // Execute update-gitops.sh securely with environment-injected credentials (no CLI token parameters)
+                    withEnv([
+                        "GITOPS_USERNAME=${gitopsUser}",
+                        "GITOPS_TOKEN=${gitopsPass}"
+                    ]) {
+                        sh """
+                            ./jenkins/scripts/update-gitops.sh \
+                                --build-number "${BUILD_NUMBER}" \
+                                --branch "gitops"
+                        """
                     }
 
                     // Optional direct Helm fallback if DEPLOY_METHOD is explicitly set to 'helm-direct'

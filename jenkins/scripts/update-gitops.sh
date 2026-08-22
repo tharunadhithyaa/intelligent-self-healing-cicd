@@ -80,7 +80,7 @@ if [ ! -f "${VALUES_FILE}" ]; then
     exit 1
 fi
 
-log_info "Updating Helm image tags to '${BUILD_NUMBER}'"
+log_info "Updating Helm image tags to build '${BUILD_NUMBER}'"
 
 # Update YAML image tags safely via Python heredoc
 python3 - "${VALUES_FILE}" "${BUILD_NUMBER}" << 'EOF'
@@ -109,10 +109,10 @@ EXPECTED_FRONTEND="ghcr.io/tharunadhithyaa/civicpulse-frontend:${BUILD_NUMBER}"
 EXPECTED_MONGODB="ghcr.io/tharunadhithyaa/civicpulse-mongodb:${BUILD_NUMBER}"
 EXPECTED_NGINX="ghcr.io/tharunadhithyaa/civicpulse-nginx:${BUILD_NUMBER}"
 
-log_info "Validating Helm chart"
+log_info "Validating updated Helm chart"
 helm lint "${HELM_DIR}" >/dev/null
 
-log_info "Verifying rendered manifest"
+log_info "Verifying rendered Helm manifest"
 RENDERED=$(helm template civicpulse "${HELM_DIR}" --namespace civicpulse)
 
 # Extract rendered image lines for diagnostics
@@ -184,7 +184,7 @@ if git rev-parse --verify "origin/${GIT_BRANCH}" >/dev/null 2>&1; then
     }
 fi
 
-log_info "Pushing commit to origin/${GIT_BRANCH}"
+log_info "Pushing GitOps commit to origin/${GIT_BRANCH}"
 
 export GIT_TERMINAL_PROMPT=0
 PUSH_SUCCESS=0
