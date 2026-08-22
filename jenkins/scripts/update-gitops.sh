@@ -143,6 +143,13 @@ git config user.email >/dev/null 2>&1 || git config user.email "jenkins-ci@civic
 if git diff --quiet helm/civicpulse/values.yaml argocd/ 2>/dev/null; then
     log_info "No changes detected in GitOps files. Skipping commit."
 else
+    # Fetch latest remote changes to avoid non-fast-forward push rejections
+    log_info "Fetching latest remote changes from origin/${GIT_BRANCH}..."
+    git fetch origin "${GIT_BRANCH}" 2>/dev/null || true
+
+    log_info "Rebasing uncommitted GitOps values change on origin/${GIT_BRANCH}..."
+    git rebase "origin/${GIT_BRANCH}" 2>/dev/null || true
+
     log_info "Committing values.yaml..."
     git add helm/civicpulse/values.yaml argocd/
     git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER} [skip ci]"

@@ -116,7 +116,7 @@ pipeline {
                             doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
                             extensions: (scm.extensions ?: []) + [
                                 [$class: 'PathRestriction', excludedRegions: 'helm/.*\nargocd/.*', includedRegions: ''],
-                                [$class: 'MessageExclusion', excludedMessage: '(?s).*\[(skip ci|ci skip)\].*']
+                                [$class: 'MessageExclusion', excludedMessage: '(?s).*\\[(skip ci|ci skip)\\].*']
                             ],
                             userRemoteConfigs: scm.userRemoteConfigs
                         ])
