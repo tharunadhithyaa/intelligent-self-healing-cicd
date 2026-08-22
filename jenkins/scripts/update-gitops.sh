@@ -145,7 +145,7 @@ if git diff --quiet helm/civicpulse/values.yaml argocd/ 2>/dev/null; then
 else
     log_info "Committing values.yaml..."
     git add helm/civicpulse/values.yaml argocd/
-    git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER}"
+    git commit -m "chore(deploy): update CivicPulse images to build ${BUILD_NUMBER} [skip ci]"
     
     COMMIT_SHA=$(git rev-parse HEAD)
     log_info "Created GitOps commit: ${COMMIT_SHA:0:7} (${COMMIT_SHA})"

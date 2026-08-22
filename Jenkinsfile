@@ -8,6 +8,11 @@
 pipeline {
     agent any
 
+    // ── Pipeline Triggers ────────────────────────────────────────────────────
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
     // ── Pipeline Options ─────────────────────────────────────────────────────
     options {
         timeout(time: 60, unit: 'MINUTES')
@@ -102,8 +107,23 @@ pipeline {
                 // Clean workspace before checkout
                 cleanWs()
 
-                // Checkout from SCM (configured in Jenkins job)
-                checkout scm
+                // Checkout from SCM with polling exclusion filters for GitOps paths & [skip ci]
+                script {
+                    if (scm && scm.userRemoteConfigs) {
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: scm.branches,
+                            doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+                            extensions: (scm.extensions ?: []) + [
+                                [$class: 'PathRestriction', excludedRegions: 'helm/.*\nargocd/.*', includedRegions: ''],
+                                [$class: 'MessageExclusion', excludedMessage: '(?s).*\[(skip ci|ci skip)\].*']
+                            ],
+                            userRemoteConfigs: scm.userRemoteConfigs
+                        ])
+                    } else {
+                        checkout scm
+                    }
+                }
 
                 // Display commit information for traceability
                 script {

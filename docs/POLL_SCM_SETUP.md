@@ -95,7 +95,21 @@ To monitor multiple branches or filter branch builds dynamically:
 - **Cause**: Polling interval set too aggressively (e.g., `* * * * *` every minute).
 - **Fix**: Adjust schedule to `H/5 * * * *` or `H/10 * * * *` to reduce polling frequency.
 
-### 3. Pipeline Triggering Repeatedly Without Code Changes
-- **Cause**: Workspace clean or submodules resetting files during build.
-- **Fix**: Ensure `disableConcurrentBuilds()` is enabled in the [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile) options block.
+### 3. Pipeline Triggering Repeatedly (Infinite Build Loop)
+- **Cause**: Automated GitOps commits (`helm/civicpulse/values.yaml`) pushed back to `origin/main` trigger Poll SCM again.
+- **Fix**: The pipeline implements a dual-layer safeguard:
+  1. **Commit Message Tag**: Automated commits use `chore(deploy): update CivicPulse images to build N [skip ci]`.
+  2. **SCM Polling Path & Message Exclusion**: Stage 1 of [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile) configures `PathRestriction` (`helm/.*`, `argocd/.*`) and `MessageExclusion` (`(?s).*\[(skip ci|ci skip)\].*`).
+
+---
+
+## SCM Polling Configuration & GUI Setup
+
+To configure SCM Polling in Jenkins:
+1. Open Jenkins job settings -> **Build Triggers**.
+2. Check **Poll SCM** with schedule `H/2 * * * *`.
+3. Under **Pipeline -> SCM -> Additional Behaviours**:
+   - Add **Polling ignores commits in certain paths**: Set **Excluded regions** to `helm/.*\nargocd/.*`.
+   - Add **Polling ignores commits with certain messages**: Set **Excluded messages** to `(?s).*\[(skip ci|ci skip)\].*`.
+
 
