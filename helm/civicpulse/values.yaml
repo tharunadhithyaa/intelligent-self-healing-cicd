@@ -1,3 +1,17 @@
+# ============================================================================
+# CivicPulseAI — Helm Values (Base / Template Configuration)
+# ============================================================================
+# NOTE FOR DEVELOPERS:
+# The image `tag:` fields in this file on the `main` branch serve as default /
+# fallback template values. You DO NOT need to manually edit `tag:` on `main`
+# before running a Jenkins build.
+#
+# During pipeline execution, Jenkins automatically generates `${BUILD_NUMBER}`
+# at runtime, builds container images tagged with `${BUILD_NUMBER}`, and updates
+# `helm/civicpulse/values.yaml` directly on the `gitops` branch via `update-gitops.sh`.
+# Argo CD monitors the `gitops` branch and deploys the updated state automatically.
+# ============================================================================
+
 namespace: civicpulse
 createNamespaceResource: false
 

@@ -107,8 +107,14 @@ pipeline {
                 // Clean workspace before checkout
                 cleanWs()
 
-                // Checkout from SCM (main branch)
-                checkout scm
+                // Checkout from SCM (CI branch: main)
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH_NAME ?: 'main'}"]],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: scm.extensions ?: [],
+                    userRemoteConfigs: scm.userRemoteConfigs ?: []
+                ])
 
                 // Display commit information for traceability
                 script {

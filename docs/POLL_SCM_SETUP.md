@@ -75,13 +75,19 @@ Once configured, verify that Jenkins is actively polling your Git repository:
 
 ---
 
-## Branch Filtering & Management
+## Branch Filtering & Isolation Architecture
 
-By default, the pipeline polls the branch configured under **Pipeline → Definition → Branch Specifier** (e.g. `*/main`).
+The pipeline enforces strict separation between CI source code changes and GitOps deployment state changes:
 
-To monitor multiple branches or filter branch builds dynamically:
-- Update **Branch Specifier** in job settings to `*/main` or `*/develop`.
-- Ensure `BRANCH_NAME` parameter in `Jenkinsfile` aligns with the target environment.
+- **CI Branch (`main`)**: Pushed by developers. Monitored strictly by Jenkins **Poll SCM**.
+- **GitOps Branch (`gitops`)**: Pushed automatically by Jenkins upon successful build/test/scan/push. Monitored strictly by **Argo CD**.
+
+### Critical Jenkins UI Setting:
+In Jenkins job settings under **Pipeline → Definition → SCM → Branch Specifier**:
+- **MUST BE SET TO**: `*/main` (or `refs/heads/main`).
+- **DO NOT USE**: `*`, `origin/*`, or `gitops`.
+
+Because Jenkins Poll SCM is restricted to `*/main`, automatic commits pushed to `origin/gitops` by Stage 11 (`update-gitops.sh`) will **never** trigger a new Jenkins build, permanently preventing infinite build loops.
 
 ---
 
@@ -96,10 +102,8 @@ To monitor multiple branches or filter branch builds dynamically:
 - **Fix**: Adjust schedule to `H/5 * * * *` or `H/10 * * * *` to reduce polling frequency.
 
 ### 3. Pipeline Triggering Repeatedly (Infinite Build Loop)
-- **Cause**: Automated GitOps commits (`helm/civicpulse/values.yaml`) pushed back to `origin/main` trigger Poll SCM again.
-- **Fix**: The pipeline implements a dual-layer safeguard:
-  1. **Commit Message Tag**: Automated commits use `chore(deploy): update CivicPulse images to build N [skip ci]`.
-  2. **SCM Polling Path & Message Exclusion**: Stage 1 of [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile) configures `PathRestriction` (`helm/.*`, `argocd/.*`) and `MessageExclusion` (`(?s).*\[(skip ci|ci skip)\].*`).
+- **Cause**: Jenkins Job SCM **Branch Specifier** is set to `*` or wildcard, causing Poll SCM to detect commits on the `gitops` branch.
+- **Fix**: Set **Branch Specifier** to `*/main`. Pushing automated GitOps commits to `gitops` will no longer trigger Jenkins CI.
 
 ---
 
@@ -107,9 +111,10 @@ To monitor multiple branches or filter branch builds dynamically:
 
 To configure SCM Polling in Jenkins:
 1. Open Jenkins job settings -> **Build Triggers**.
-2. Check **Poll SCM** with schedule `H/2 * * * *`.
-3. Under **Pipeline -> SCM -> Additional Behaviours**:
-   - Add **Polling ignores commits in certain paths**: Set **Excluded regions** to `helm/.*\nargocd/.*`.
-   - Add **Polling ignores commits with certain messages**: Set **Excluded messages** to `(?s).*\[(skip ci|ci skip)\].*`.
+2. Check ☑ **Poll SCM** with schedule `H/2 * * * *`.
+3. Under **Pipeline -> SCM**:
+   - Set **Branch Specifier (blank for 'any')**: `*/main`
+   - Set **Script Path**: `Jenkinsfile`
+4. Click **Save**.
 
 

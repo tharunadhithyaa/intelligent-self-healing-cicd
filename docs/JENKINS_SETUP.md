@@ -133,7 +133,7 @@ jenkins-cli install-plugin pipeline-stage-view git docker-workflow \
 - **SCM**: Git
 - **Repository URL**: `https://github.com/YOUR_USERNAME/intelligent-self-healing-cicd.git`
 - **Credentials**: (select your GitHub credentials)
-- **Branch Specifier**: `*/main`
+- **Branch Specifier**: `*/main` *(CRITICAL: Must specify `*/main` strictly to prevent Poll SCM build loops from GitOps commits on `gitops` branch)*
 - **Script Path**: `Jenkinsfile`
 
 5. Click **Save**

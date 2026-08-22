@@ -64,11 +64,16 @@ Automated end-to-end delivery split into 13 distinct execution stages:
 6.  **SonarQube Analysis**: Runs system SonarScanner with dynamic source detection (`backend/src`, `frontend/src`).
 7.  **SonarQube Quality Gate**: Blocks downstream execution if Quality Gate status is not `OK`.
 8.  **Trivy Filesystem Scan**: Scans repository source files for HIGH/CRITICAL vulnerabilities before Docker build.
-9.  **Docker Build**: Generates production-ready, size-optimized container images statically tagged as `v1`.
-10. **Trivy Image Scan**: Scans all 4 application container images (`civicpulse/backend:v1`, `frontend:v1`, `nginx:v1`, `mongodb:v1`) and archives HTML, JSON, and SARIF reports.
-11. **Deployment**: Performs container restarts, cleans up exited instances, and runs network setups.
-12. **Health Verification**: Initiates layered service validations.
-13. **Deployment Report**: Compiles diagnostics statistics and publishes execution reports.
+9.  **Docker Build**: Generates production-ready, size-optimized container images tagged with `${BUILD_NUMBER}`.
+10. **Trivy Image Scan**: Scans all container images and archives vulnerability reports.
+11. **Push Images to GHCR**: Tags and pushes build images (`ghcr.io/tharunadhithyaa/civicpulse-*:tag`) to GitHub Container Registry.
+12. **Update GitOps Repository**: Updates `helm/civicpulse/values.yaml` image tags to `${BUILD_NUMBER}` and pushes strictly to the `gitops` branch for Argo CD.
+13. **Health Verification & Report**: Verifies deployment health and publishes build execution reports.
+
+> **Note on Branch Architecture & Poll SCM**:
+> - **`main` Branch**: Pushed by developers. Monitored strictly by Jenkins Poll SCM (`*/main`).
+> - **`gitops` Branch**: Pushed automatically by Jenkins upon successful build. Monitored strictly by Argo CD.
+> - Restricting Poll SCM strictly to `*/main` isolates CI triggers from CD commits, permanently preventing infinite build loops.
 
 ### 🛡️ 2. Intelligent Self-Healing Deployments
 The deployment engine executes automated self-recovery procedures to eliminate downtime:

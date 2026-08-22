@@ -9,9 +9,9 @@ This guide details the **Argo CD GitOps Continuous Deployment** architecture int
 ```text
 Developer Push
      ↓
-GitHub Repository (intelligent-self-healing-cicd)
+GitHub main branch
      ↓
-Jenkins CI Pipeline
+Jenkins Poll SCM (monitors main branch ONLY)
   ├── Checkout & Validate
   ├── Unit Testing (Backend & Frontend)
   ├── SonarQube & Quality Gate
@@ -19,11 +19,11 @@ Jenkins CI Pipeline
   ├── Docker Build (Tag: ${BUILD_NUMBER})
   ├── Trivy Container Image Scan
   ├── Push Images to GHCR (ghcr.io/tharunadhithyaa/civicpulse-*:tag)
-  └── Update helm/civicpulse/values.yaml & Commit/Push to GitHub
+  └── Update helm/civicpulse/values.yaml & Commit/Push to GitHub (gitops branch)
      ↓
-GitOps Desired State Updated on GitHub (main branch)
+GitOps Desired State Updated on GitHub (gitops branch)
      ↓
-Argo CD Application (argocd/civicpulse-application.yaml)
+Argo CD Application (argocd/civicpulse-application.yaml, targetRevision: gitops)
      ↓
 K3s Cluster (namespace: civicpulse)
   ├── State Sync & Self-Healing
@@ -37,8 +37,8 @@ K3s Cluster (namespace: civicpulse)
 
 ### Responsibility Split
 
-* **Jenkins (CI Engine)**: Source checkout, testing, SonarQube quality gate, Trivy security scanning, Docker image building, pushing to GHCR, updating `helm/civicpulse/values.yaml` with the current `${BUILD_NUMBER}`, and pushing the GitOps commit.
-* **Argo CD (CD Engine)**: Monitors GitHub repository (`helm/civicpulse`), detects desired state changes, renders Helm manifests, synchronizes K3s workloads, enforces self-healing, and reports cluster health.
+* **Jenkins (CI Engine)**: Source checkout from `main`, testing, SonarQube quality gate, Trivy security scanning, Docker image building, pushing to GHCR, updating `helm/civicpulse/values.yaml` with the current `${BUILD_NUMBER}`, and pushing the GitOps commit to the `gitops` branch.
+* **Argo CD (CD Engine)**: Monitors GitHub repository on branch `gitops` (`helm/civicpulse`), detects desired state changes, renders Helm manifests, synchronizes K3s workloads, enforces self-healing, and reports cluster health.
 * **K3s (Runtime Cluster)**: Runs MongoDB, Backend API, Frontend, and Nginx reverse proxy in the `civicpulse` namespace.
 
 ---
