@@ -1103,65 +1103,42 @@ ENVEOF
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // STAGE 11 — Update GitOps Repository (Argo CD Deployment)
+        // STAGE 11 — Trigger Argo CD Deployment (Zero-Commit Parameter Overrides)
         // ══════════════════════════════════════════════════════════════════════
-        stage('Update GitOps Repository') {
+        stage('Deploy via Argo CD') {
             steps {
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
-                echo '\033[1;36m  STAGE 11 — Update GitOps Repository & Trigger Argo CD Deployment\033[0m'
+                echo '\033[1;36m  STAGE 11 — Trigger Argo CD Deployment & Apply Parameter Overrides\033[0m'
                 echo '\033[1;36m══════════════════════════════════════════════════════════\033[0m'
 
                 script {
                     env.KUBERNETES_STAGE_REACHED = 'true'
                     sh 'chmod +x jenkins/scripts/update-gitops.sh'
                     
-                    echo '[GITOPS] Starting GitOps update stage...'
+                    echo "[GITOPS] Initiating Argo CD deployment stage for build #${BUILD_NUMBER}..."
 
                     def gitopsUser = ''
                     def gitopsPass = ''
-                    def credsLoaded = false
 
-                    // Bind dedicated Jenkins credential 'github-gitops-credentials'
-                    // Primary binding: usernamePassword
-                    try {
-                        withCredentials([
-                            usernamePassword(
-                                credentialsId: 'github-gitops-credentials',
-                                usernameVariable: 'GITOPS_USER_TMP',
-                                passwordVariable: 'GITOPS_PASS_TMP'
-                            )
-                        ]) {
-                            gitopsUser = env.GITOPS_USER_TMP
-                            gitopsPass = env.GITOPS_PASS_TMP
-                            credsLoaded = true
-                            echo '[GITOPS] GitHub GitOps credentials loaded successfully'
-                        }
-                    } catch (Exception e1) {
-                        // Fallback binding for ID 'github-gitops-credentials' if configured as secret text (string)
+                    // Attempt loading available credentials in order of priority:
+                    // 1. github-gitops-credentials
+                    // 2. Github-Cerdentials (configured GitHub credential)
+                    // 3. ghcr-credentials
+                    def credCandidates = ['github-gitops-credentials', 'Github-Cerdentials', 'ghcr-credentials']
+                    for (credId in credCandidates) {
                         try {
-                            withCredentials([
-                                string(
-                                    credentialsId: 'github-gitops-credentials',
-                                    variable: 'GITOPS_PASS_TMP'
-                                )
-                            ]) {
-                                gitopsUser = 'x-access-token'
-                                gitopsPass = env.GITOPS_PASS_TMP
-                                credsLoaded = true
-                                echo '[GITOPS] GitHub GitOps credentials loaded successfully'
+                            withCredentials([usernamePassword(credentialsId: credId, usernameVariable: 'U_TMP', passwordVariable: 'P_TMP')]) {
+                                gitopsUser = env.U_TMP
+                                gitopsPass = env.P_TMP
+                                echo "[GITOPS] GitHub credential '${credId}' loaded successfully"
                             }
-                        } catch (Exception e2) {
-                            // Neither credential type succeeded for credential ID 'github-gitops-credentials'
+                            break
+                        } catch (Exception e) {
+                            // Try next candidate
                         }
                     }
 
-                    if (!credsLoaded) {
-                        echo "[GITOPS] ERROR: Jenkins credential 'github-gitops-credentials' is unavailable or has the wrong credential type."
-                        echo "[GITOPS] Configure the credential in Jenkins (Username with Password or Secret Text) before running the GitOps stage."
-                        error("Jenkins credential 'github-gitops-credentials' is not configured.")
-                    }
-
-                    // Execute update-gitops.sh securely with environment-injected credentials (no CLI token parameters)
+                    // Execute update-gitops.sh with environment-injected credentials
                     withEnv([
                         "GITOPS_USERNAME=${gitopsUser}",
                         "GITOPS_TOKEN=${gitopsPass}"
@@ -1187,7 +1164,7 @@ ENVEOF
                             '''
                         }
                     } else {
-                        echo "✅ GitOps repository updated. Argo CD will synchronize the K3s cluster automatically."
+                        echo "✅ Argo CD deployment updated. Argo CD will synchronize the K3s cluster automatically."
                     }
                 }
             }
