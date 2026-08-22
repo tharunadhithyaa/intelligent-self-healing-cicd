@@ -1117,38 +1117,10 @@ ENVEOF
                     
                     echo "[GITOPS] Initiating Argo CD deployment stage for build #${BUILD_NUMBER}..."
 
-                    def gitopsUser = ''
-                    def gitopsPass = ''
-
-                    // Attempt loading available credentials in order of priority:
-                    // 1. github-gitops-credentials
-                    // 2. Github-Cerdentials (configured GitHub credential)
-                    // 3. ghcr-credentials
-                    def credCandidates = ['github-gitops-credentials', 'Github-Cerdentials', 'ghcr-credentials']
-                    for (credId in credCandidates) {
-                        try {
-                            withCredentials([usernamePassword(credentialsId: credId, usernameVariable: 'U_TMP', passwordVariable: 'P_TMP')]) {
-                                gitopsUser = env.U_TMP
-                                gitopsPass = env.P_TMP
-                                echo "[GITOPS] GitHub credential '${credId}' loaded successfully"
-                            }
-                            break
-                        } catch (Exception e) {
-                            // Try next candidate
-                        }
-                    }
-
-                    // Execute update-gitops.sh with environment-injected credentials
-                    withEnv([
-                        "GITOPS_USERNAME=${gitopsUser}",
-                        "GITOPS_TOKEN=${gitopsPass}"
-                    ]) {
-                        sh """
-                            ./jenkins/scripts/update-gitops.sh \
-                                --build-number "${BUILD_NUMBER}" \
-                                --branch "gitops"
-                        """
-                    }
+                    sh """
+                        ./jenkins/scripts/update-gitops.sh \
+                            --build-number "${BUILD_NUMBER}"
+                    """
 
                     // Optional direct Helm fallback if DEPLOY_METHOD is explicitly set to 'helm-direct'
                     if (env.DEPLOY_METHOD == 'helm-direct') {
