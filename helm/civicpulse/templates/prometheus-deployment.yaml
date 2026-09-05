@@ -1,0 +1,398 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheus.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: civicpulse-prometheus-config
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      scrape_timeout: 10s
+
+    rule_files:
+      - /etc/prometheus/alert_rules.yml
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ['civicpulse-alertmanager:9093']
+
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      - job_name: 'civicpulse-backend'
+        metrics_path: '/metrics'
+        scrape_interval: 10s
+        static_configs:
+          - targets: ['civicpulse-backend:3000']
+
+      - job_name: 'civicpulse-ml-decision-controller'
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+        static_configs:
+          - targets: ['civicpulse-ml-decision-controller:5000']
+
+      - job_name: 'kubernetes-cadvisor'
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [ {{ .Values.namespace | default .Release.Namespace | quote }} ]
+
+  alert_rules.yml: |
+    groups:
+      - name: civicpulse_alerts
+        rules:
+          - alert: PodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total[5m]) * 60 > 2
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod {{ "{{" }} $labels.pod {{ "}}" }} is in a restart loop"
+              description: "Pod {{ "{{" }} $labels.pod {{ "}}" }} has restarted more than 2 times in 5 minutes."
+
+          - alert: BackendHealthFailing
+            expr: up{job="civicpulse-backend"} == 0
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Backend API /api/health endpoint failing"
+              description: "CivicPulse backend service health probe failed."
+
+          - alert: HighCpuUsage
+            expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage on pod {{ "{{" }} $labels.pod {{ "}}" }}"
+              description: "Container CPU usage has exceeded 80% for 2 minutes."
+
+          - alert: HighMemoryUsage
+            expr: container_memory_working_set_bytes > 419430400
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High Memory usage on container {{ "{{" }} $labels.container {{ "}}" }}"
+              description: "Container memory footprint exceeded 400MB."
+
+          - alert: MongoDBDown
+            expr: up{job="civicpulse-mongodb"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "MongoDB Database Instance Down"
+              description: "StatefulSet civicpulse-mongodb target unreachable."
+
+          - alert: DiskPressureWarning
+            expr: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Storage PVC volume {{ "{{" }} $labels.persistentvolumeclaim {{ "}}" }} almost full"
+              description: "Volume usage exceeded 85% capacity."
+
+          - alert: PrometheusCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-prometheus.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: prometheus
+            annotations:
+              summary: "Prometheus Deployment is crash looping"
+              description: "Prometheus container restarted repeatedly."
+
+          - alert: AlertmanagerDown
+            expr: up{job="civicpulse-alertmanager"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: alertmanager
+            annotations:
+              summary: "Alertmanager service down"
+              description: "Alertmanager health probe unreachable."
+
+          - alert: GrafanaUnhealthy
+            expr: up{job="civicpulse-grafana"} == 0
+            for: 1m
+            labels:
+              severity: warning
+              component: grafana
+            annotations:
+              summary: "Grafana visualization service unhealthy"
+              description: "Grafana pod health check failed."
+
+          - alert: NginxUnhealthy
+            expr: up{job="civicpulse-nginx"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: nginx
+            annotations:
+              summary: "Nginx ingress proxy service down"
+              description: "Nginx reverse proxy health probe failed."
+
+          - alert: FrontendUnhealthy
+            expr: up{job="civicpulse-frontend"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: frontend
+            annotations:
+              summary: "Frontend Angular web server service down"
+              description: "Frontend web server health check failed."
+
+          - alert: MLControllerUnhealthy
+            expr: up{job="civicpulse-ml-decision-controller"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: ml-decision-controller
+            annotations:
+              summary: "ML Decision Controller service down"
+              description: "Self-healing ML Decision Controller health probe failed."
+
+          - alert: OOMKilled
+            expr: kube_pod_container_status_terminated_reason{reason="OOMKilled"} > 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Container OOMKilled on pod {{ "{{" }} $labels.pod {{ "}}" }}"
+              description: "Container exceeded RAM memory limits and was terminated by kernel OOM killer."
+
+          - alert: ImagePullBackOff
+            expr: kube_pod_container_status_waiting_reason{reason=~"ImagePullBackOff|ErrImagePull|InvalidImageName"} > 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Image pull failed on pod {{ "{{" }} $labels.pod {{ "}}" }}"
+              description: "Container image download failed or bad tag specified."
+
+          - alert: ErrImagePull
+            expr: kube_pod_container_status_waiting_reason{reason="ErrImagePull"} > 0
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "ErrImagePull on pod {{ "{{" }} $labels.pod {{ "}}" }}"
+              description: "Container image failed to pull from registry."
+
+          - alert: BackendCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-backend.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: backend
+            annotations:
+              summary: "Backend workload is crash looping"
+              description: "Backend container restarted repeatedly."
+
+          - alert: FrontendCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-frontend.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: frontend
+            annotations:
+              summary: "Frontend workload is crash looping"
+              description: "Frontend container restarted repeatedly."
+
+          - alert: NginxCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-nginx.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: nginx
+            annotations:
+              summary: "Nginx ingress proxy is crash looping"
+              description: "Nginx container restarted repeatedly."
+
+          - alert: MongoDBCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-mongodb.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: mongodb
+            annotations:
+              summary: "MongoDB database statefulset is crash looping"
+              description: "MongoDB container restarted repeatedly."
+
+          - alert: AlertmanagerCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-alertmanager.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: alertmanager
+            annotations:
+              summary: "Alertmanager deployment is crash looping"
+              description: "Alertmanager container restarted repeatedly."
+
+          - alert: GrafanaCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-grafana.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: grafana
+            annotations:
+              summary: "Grafana deployment is crash looping"
+              description: "Grafana container restarted repeatedly."
+
+          - alert: MLControllerCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{pod=~"civicpulse-ml-decision-controller.*"}[5m]) * 60 > 1
+            for: 1m
+            labels:
+              severity: critical
+              component: ml-decision-controller
+            annotations:
+              summary: "ML Decision Controller deployment is crash looping"
+              description: "ML Decision Controller container restarted repeatedly."
+
+          - alert: NodeDiskPressure
+            expr: kube_node_status_condition{condition="DiskPressure",status="true"} > 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Kubernetes Node experiencing disk pressure"
+              description: "Node disk space critically low."
+
+          - alert: ReadinessProbeFlapping
+            expr: changes(kube_pod_status_ready{condition="true"}[15m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Readiness probe flapping on pod {{ "{{" }} $labels.pod {{ "}}" }}"
+              description: "Pod readiness state changed frequently over last 15m."
+
+          - alert: ConfigMapSecretFailure
+            expr: kube_pod_container_status_waiting_reason{reason=~"CreateContainerConfigError|CreateContainerError"} > 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "ConfigMap or Secret missing for pod {{ "{{" }} $labels.pod {{ "}}" }}"
+              description: "Container creation failed due to missing volume configuration."
+---
+{{- if .Values.monitoring.prometheus.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.prometheus.persistence.size | default "1Gi" }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: civicpulse-prometheus
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+    app.kubernetes.io/part-of: civicpulse-monitoring
+spec:
+  replicas: {{ .Values.monitoring.prometheus.replicaCount | default 1 }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "civicpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: prometheus
+  template:
+    metadata:
+      labels:
+        {{- include "civicpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: prometheus
+        app.kubernetes.io/part-of: civicpulse-monitoring
+    spec:
+      serviceAccountName: civicpulse-prometheus
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: prometheus
+          image: "{{ .Values.monitoring.prometheus.image.repository }}:{{ .Values.monitoring.prometheus.image.tag }}"
+          imagePullPolicy: {{ .Values.monitoring.prometheus.image.pullPolicy }}
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time={{ .Values.monitoring.prometheus.retention | default "15d" }}"
+            - "--web.enable-lifecycle"
+          ports:
+            - containerPort: 9090
+              name: http
+          resources:
+            {{- toYaml .Values.monitoring.prometheus.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: storage
+              mountPath: /prometheus
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: civicpulse-prometheus-config
+        - name: storage
+          {{- if .Values.monitoring.prometheus.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: prometheus-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- end }}

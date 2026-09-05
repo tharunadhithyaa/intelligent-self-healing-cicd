@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: civicpulse-mongodb
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  serviceName: civicpulse-mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "civicpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mongodb
+  template:
+    metadata:
+      labels:
+        {{- include "civicpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: mongodb
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: mongodb
+          image: '{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag | default "latest" }}'
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.mongodb.port }}
+              name: mongodb
+          env:
+            - name: MONGO_INITDB_DATABASE
+              value: {{ .Values.mongodb.database | quote }}
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+          resources:
+            {{- toYaml .Values.mongodb.resources | nindent 12 }}
+          startupProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand({ping: 1})"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand({ping: 1})"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand({ping: 1})"
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 3
+  {{- if .Values.mongodb.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+      spec:
+        accessModes:
+          - {{ .Values.mongodb.persistence.accessMode }}
+        {{- if .Values.mongodb.persistence.storageClass }}
+        storageClassName: {{ .Values.mongodb.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mongodb.persistence.size }}
+  {{- else }}
+      volumes:
+        - name: mongodb-data
+          emptyDir: {}
+  {{- end }}

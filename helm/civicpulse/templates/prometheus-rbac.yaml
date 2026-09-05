@@ -1,0 +1,46 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheus.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: civicpulse-prometheus
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: civicpulse-prometheus-clusterrole
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: civicpulse-prometheus-clusterrolebinding
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: civicpulse-prometheus-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: civicpulse-prometheus
+    namespace: {{ .Values.namespace | default .Release.Namespace }}
+{{- end }}

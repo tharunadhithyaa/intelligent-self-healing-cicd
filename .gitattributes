@@ -1,0 +1,10 @@
+# ==============================================================================
+# CivicPulse AI - Git Attributes (Line Ending Normalization)
+# ==============================================================================
+
+# Explicitly normalize shell scripts, env configs, and templates to LF
+*.sh text eol=lf
+*.env text eol=lf
+*.tpl text eol=lf
+Dockerfile* text eol=lf
+Jenkinsfile text eol=lf

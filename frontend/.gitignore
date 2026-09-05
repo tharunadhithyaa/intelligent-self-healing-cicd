@@ -1,0 +1,47 @@
+# Frontend .gitignore - Extends root .gitignore
+
+# Compiled output
+/dist/
+/tmp/
+/out-tsc/
+/bazel-out/
+/.angular/
+
+# Dependencies
+/node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.*
+.env.local
+!.env.example
+
+# Testing & Code Coverage
+/coverage/
+*.lcov
+.scannerwork/
+.sonar/
+.vitest_cache/
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# Miscellaneous
+.sass-cache/
+/connect.lock
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__
+
+# System files
+.DS_Store
+Thumbs.db

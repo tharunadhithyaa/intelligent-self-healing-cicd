@@ -1,0 +1,21 @@
+{{- if and .Values.mlDecisionController (default true .Values.mlDecisionController.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: civicpulse-ml-decision-controller
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ml-decision-controller
+    app.kubernetes.io/part-of: civicpulse-self-healing
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.mlDecisionController.service.port | default 5000 }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "civicpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ml-decision-controller
+{{- end }}

@@ -1,0 +1,26 @@
+# Backend .gitignore
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Code coverage reports & SonarQube
+coverage/
+*.lcov
+.scannerwork/
+.sonar/
+.c8_output/
+.vitest_cache/
+
+# Environment variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Logs & Temporary Uploads
+logs/
+*.log
+uploads/

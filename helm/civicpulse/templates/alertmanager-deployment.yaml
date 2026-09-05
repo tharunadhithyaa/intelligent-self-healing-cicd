@@ -1,0 +1,95 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.alertmanager.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: civicpulse-alertmanager-config
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+
+    route:
+      group_by: ['alertname', 'namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'ml-decision-controller-webhook'
+
+    receivers:
+      - name: 'ml-decision-controller-webhook'
+        webhook_configs:
+          - url: {{ .Values.monitoring.alertmanager.mlDecisionController.webhookUrl | default "http://civicpulse-ml-decision-controller:5000/api/v1/alerts" | quote }}
+            send_resolved: true
+            http_config:
+              follow_redirects: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: civicpulse-alertmanager
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+    app.kubernetes.io/part-of: civicpulse-monitoring
+spec:
+  replicas: {{ .Values.monitoring.alertmanager.replicaCount | default 1 }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "civicpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: alertmanager
+  template:
+    metadata:
+      labels:
+        {{- include "civicpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: alertmanager
+        app.kubernetes.io/part-of: civicpulse-monitoring
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: alertmanager
+          image: "{{ .Values.monitoring.alertmanager.image.repository }}:{{ .Values.monitoring.alertmanager.image.tag }}"
+          imagePullPolicy: {{ .Values.monitoring.alertmanager.image.pullPolicy }}
+          args:
+            - "--config.file=/etc/alertmanager/alertmanager.yml"
+            - "--storage.path=/alertmanager"
+          ports:
+            - containerPort: 9093
+              name: http
+          resources:
+            {{- toYaml .Values.monitoring.alertmanager.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+            - name: storage
+              mountPath: /alertmanager
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9093
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9093
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 3
+      volumes:
+        - name: config
+          configMap:
+            name: civicpulse-alertmanager-config
+        - name: storage
+          emptyDir: {}
+{{- end }}

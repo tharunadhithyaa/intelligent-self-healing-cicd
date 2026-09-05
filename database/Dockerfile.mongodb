@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+# Builder stage to compile gosu with an updated Go toolchain (resolves Go stdlib CVEs)
+FROM golang:1.26-alpine AS gosu-builder
+
+ENV CGO_ENABLED=0
+
+RUN --mount=type=cache,target=/root/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    apk update && apk upgrade --no-cache && \
+    apk add --no-cache git && \
+    git clone https://github.com/tianon/gosu.git /go/src/github.com/tianon/gosu && \
+    cd /go/src/github.com/tianon/gosu && \
+    go get -u golang.org/x/sys golang.org/x/net && \
+    go build -ldflags '-d -s -w' -o /go/bin/gosu .
+
+FROM mongo:8.0
+
+# Replace base image gosu binary with patched version
+COPY --from=gosu-builder /go/bin/gosu /usr/local/bin/gosu
+RUN chmod +x /usr/local/bin/gosu
+
+# Add initialization scripts
+COPY mongo-init.js /docker-entrypoint-initdb.d/
+
+# Add basic health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD mongosh --quiet --eval "db.adminCommand({ping: 1})" || exit 1

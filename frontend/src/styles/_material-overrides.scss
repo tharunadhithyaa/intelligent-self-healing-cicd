@@ -1,0 +1,161 @@
+// ══════════════════════════════════════════
+// CivicPulse – Angular Material Overrides
+// ══════════════════════════════════════════
+
+@use 'variables' as *;
+
+// ─── Material Form Fields ───
+.mat-mdc-form-field {
+  width: 100%;
+
+  // Enforce consistent text visibility across themes
+  --mdc-filled-text-field-input-text-color: var(--text-primary);
+  --mdc-outlined-text-field-input-text-color: var(--text-primary);
+  --mdc-filled-text-field-caret-color: var(--primary);
+  --mdc-outlined-text-field-caret-color: var(--primary);
+
+  .mdc-text-field--outlined {
+    --mdc-outlined-text-field-container-shape: #{$radius-md};
+  }
+
+  .mat-mdc-form-field-subscript-wrapper {
+    margin-top: 2px;
+  }
+}
+
+// ─── Material Buttons ───
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-outlined-button {
+  border-radius: $radius-md !important;
+  font-weight: $font-weight-semibold !important;
+  letter-spacing: 0.01em;
+  text-transform: none !important;
+}
+
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-flat-button.mat-primary {
+  --mdc-filled-button-container-color: #{$primary};
+  --mdc-filled-button-label-text-color: #{$text-inverse};
+
+  &:hover {
+    --mdc-filled-button-container-color: #{$primary-hover};
+  }
+}
+
+// ─── Material Cards ───
+.mat-mdc-card {
+  --mdc-elevated-card-container-shape: #{$radius-lg};
+  --mdc-elevated-card-container-color: #{$surface};
+  box-shadow: $shadow-card !important;
+  border: 1px solid $border-light;
+}
+
+// ─── Material Toolbar ───
+.mat-toolbar {
+  --mat-toolbar-container-background-color: #{$surface};
+  --mat-toolbar-container-text-color: #{$text-primary};
+}
+
+// ─── Material Sidenav ───
+.mat-sidenav {
+  --mat-sidenav-container-background-color: #{$surface};
+  border-right: 1px solid $border !important;
+}
+
+// ─── Material Snackbar ───
+.mat-mdc-snack-bar-container {
+  &.snackbar-success {
+    --mdc-snackbar-container-color: #{$success};
+    --mdc-snackbar-supporting-text-color: #{$text-inverse};
+  }
+
+  &.snackbar-error {
+    --mdc-snackbar-container-color: #{$danger};
+    --mdc-snackbar-supporting-text-color: #{$text-inverse};
+  }
+
+  &.snackbar-warning {
+    --mdc-snackbar-container-color: #{$warning};
+    --mdc-snackbar-supporting-text-color: #{$text-primary};
+  }
+
+  &.snackbar-info {
+    --mdc-snackbar-container-color: #{$info};
+    --mdc-snackbar-supporting-text-color: #{$text-inverse};
+  }
+}
+
+// ─── Material Dialog ───
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-shape: #{$radius-xl};
+}
+
+// ─── Material Menu ───
+.mat-mdc-menu-panel {
+  border-radius: $radius-lg !important;
+  box-shadow: $shadow-lg !important;
+  border: 1px solid $border-light;
+}
+
+// ─── Material Tooltip ───
+.mat-mdc-tooltip {
+  --mdc-plain-tooltip-container-shape: #{$radius-sm};
+}
+
+// ─── Material Table ───
+.mat-mdc-table {
+  --mat-table-background-color: #{$surface};
+  border-radius: $radius-lg;
+  overflow: hidden;
+
+  .mat-mdc-header-row {
+    background-color: $background;
+  }
+
+  .mat-mdc-row {
+    &:hover {
+      background-color: $hover;
+    }
+  }
+}
+
+// ─── Material Checkbox ───
+.mat-mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: #{$text-inverse};
+  --mdc-checkbox-selected-icon-color: #{$primary};
+  --mdc-checkbox-selected-hover-icon-color: #{$primary-hover};
+  --mdc-checkbox-selected-focus-icon-color: #{$primary};
+}
+
+// ─── Material Radio ───
+.mat-mdc-radio-button {
+  --mdc-radio-selected-icon-color: #{$primary};
+  --mdc-radio-selected-hover-icon-color: #{$primary-hover};
+}
+
+// ─── Material Slide Toggle ───
+.mat-mdc-slide-toggle {
+  --mdc-switch-selected-track-color: #{$primary};
+  --mdc-switch-selected-handle-color: #{$text-inverse};
+  --mdc-switch-selected-hover-track-color: #{$primary-hover};
+}
+
+// ─── Material Progress ───
+.mat-mdc-progress-bar {
+  --mdc-linear-progress-active-indicator-color: #{$primary};
+}
+
+.mat-mdc-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: #{$primary};
+}
+
+// ─── Material Tab ───
+.mat-mdc-tab-group {
+  --mat-tab-header-active-label-text-color: #{$primary};
+  --mat-tab-header-active-ripple-color: #{$primary};
+  --mat-tab-header-active-focus-label-text-color: #{$primary};
+  --mat-tab-header-active-hover-label-text-color: #{$primary-hover};
+  --mdc-tab-indicator-active-indicator-color: #{$primary};
+}

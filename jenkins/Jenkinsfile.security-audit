@@ -1,0 +1,57 @@
+// ============================================================================
+// CivicPulseAI — Dedicated Security Audit Jenkins Pipeline
+// ============================================================================
+// Runs independently on a daily schedule to audit backend & frontend packages
+// ============================================================================
+
+pipeline {
+    agent any
+
+    triggers {
+        // Run daily at 02:00 AM UTC
+        cron('0 2 * * *')
+    }
+
+    options {
+        timeout(time: 15, unit: 'MINUTES')
+        timestamps()
+        ansiColor('xterm')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                cleanWs()
+                checkout scm
+            }
+        }
+
+        stage('Audit Backend') {
+            steps {
+                dir('backend') {
+                    echo '🔍 Auditing backend dependencies for HIGH/CRITICAL vulnerabilities...'
+                    sh 'npm audit --audit-level=high'
+                }
+            }
+        }
+
+        stage('Audit Frontend') {
+            steps {
+                dir('frontend') {
+                    echo '🔍 Auditing frontend dependencies for HIGH/CRITICAL vulnerabilities...'
+                    sh 'npm audit --audit-level=high'
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo '⚠️ Security Audit Failed! High/Critical vulnerabilities found.'
+        }
+        success {
+            echo '✅ Security Audit Passed cleanly.'
+        }
+    }
+}

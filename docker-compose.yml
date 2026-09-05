@@ -1,0 +1,150 @@
+services:
+  mongodb:
+    build:
+      context: ./database
+      dockerfile: Dockerfile.mongodb
+    image: civicpulse/mongodb:${IMAGE_TAG:-build}
+    container_name: civicpulse-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - civicpulse-network
+    env_file:
+      - ./backend/.env
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping')\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    image: civicpulse/backend:${IMAGE_TAG:-build}
+    container_name: civicpulse-backend
+    restart: unless-stopped
+    ports:
+      - "8000:3000"
+    volumes:
+      - backend-logs:/app/logs
+    env_file:
+      - ./backend/.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      civicpulse-network:
+        aliases:
+          - civicpulse-backend
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    image: civicpulse/frontend:${IMAGE_TAG:-build}
+    container_name: civicpulse-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - civicpulse-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.nginx
+    image: civicpulse/nginx:${IMAGE_TAG:-build}
+    container_name: civicpulse-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - civicpulse-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  ml-decision-controller:
+    build:
+      context: ./ml-decision-controller
+      dockerfile: Dockerfile
+    image: civicpulse/ml-decision-controller:${IMAGE_TAG:-build}
+    container_name: civicpulse-ml-decision-controller
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    networks:
+      civicpulse-network:
+        aliases:
+          - civicpulse-ml-decision-controller
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - civicpulse-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9000/api/system/status | grep -q UP || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mongodb-data:
+  backend-logs:
+  nginx-cache:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+
+networks:
+  civicpulse-network:
+    driver: bridge

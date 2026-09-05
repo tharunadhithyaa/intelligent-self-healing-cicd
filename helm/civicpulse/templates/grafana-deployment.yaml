@@ -1,0 +1,126 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.grafana.enabled }}
+{{- if .Values.monitoring.grafana.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+    app.kubernetes.io/part-of: civicpulse-monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.grafana.persistence.size | default "1Gi" }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: civicpulse-grafana
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+    app.kubernetes.io/part-of: civicpulse-monitoring
+spec:
+  replicas: {{ .Values.monitoring.grafana.replicaCount | default 1 }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "civicpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: grafana
+  template:
+    metadata:
+      labels:
+        {{- include "civicpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/part-of: civicpulse-monitoring
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsUser: 472
+        fsGroup: 472
+        runAsNonRoot: true
+      containers:
+        - name: grafana
+          image: "{{ .Values.monitoring.grafana.image.repository }}:{{ .Values.monitoring.grafana.image.tag }}"
+          imagePullPolicy: {{ .Values.monitoring.grafana.image.pullPolicy }}
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: civicpulse-grafana-secret
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: civicpulse-grafana-secret
+                  key: admin-password
+            - name: GF_SERVER_ROOT_URL
+              value: "http://172.17.184.54:30080/grafana/"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            {{- toYaml .Values.monitoring.grafana.resources | nindent 12 }}
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/grafana
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboard-providers
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 18
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: storage
+          {{- if .Values.monitoring.grafana.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: grafana-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: datasources
+          configMap:
+            name: civicpulse-grafana-datasources
+        - name: dashboard-providers
+          configMap:
+            name: civicpulse-grafana-dashboards-providers
+        - name: dashboards
+          configMap:
+            name: civicpulse-grafana-dashboards
+{{- end }}

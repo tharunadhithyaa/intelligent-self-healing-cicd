@@ -1,0 +1,195 @@
+# ============================================================================
+# CivicPulseAI — Helm Values (Base / Template Configuration)
+# ============================================================================
+# NOTE FOR DEVELOPERS:
+# The image `tag:` fields in this file on the `main` branch serve as default /
+# fallback template values. You DO NOT need to manually edit `tag:` on `main`
+# before running a Jenkins build.
+#
+# During pipeline execution, Jenkins automatically generates `${BUILD_NUMBER}`
+# at runtime, builds container images tagged with `${BUILD_NUMBER}`, and updates
+# `helm/civicpulse/values.yaml` directly on the `gitops` branch via `update-gitops.sh`.
+# Argo CD monitors the `gitops` branch and deploys the updated state automatically.
+# ============================================================================
+
+namespace: civicpulse
+createNamespaceResource: false
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+frontend:
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-frontend
+    tag: "447"
+    pullPolicy: Always
+  replicaCount: 1
+  port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+backend:
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-backend
+    tag: "447"
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  port: 3000
+  env:
+    nodeEnv: production
+    corsOrigin: "http://localhost:4200"
+    logLevel: info
+    jwtAccessExpiry: 15m
+    jwtRefreshExpiry: 7d
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+mongodb:
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-mongodb
+    tag: "latest"
+    pullPolicy: Always
+  port: 27017
+  database: civicpulse
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+nginx:
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-nginx
+    tag: "latest"
+    pullPolicy: Always
+  replicaCount: 1
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+secret:
+  create: true
+  existingSecret: civicpulse-secret
+  jwtAccessSecret: "civicpulse-ci-access-secret"
+  jwtRefreshSecret: "civicpulse-ci-refresh-secret"
+  defaultPassword: "CivicPulse@2026"
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: civicpulse.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ============================================================================
+# CivicPulseAI — Monitoring & Observability Stack (Prometheus + Grafana + Alertmanager)
+# ============================================================================
+monitoring:
+  enabled: true
+
+  prometheus:
+    enabled: true
+    image:
+      repository: prom/prometheus
+      tag: "v2.52.0"
+      pullPolicy: IfNotPresent
+    replicaCount: 1
+    port: 9090
+    retention: "15d"
+    persistence:
+      enabled: true
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+  grafana:
+    enabled: true
+    image:
+      repository: grafana/grafana
+      tag: "10.4.0"
+      pullPolicy: IfNotPresent
+    replicaCount: 1
+    port: 3000
+    subpath: "/grafana/"
+    adminPassword: "CivicPulse@Grafana2026"
+    persistence:
+      enabled: true
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  alertmanager:
+    enabled: true
+    image:
+      repository: prom/alertmanager
+      tag: "v0.27.0"
+      pullPolicy: IfNotPresent
+    replicaCount: 1
+    port: 9093
+    resources:
+      requests:
+        cpu: 30m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 64Mi
+    mlDecisionController:
+      webhookUrl: "http://civicpulse-ml-decision-controller:5000/api/v1/alerts"
+
+mlDecisionController:
+  enabled: true
+  image:
+    repository: ghcr.io/tharunadhithyaa/civicpulse-ml-decision-controller
+    tag: "latest"
+    pullPolicy: Always
+  replicas: 1
+  service:
+    port: 5000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+

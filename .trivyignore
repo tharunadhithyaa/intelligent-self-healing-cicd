@@ -1,0 +1,80 @@
+# ============================================================================
+# Trivy Security Scanner Ignore Rules
+# ============================================================================
+# Upstream Base Image Vulnerabilities (Official mongo:8.0 Image)
+# These CVEs originate exclusively from pre-compiled vendor binaries (usr/bin/mongo*, gosu, /opt/js-yaml)
+# bundled in the official MongoDB distribution and cannot be updated without upstream vendor releases.
+# ============================================================================
+
+# Go Standard Library & Dependencies in Official mongo* Tools & gosu Binaries
+CVE-2025-61726
+CVE-2025-61729
+CVE-2025-68121
+CVE-2026-25679
+CVE-2026-25681
+CVE-2026-27136
+CVE-2026-27145
+CVE-2026-32280
+CVE-2026-32281
+CVE-2026-32283
+CVE-2026-33811
+CVE-2026-33814
+CVE-2026-39820
+CVE-2026-39821
+CVE-2026-39822
+CVE-2026-39828
+CVE-2026-39829
+CVE-2026-39830
+CVE-2026-39831
+CVE-2026-39832
+CVE-2026-39835
+CVE-2026-39836
+CVE-2026-42499
+CVE-2026-42504
+CVE-2026-42508
+CVE-2026-46595
+CVE-2026-46597
+CVE-2026-56852
+CVE-2026-46600
+CVE-2026-33818
+CVE-2026-56853
+CVE-2026-56858
+CVE-2026-56859
+CVE-2026-56860
+CVE-2026-56862
+
+# Upstream js-yaml in Official MongoDB Entrypoint (/opt/js-yaml)
+# - Inherited from official mongo:8.0 Docker base image
+# - Vulnerable package: /opt/js-yaml/package.json (js-yaml 3.13.1)
+# - Not installed by application or custom MongoDB Dockerfile
+# - Ignored only until official MongoDB image is updated upstream
+CVE-2026-59869
+GHSA-5p4m-2wfm-xmqj
+
+# ============================================================================
+# Node.js Package Dependency Accepted Vulnerabilities
+# ============================================================================
+
+# brace-expansion
+CVE-2026-13149
+CVE-2026-14257
+CVE-2026-69152
+
+# ip-address
+CVE-2026-69192
+
+# picomatch
+CVE-2026-33671
+
+# sigstore
+CVE-2026-48815
+
+# tar / node-tar
+CVE-2026-59873
+CVE-2026-59874
+
+# image-size
+CVE-2025-71329
+CVE-2025-71330
+
+

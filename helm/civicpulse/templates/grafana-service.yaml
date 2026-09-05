@@ -1,0 +1,19 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.grafana.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: civicpulse-grafana
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.monitoring.grafana.port | default 3000 }}
+      targetPort: 3000
+      name: http
+  selector:
+    {{- include "civicpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+{{- end }}

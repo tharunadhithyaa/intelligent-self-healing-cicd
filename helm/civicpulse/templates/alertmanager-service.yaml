@@ -1,0 +1,19 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.alertmanager.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: civicpulse-alertmanager
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.monitoring.alertmanager.port | default 9093 }}
+      targetPort: 9093
+      name: http
+  selector:
+    {{- include "civicpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+{{- end }}

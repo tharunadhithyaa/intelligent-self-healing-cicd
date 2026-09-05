@@ -1,0 +1,19 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheus.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: civicpulse-prometheus
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.monitoring.prometheus.port | default 9090 }}
+      targetPort: 9090
+      name: http
+  selector:
+    {{- include "civicpulse.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+{{- end }}

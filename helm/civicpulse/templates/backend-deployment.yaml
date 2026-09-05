@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: civicpulse-backend
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "civicpulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "civicpulse.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "civicpulse.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: backend
+          image: '{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default "latest" }}'
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+              name: http
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.backend.env.nodeEnv | quote }}
+            - name: PORT
+              value: {{ .Values.backend.port | quote }}
+            - name: MONGODB_URI
+              value: "mongodb://civicpulse-mongodb:{{ .Values.mongodb.port }}/{{ .Values.mongodb.database }}"
+            - name: CORS_ORIGIN
+              value: {{ .Values.backend.env.corsOrigin | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.backend.env.logLevel | quote }}
+            - name: JWT_ACCESS_EXPIRY
+              value: {{ .Values.backend.env.jwtAccessExpiry | quote }}
+            - name: JWT_REFRESH_EXPIRY
+              value: {{ .Values.backend.env.jwtRefreshExpiry | quote }}
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret | default "civicpulse-secret" }}
+                  key: JWT_ACCESS_SECRET
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret | default "civicpulse-secret" }}
+                  key: JWT_REFRESH_SECRET
+            - name: DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.existingSecret | default "civicpulse-secret" }}
+                  key: DEFAULT_PASSWORD
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
