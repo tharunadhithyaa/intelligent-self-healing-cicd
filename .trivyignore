@@ -50,6 +50,7 @@ CVE-2026-56862
 # - Ignored only until official MongoDB image is updated upstream
 CVE-2026-59869
 GHSA-5p4m-2wfm-xmqj
+CVE-2026-84375
 
 # ============================================================================
 # Node.js Package Dependency Accepted Vulnerabilities
