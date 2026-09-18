@@ -58,7 +58,7 @@ mongodb:
   image:
     repository: ghcr.io/tharunadhithyaa/civicpulse-mongodb
     tag: "latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   port: 27017
   database: civicpulse
   persistence:
@@ -69,16 +69,16 @@ mongodb:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 1Gi
 
 nginx:
   image:
     repository: ghcr.io/tharunadhithyaa/civicpulse-nginx
     tag: "latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   replicaCount: 1
   service:
     type: NodePort
@@ -180,16 +180,16 @@ mlDecisionController:
   image:
     repository: ghcr.io/tharunadhithyaa/civicpulse-ml-decision-controller
     tag: "latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   replicas: 1
   service:
     port: 5000
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 500m
+      memory: 512Mi
 
 

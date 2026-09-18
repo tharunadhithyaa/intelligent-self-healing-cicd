@@ -45,9 +45,9 @@ spec:
                 - --quiet
                 - --eval
                 - "db.adminCommand({ping: 1})"
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 5
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 15
             failureThreshold: 30
           readinessProbe:
             exec:
@@ -56,10 +56,10 @@ spec:
                 - --quiet
                 - --eval
                 - "db.adminCommand({ping: 1})"
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 10
-            failureThreshold: 3
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 20
+            failureThreshold: 5
           livenessProbe:
             exec:
               command:
@@ -67,10 +67,10 @@ spec:
                 - --quiet
                 - --eval
                 - "db.adminCommand({ping: 1})"
-            initialDelaySeconds: 15
+            initialDelaySeconds: 20
             periodSeconds: 20
-            timeoutSeconds: 10
-            failureThreshold: 3
+            timeoutSeconds: 20
+            failureThreshold: 5
   {{- if .Values.mongodb.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
