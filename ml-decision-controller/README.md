@@ -15,8 +15,11 @@ The **ML Decision Controller** is an intelligent self-healing component of Civic
 4. **Thrashing Prevention (5-min Cooldown)**: Enforces rate-limiting per target workload so rapid duplicate alerts do not cause cascading restarts or scaling storms.
 5. **Observability & Auditability**:
    - `/health`: Health check endpoint for readiness/liveness probes.
-   - `/metrics`: Exposes Prometheus metrics (`civicpulse_ml_alert_webhooks_total`, `civicpulse_ml_remediation_actions_total`).
+   - `/metrics`: Exposes Prometheus metrics (`civicpulse_ml_alert_webhooks_total`, `civicpulse_ml_remediation_actions_total`, `civicpulse_ml_decision_processing_seconds`, `civicpulse_ml_healing_duration_seconds`, `civicpulse_ml_circuit_breaker_status`).
    - `/api/v1/decisions`: Audit trail endpoint returning recent remediation decision logs.
+   - `/api/v1/predict`: Manually triggers predictive resource scaling evaluations using linear regression time-series forecasting.
+   - `/api/v1/cooldown/state`: Diagnostic endpoint returning active cooldown timers and circuit breaker states.
+   - `/api/v1/reset-cooldown`: Endpoint to reset active cooldown timers and circuit breakers for automated test suites.
 
 ---
 

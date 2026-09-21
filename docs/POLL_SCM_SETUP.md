@@ -111,7 +111,7 @@ Because Jenkins Poll SCM is restricted to `*/main` and Stage 11 operates using z
 
 To configure SCM Polling in Jenkins:
 1. Open Jenkins job settings -> **Build Triggers**.
-2. Check ☑ **Poll SCM** with schedule `H/2 * * * *`.
+2. Check ☑ **Poll SCM** with schedule `H/15 * * * *`.
 3. Under **Pipeline -> SCM**:
    - Set **Branch Specifier (blank for 'any')**: `*/main`
    - Set **Script Path**: `Jenkinsfile`

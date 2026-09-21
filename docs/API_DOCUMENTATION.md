@@ -1,14 +1,14 @@
 # API Endpoints Documentation — CivicPulse AI
 
-All API routes are hosted under the base prefix `/api`. Most requests require authorization headers: `Authorization: Bearer <Access_JWT_Token>`. Rate limiting is enforced across endpoints (`100 req / 15 min` globally; `20 req / 15 min` for `/auth/login` and `/auth/register`).
+All API routes are hosted under the base prefix `/api`. Most requests require authorization headers: `Authorization: Bearer <Access_JWT_Token>`. Rate limiting is enforced across endpoints (`500 req / 15 min` globally; `100 req / 15 min` for `/auth/login` and `/auth/register`). Health and metrics endpoints are explicitly exempt from rate limiting.
 
 ---
 
-## 🏥 System Health Endpoint
+## 🏥 System Health & Metrics Endpoints
 
-### `GET /api/health`
+### 1. `GET /api/health`
 * **Description**: Live readiness and database connectivity health probe.
-* **Auth**: Public (No token required).
+* **Auth**: Public (No token required, exempt from rate limits).
 * **Response**: `200 OK` (when database is connected) or `503 Service Unavailable` (when database is down).
   ```json
   {
@@ -19,6 +19,11 @@ All API routes are hosted under the base prefix `/api`. Most requests require au
     "database": { "status": "up", "readyState": 1 }
   }
   ```
+
+### 2. `GET /metrics` or `GET /api/metrics`
+* **Description**: Exposes process and application Prometheus metrics collected via `prom-client`.
+* **Auth**: Public / Prometheus Scraper (Exempt from rate limits).
+* **Response**: `200 OK` (`text/plain; version=0.0.4`)
 
 ---
 
@@ -370,17 +375,53 @@ The **ML Decision Controller** microservice runs independently to process Alertm
 * **Description**: Returns recent historical remediation decision logs for audit and verification.
 * **Response**: `200 OK`
   ```json
+  [
+    {
+      "timestamp": "2026-08-30T12:00:00.000Z",
+      "target_workload": "civicpulse-backend",
+      "remediation_action": "RESTART",
+      "reason": "Backend API health check probe failing",
+      "execution_success": true,
+      "details": { "cooldown_active": false }
+    }
+  ]
+  ```
+
+### 5. `POST /api/v1/predict`
+* **Auth**: Internal / Audit.
+* **Description**: Manually triggers predictive resource scaling evaluation based on linear regression forecasting of Prometheus metrics.
+* **Query Params**: `target_workload` (default: `civicpulse-backend`).
+* **Response**: `200 OK`
+  ```json
   {
-    "total_decisions": 5,
-    "history": [
-      {
-        "timestamp": "2026-08-30T12:00:00.000Z",
-        "target": "civicpulse-backend",
-        "action": "RESTART",
-        "executed": true,
-        "cooldown_active": false
-      }
-    ]
+    "status": "no_action",
+    "message": "Predictive forecast within normal bounds."
   }
+  ```
+
+### 6. `GET /api/v1/cooldown/state`
+* **Auth**: Internal / Diagnostic.
+* **Description**: Returns current persistent cooldown timers and circuit breaker states for all target workloads.
+* **Response**: `200 OK`
+  ```json
+  {
+    "store_type": "ConfigMapStore",
+    "active_cooldowns": {},
+    "circuit_states": {
+      "civicpulse-backend": "CLOSED"
+    }
+  }
+  ```
+
+### 7. `POST /api/v1/reset-cooldown`
+* **Auth**: Internal / Integration Test Suite.
+* **Description**: Resets active action cooldown timers and circuit breakers for automated test verification suites.
+* **Payload**:
+  ```json
+  { "target_key": "civicpulse-backend" }
+  ```
+* **Response**: `200 OK`
+  ```json
+  { "status": "success", "message": "Cooldown reset complete" }
   ```
 

@@ -59,7 +59,7 @@ intelligent-self-healing-cicd/
 ├── nginx/                        # Reverse Proxy & Static Asset Gateway
 │   ├── Dockerfile.nginx          # Reverse proxy container setup
 │   └── nginx.conf                # Port 80 routing and caching configuration
-├── Jenkinsfile                   # Declarative pipeline script (15 stages)
+├── Jenkinsfile                   # Declarative pipeline script (21 stages)
 └── docker-compose.yml            # Multi-service local runtime orchestrator
 ```
 
@@ -118,7 +118,7 @@ sequenceDiagram
 
 1. **Dual Token Auth**: Access tokens (15-minute expiry) paired with Refresh tokens (7-day rotation) stored in MongoDB.
 2. **Input Sanitization**: Global security sanitizer strips `$` and `.` characters from incoming request body, query params, and parameters to prevent MongoDB operator injection and encodes HTML to neutralize XSS vectors.
-3. **Rate Limiting**: Express rate limiters protect the API (`100 requests / 15 minutes` default; `20 requests / 15 minutes` strict limit on `/api/auth/login` and `/api/auth/register`).
+3. **Rate Limiting**: Express rate limiters protect the API (`500 requests / 15 minutes` default; `100 requests / 15 minutes` strict limit on `/api/auth/login` and `/api/auth/register`; `/health` and `/metrics` exempt).
 4. **RBAC Control**: Route access is guarded by `checkPermission(...)` middleware verifying user role tags against active database role permissions.
 
 ---

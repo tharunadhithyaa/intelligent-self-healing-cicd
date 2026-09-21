@@ -142,14 +142,13 @@ jenkins-cli install-plugin pipeline-stage-view git docker-workflow \
 
 ## Credentials Configuration
 
-### GitHub Credentials
+### Configured Credentials
 1. Go to **Manage Jenkins → Credentials → System → Global credentials**
 2. Click **Add Credentials**
-3. **Kind**: Username with password
-   - **Username**: Your GitHub username
-   - **Password**: Your GitHub Personal Access Token (PAT)
-   - **ID**: `github-credentials`
-   - **Description**: GitHub access for CivicPulseAI
+3. Add the following credentials:
+   - **`github-credentials`** (Username with password): GitHub Access Token for repository SCM checkout.
+   - **`ghcr-credentials`** (Username with password): GitHub Container Registry authentication for pushing and inspecting container images.
+   - **`grafana-admin-password`** (Secret text): Admin password for Grafana monitoring dashboard integration.
 
 ---
 
@@ -173,7 +172,7 @@ See [POLL_SCM_SETUP.md](./POLL_SCM_SETUP.md) for detailed instructions.
 ### Quick Setup
 1. Go to your Jenkins Job → **Configure → Build Triggers**
 2. Check ☑ **Poll SCM**
-3. **Schedule**: `H/5 * * * *` (polls every 5 minutes)
+3. **Schedule**: `H/15 * * * *` (polls every 15 minutes)
 4. Click **Save**
 
 ---
@@ -187,11 +186,11 @@ See [POLL_SCM_SETUP.md](./POLL_SCM_SETUP.md) for detailed instructions.
    - **DEPLOY_ENV**: `development`
    - **SKIP_TESTS**: unchecked (`false`)
    - **DOCKER_PRUNE**: checked (`true`)
-   - **FORCE_REBUILD**: checked (`true`)
+   - **FORCE_REBUILD**: checked (`false`)
 4. Click **Build**
 5. Monitor progress in **Console Output** or **Pipeline Stage View**
 
-### Expected Pipeline Flow (15 Stages)
+### Expected Pipeline Flow (21 Stages)
 
 ```
 Stage 1: Checkout Source Code
@@ -199,16 +198,22 @@ Stage 1: Checkout Source Code
   → Stage 3: Install Dependencies
   → Stage 4: Static Code Validation
   → Stage 5: Build Application
-  → Stage 6: Unit Tests & Code Coverage
-  → Stage 7: SonarQube Analysis & Quality Gate
+  → Stage 5.5: Unit Tests & Code Coverage
+  → Stage 6: SonarQube Analysis
+  → Stage 7: SonarQube Quality Gate
   → Stage 8: Trivy Filesystem Scan
   → Stage 9: Docker Build
-  → Stage 10: Trivy Image Scan & GHCR Push
+  → Stage 10: Trivy Image Scan
+  → Stage 10.5: Push Images to GHCR
   → Stage 11: Apply Argo CD Parameter Override (Zero-Commit)
-  → Stage 12: Verify Self-Healing Controller & Remediations
-  → Stage 13: Application Health Verification
-  → Stage 14: Monitoring Stack Verification
-  → Stage 15: Publish Deployment & Security Reports
+  → Stage 10.6: Pre-Deployment Image Verification
+  → Stage 10.7: Pre-Deployment Cluster Health Gate
+  → Stage 12: Health Verification
+  → Stage 12.5: Deploy & Verify Monitoring Stack
+  → Stage 12.6: Verify Prometheus Targets & Grafana
+  → Stage 12.7: Verify ML Decision Controller
+  → Stage 13: Deployment Report
+  → Stage 13.5: Archive Monitoring Report
 ```
 
 Average build duration: **5–10 minutes**.

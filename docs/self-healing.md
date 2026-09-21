@@ -145,3 +145,9 @@ curl -X POST http://civicpulse-ml-decision-controller:5000/api/v1/alerts \
 
 - Each workload target enforces a **5-minute (300-second) cooldown window**.
 - Subsequent duplicate alerts within 5 minutes return `cooldown_active: true`, preventing action thrashing.
+- To reset cooldown state between demonstration runs:
+  ```bash
+  curl -X POST http://civicpulse-ml-decision-controller:5000/api/v1/reset-cooldown \
+    -H "Content-Type: application/json" \
+    -d '{"target_key": "civicpulse-backend"}'
+  ```

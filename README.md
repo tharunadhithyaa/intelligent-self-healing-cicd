@@ -49,7 +49,7 @@ intelligent-self-healing-cicd/
 ```
 
 ### Key Orchestration Files:
-*   [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile): The core declarative CI/CD pipeline specifying 13 sequential execution stages.
+*   [Jenkinsfile](file:///d:/Project/intelligent-self-healing-cicd/Jenkinsfile): The core declarative CI/CD pipeline specifying 21 comprehensive execution stages across build, security, deployment, and monitoring gates.
 *   [docker-compose.yml](file:///d:/Project/intelligent-self-healing-cicd/docker-compose.yml): Coordinates microservice boundaries, ports mapping, environment bindings, and healthy dependency structures (`mongodb`, `backend`, `frontend`, `nginx`, `sonarqube`).
 *   [deploy.sh](file:///d:/Project/intelligent-self-healing-cicd/jenkins/scripts/deploy.sh): Automatically handles container teardowns, network prunes, volume conflict resolutions, and recreations.
 *   [health-check.sh](file:///d:/Project/intelligent-self-healing-cicd/jenkins/scripts/health-check.sh): Performs robust layered verification.
@@ -60,22 +60,28 @@ intelligent-self-healing-cicd/
 ## ⚡ Key Capabilities & Features
 
 ### 🔄 1. Multi-Stage CI/CD Pipeline
-Automated end-to-end delivery split into 15 distinct execution stages:
+Automated end-to-end delivery split into 21 distinct execution stages:
 1.  **Checkout Source Code**: Clones source repo and captures git metadata (`GIT_COMMIT_SHORT`, `GIT_AUTHOR`).
 2.  **Environment Validation**: Checks pre-requisites (Docker, Docker Compose, Git, Node, npm) and auto-generates default `.env` files.
 3.  **Install Dependencies**: Installs node modules in parallel (`npm ci`) for backend and frontend.
 4.  **Static Code Validation**: Evaluates code quality (ESLint for backend, Prettier format check for frontend).
 5.  **Build Application**: Compiles Angular client and TypeScript backend in parallel.
 6.  **Unit Tests & Code Coverage**: Runs backend (Jest + CI MongoDB) and frontend (Vitest) test suites, producing `lcov.info` coverage reports.
-7.  **SonarQube Analysis & Quality Gate**: Runs system SonarScanner with dynamic source detection and waits for Quality Gate evaluation.
-8.  **Trivy Filesystem Scan**: Scans repository source files for HIGH/CRITICAL vulnerabilities before Docker build.
-9.  **Docker Build**: Generates production-ready container images tagged with `${BUILD_NUMBER}`.
-10. **Trivy Image Scan & GHCR Push**: Scans container images and pushes published tags (`ghcr.io/tharunadhithyaa/civicpulse-*:BUILD_NUMBER`) to GitHub Container Registry.
-11. **Apply Argo CD Parameter Override**: Zero-commit stage executing `update-gitops.sh --build-number ${BUILD_NUMBER}` immediately after GHCR image push to patch Argo CD application parameters (`backend.image.tag`, `frontend.image.tag`) directly in K3s.
-12. **Verify Self-Healing Controller & Remediations**: Audits real-time K3s cluster health, ML decision controller readiness, and remediation triggers.
-13. **Health Verification**: Layered HTTP endpoint polling and container probe verifications (`health-check.sh`).
-14. **Monitoring Stack Verification**: Audits Prometheus, Grafana, and Alertmanager endpoint readiness (`verify-monitoring.sh`).
-15. **Publish Deployment & Security Reports**: Publishes consolidated build, security, and deployment audit reports (`generate-report.sh`).
+7.  **SonarQube Analysis**: Executes system SonarScanner with dynamic source auto-detection.
+8.  **SonarQube Quality Gate**: Evaluates code metrics against defined Quality Gate thresholds.
+9.  **Trivy Filesystem Scan**: Scans repository source files for HIGH/CRITICAL vulnerabilities before Docker build.
+10. **Docker Build**: Generates production-ready container images using BuildKit tagged with `${BUILD_NUMBER}`.
+11. **Trivy Image Scan**: Scans compiled container images before registry push.
+12. **Push Images to GHCR**: Pushes published tags (`ghcr.io/tharunadhithyaa/civicpulse-*:BUILD_NUMBER`) to GitHub Container Registry.
+13. **Apply Argo CD Parameter Override**: Zero-commit stage executing `update-gitops.sh --build-number ${BUILD_NUMBER}` to patch Argo CD parameters directly in K3s.
+14. **Pre-Deployment Image Verification**: Inspects image manifests in GHCR via registry API prior to rollout.
+15. **Pre-Deployment Cluster Health Gate**: Executes `pre-deploy-self-heal.sh --mode pre` to verify cluster readiness.
+16. **Health Verification**: Layered HTTP endpoint polling and container probe verifications (`health-check.sh`).
+17. **Deploy & Verify Monitoring Stack**: Validates Prometheus, Grafana, and Alertmanager stack readiness (`verify-monitoring.sh`).
+18. **Verify Prometheus Targets & Grafana**: Audits Prometheus scrape targets and Grafana Web UI accessibility.
+19. **Verify ML Decision Controller**: Validates ML Decision Controller health (`/health`) and remediation test suite (`verify-self-healing.sh`).
+20. **Deployment Report**: Publishes consolidated build, security, and deployment audit reports (`generate-report.sh`).
+21. **Archive Monitoring Report**: Archives detailed monitoring stack audit reports (`generate-monitoring-report.sh`).
 
 > **Note on Zero-Commit GitOps Architecture & Poll SCM**:
 > - **`main` Branch**: Pushed by developers and monitored by Jenkins Poll SCM (`*/main`).
