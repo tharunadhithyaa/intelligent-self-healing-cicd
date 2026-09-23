@@ -153,15 +153,15 @@ fi
 log_ok "K3s cluster accessible"
 
 if ! kubectl get application civicpulse -n argocd --request-timeout=10s >/dev/null 2>&1; then
-    log_warn "Argo CD Application 'civicpulse' not found in namespace 'argocd'. Applying manifest argocd/civicpulse-application.yaml..."
+    log_warn "Argo CD Application 'civicpulse' not found in namespace 'argocd'. Creating initial Application resource..."
     if [ -f "${REPO_ROOT}/argocd/civicpulse-application.yaml" ]; then
         kubectl apply -f "${REPO_ROOT}/argocd/civicpulse-application.yaml" --request-timeout=10s >/dev/null 2>&1 || true
+    else
+        log_error "FATAL: argocd/civicpulse-application.yaml manifest not found!"
+        exit 1
     fi
 else
-    log_ok "Argo CD Application 'civicpulse' found in namespace 'argocd'"
-    if [ -f "${REPO_ROOT}/argocd/civicpulse-application.yaml" ]; then
-        kubectl apply -f "${REPO_ROOT}/argocd/civicpulse-application.yaml" --request-timeout=10s >/dev/null 2>&1 || true
-    fi
+    log_ok "Argo CD Application 'civicpulse' already exists in namespace 'argocd'. Skipping base YAML apply to preserve live parameter overrides."
 fi
 
 # ── Retrieve Previous Tags & Display Stage Header ─────────────────────────────
@@ -256,8 +256,8 @@ fi
 log_ok "Verified Argo CD Application live spec parameters: frontend=${FRONTEND_SPEC_TAG}, backend=${BACKEND_SPEC_TAG}"
 
 # ── Trigger Argo CD Refresh ───────────────────────────────────────────────────
-log_info "Triggering Argo CD application refresh via Kubernetes API..."
-kubectl annotate application civicpulse -n argocd argocd.argoproj.io/refresh=normal --overwrite --request-timeout=10s >/dev/null 2>&1 || true
+log_info "Triggering Argo CD application hard refresh via Kubernetes API..."
+kubectl annotate application civicpulse -n argocd argocd.argoproj.io/refresh=hard --overwrite --request-timeout=10s >/dev/null 2>&1 || true
 
 log_info "Waiting for Argo CD to reconcile manifests..."
 SYNC_WAIT=0

@@ -6,6 +6,13 @@ metadata:
   labels:
     app.kubernetes.io/name: civicpulse
     app.kubernetes.io/part-of: civicpulse-ai
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: frontend=ghcr.io/tharunadhithyaa/civicpulse-frontend, backend=ghcr.io/tharunadhithyaa/civicpulse-backend
+    argocd-image-updater.argoproj.io/frontend.update-strategy: latest
+    argocd-image-updater.argoproj.io/backend.update-strategy: latest
+    argocd-image-updater.argoproj.io/frontend.helm.image-tag: frontend.image.tag
+    argocd-image-updater.argoproj.io/backend.helm.image-tag: backend.image.tag
+    argocd-image-updater.argoproj.io/write-back-method: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -34,3 +41,9 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /spec/source/helm/parameters
+

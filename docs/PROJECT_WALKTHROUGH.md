@@ -1423,7 +1423,12 @@ This section provides comprehensive defense strategies, technical trade-off rati
 - **Examiner Challenge**: "GitOps requires Git to be the single source of truth. Your script uses `kubectl patch application` directly in Kubernetes. Isn't that bypassing GitOps?"
 - **Solid Defense Answer**:
   > "You are correct that standard GitOps commits image tags back to a Git repository. However, in our architecture, Jenkins uses **Poll SCM** to detect code changes. If Jenkins committed new image tags back to Git during build execution, it would trigger a recursive, infinite build loop.
-  > To solve this without adding complex webhook filtering or separate repo branches, we implemented the **Argo CD Parameter Override Pattern**. The core infrastructure manifests remain declaratively managed in Git by Argo CD, while live build numbers are injected as parameter overrides (`spec.source.helm.parameters`). This delivers immediate deployment execution and full Argo CD health tracking while preserving demo stability."
+  > To solve this without adding complex webhook filtering or separate repo branches, we implemented the **Hardened Argo CD Parameter Override Pattern**:
+  > 1. The core infrastructure manifests remain declaratively managed in Git by Argo CD (`helm/civicpulse`), while live build numbers are injected as parameter overrides (`spec.source.helm.parameters`).
+  > 2. `update-gitops.sh` checks if the `Application` resource exists and **skips** `kubectl apply` on existing Applications, executing a pure strategic merge patch (`kubectl patch application civicpulse -n argocd --type merge`).
+  > 3. `ignoreDifferences` is configured on `/spec/source/helm/parameters` so Argo CD's self-healing engine respects live parameter overrides without treating them as Git drift.
+  > 4. Additionally, **Argo CD Image Updater** (`argocd/argocd-image-updater.yaml`) is supported to track GHCR tags automatically using `write-back-method: argocd`.
+  > This delivers immediate deployment execution and full Argo CD health tracking while eliminating build loops and parameter wipe race conditions."
 
 #### Scenario 3: "Why use Kubernetes ConfigMap for Cooldown Store instead of Redis?"
 - **Examiner Challenge**: "ConfigMap writes hit the Kubernetes API server. Under heavy alert load, won't this cause rate limiting or optimistic locking conflicts?"
